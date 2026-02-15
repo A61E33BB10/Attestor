@@ -1,0 +1,111 @@
+name: Attestor CI
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install mypy ruff
+      - run: mypy --strict attestor/
+      - run: ruff check attestor/ tests/
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest hypothesis
+      - run: pytest tests/ -x --tb=short -v
+
+  verify:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: No float in domain type annotations
+        run: |
+          python -c "
+          import pathlib, re, sys
+          violations = []
+          for f in pathlib.Path('attestor').rglob('*.py'):
+              for i, line in enumerate(f.read_text().splitlines(), 1):
+                  if re.search(r':\s*float\b', line) and 'noqa' not in line:
+                      violations.append(f'{f}:{i}: {line.strip()}')
+          if violations:
+              for v in violations: print(v, file=sys.stderr)
+              sys.exit(1)
+          print('No float in type annotations. PASS.')
+          "
+      - name: All dataclasses are frozen
+        run: |
+          python -c "
+          import pathlib, re, sys
+          for f in pathlib.Path('attestor').rglob('*.py'):
+              for m in re.finditer(r'@dataclass\((.*?)\)', f.read_text()):
+                  if 'frozen=True' not in m.group(1):
+                      print(f'FAIL {f}: {m.group(0)}', file=sys.stderr)
+                      sys.exit(1)
+          print('All dataclasses frozen. PASS.')
+          "
+      - name: No raise in domain functions
+        run: |
+          python -c "
+          import ast, pathlib, sys
+          # __getitem__: Python protocol requirement (KeyError)
+          # _to_serializable: internal helper, raises are caught by canonical_bytes
+          ALLOWED = {'__post_init__', 'unwrap', '__getitem__', '_to_serializable'}
+          violations = []
+          for f in pathlib.Path('attestor').rglob('*.py'):
+              tree = ast.parse(f.read_text())
+              for node in ast.walk(tree):
+                  if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                      if node.name in ALLOWED: continue
+                      for child in ast.walk(node):
+                          if isinstance(child, ast.Raise):
+                              violations.append(f'{f}:{child.lineno}: raise in {node.name}')
+          if violations:
+              for v in violations: print(v, file=sys.stderr)
+              sys.exit(1)
+          print('No raise in domain functions. PASS.')
+          "
+      - name: Import smoke test
+        run: |
+          python -c "
+          from attestor.core import (
+              Ok, Err, Result, Money, FrozenMap, BitemporalEnvelope,
+              AttestorError, ValidationError, LEI, UTI, ISIN,
+              content_hash, ATTESTOR_DECIMAL_CONTEXT, PositiveDecimal,
+              UtcDatetime, sequence,
+          )
+          from attestor.oracle.attestation import (
+              Attestation, FirmConfidence, QuotedConfidence, DerivedConfidence,
+              create_attestation, QuoteCondition,
+          )
+          from attestor.ledger.transactions import (
+              Move, Transaction, StateDelta, LedgerEntry, DistinctAccountPair,
+              DeltaDecimal, DeltaNull, Account, AccountType, Position,
+          )
+          from attestor.pricing.types import (
+              ValuationResult, Greeks, Scenario, ScenarioResult, VaRResult, PnLAttribution,
+          )
+          from attestor.pricing.protocols import PricingEngine, RiskEngine, StubPricingEngine
+          from attestor.infra.protocols import (
+              EventBus, AttestationStore, TransactionLog, StateStore,
+          )
+          from attestor.infra.memory_adapter import (
+              InMemoryEventBus, InMemoryAttestationStore,
+              InMemoryTransactionLog, InMemoryStateStore,
+          )
+          from attestor.infra.config import PHASE0_TOPICS, phase0_topic_configs
+          print('All 50+ types importable. PASS.')
+          "
