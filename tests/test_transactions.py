@@ -88,8 +88,8 @@ class TestDeltaValue:
 
 
 class TestAccountType:
-    def test_has_7_variants(self) -> None:
-        assert len(AccountType) == 7
+    def test_has_8_variants(self) -> None:
+        assert len(AccountType) == 8
 
     def test_cash_exists(self) -> None:
         assert AccountType.CASH.value == "CASH"
@@ -199,6 +199,37 @@ class TestMove:
         with pytest.raises(dataclasses.FrozenInstanceError):
             m.source = "Z"  # type: ignore[misc]
 
+    def test_create_valid(self) -> None:
+        qty = unwrap(PositiveDecimal.parse(Decimal("100")))
+        result = Move.create("A", "B", "USD", qty, "C-1")
+        assert isinstance(result, Ok)
+        m = unwrap(result)
+        assert m.source == "A"
+        assert m.destination == "B"
+
+    def test_create_self_transfer_err(self) -> None:
+        """F-HIGH-01: source == destination must be rejected."""
+        qty = unwrap(PositiveDecimal.parse(Decimal("100")))
+        result = Move.create("A", "A", "USD", qty, "C-1")
+        assert isinstance(result, Err)
+        assert "differ" in result.error
+
+    def test_create_empty_source_err(self) -> None:
+        qty = unwrap(PositiveDecimal.parse(Decimal("100")))
+        assert isinstance(Move.create("", "B", "USD", qty, "C"), Err)
+
+    def test_create_empty_destination_err(self) -> None:
+        qty = unwrap(PositiveDecimal.parse(Decimal("100")))
+        assert isinstance(Move.create("A", "", "USD", qty, "C"), Err)
+
+    def test_create_empty_unit_err(self) -> None:
+        qty = unwrap(PositiveDecimal.parse(Decimal("100")))
+        assert isinstance(Move.create("A", "B", "", qty, "C"), Err)
+
+    def test_create_empty_contract_id_err(self) -> None:
+        qty = unwrap(PositiveDecimal.parse(Decimal("100")))
+        assert isinstance(Move.create("A", "B", "USD", qty, ""), Err)
+
 
 class TestTransaction:
     def test_has_moves_and_timestamp(self) -> None:
@@ -218,6 +249,29 @@ class TestTransaction:
         tx = Transaction(tx_id="TX-1", moves=(), timestamp=UtcDatetime.now())
         with pytest.raises(dataclasses.FrozenInstanceError):
             tx.tx_id = "TX-2"  # type: ignore[misc]
+
+    def test_create_valid(self) -> None:
+        qty = unwrap(PositiveDecimal.parse(Decimal("50")))
+        m = Move("A", "B", "USD", qty, "C")
+        ts = UtcDatetime.now()
+        result = Transaction.create("TX-1", (m,), ts)
+        assert isinstance(result, Ok)
+        tx = unwrap(result)
+        assert tx.tx_id == "TX-1"
+        assert len(tx.moves) == 1
+
+    def test_create_empty_tx_id_err(self) -> None:
+        qty = unwrap(PositiveDecimal.parse(Decimal("50")))
+        m = Move("A", "B", "USD", qty, "C")
+        result = Transaction.create("", (m,), UtcDatetime.now())
+        assert isinstance(result, Err)
+        assert "tx_id" in result.error
+
+    def test_create_empty_moves_err(self) -> None:
+        """F-HIGH-02: empty moves must be rejected."""
+        result = Transaction.create("TX-1", (), UtcDatetime.now())
+        assert isinstance(result, Err)
+        assert "at least one" in result.error
 
 
 # ---------------------------------------------------------------------------

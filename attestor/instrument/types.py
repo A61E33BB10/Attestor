@@ -1,19 +1,35 @@
-"""Instrument model types — Party, EquityPayoutSpec, EconomicTerms, Product, Instrument.
+"""Instrument model types — Party, PayoutSpecs, EconomicTerms, Product, Instrument.
 
-Phase 1: Cash equities and ETFs only. Phase 2 extends EconomicTerms.payout
-to a union of EquityPayoutSpec | OptionPayoutSpec | FuturesPayoutSpec.
+Payout = EquityPayoutSpec | OptionPayoutSpec | FuturesPayoutSpec
+       | FXSpotPayoutSpec | FXForwardPayoutSpec | NDFPayoutSpec | IRSwapPayoutSpec.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
 from enum import Enum
 from typing import final
 
 from attestor.core.identifiers import LEI
 from attestor.core.money import NonEmptyStr
 from attestor.core.result import Err, Ok
+from attestor.instrument.derivative_types import (
+    FuturesPayoutSpec,
+    OptionPayoutSpec,
+    OptionStyle,
+    OptionType,
+    SettlementType,
+)
+from attestor.instrument.fx_types import (
+    DayCountConvention,
+    FXForwardPayoutSpec,
+    FXSpotPayoutSpec,
+    IRSwapPayoutSpec,
+    NDFPayoutSpec,
+    PaymentFrequency,
+)
 
 
 class PositionStatusEnum(Enum):
@@ -86,12 +102,18 @@ class EquityPayoutSpec:
         return Ok(EquityPayoutSpec(instrument_id=iid, currency=cur, exchange=ex))
 
 
+type Payout = (
+    EquityPayoutSpec | OptionPayoutSpec | FuturesPayoutSpec
+    | FXSpotPayoutSpec | FXForwardPayoutSpec | NDFPayoutSpec | IRSwapPayoutSpec
+)
+
+
 @final
 @dataclass(frozen=True, slots=True)
 class EconomicTerms:
-    """Economic terms of an instrument. Phase 1: equity payout only."""
+    """Economic terms of an instrument."""
 
-    payout: EquityPayoutSpec
+    payout: Payout
     effective_date: date
     termination_date: date | None  # None for perpetual equities
 
@@ -142,4 +164,235 @@ def create_equity_instrument(
         parties=parties,
         trade_date=trade_date,
         status=PositionStatusEnum.PROPOSED,
+    ))
+
+
+def create_option_instrument(
+    instrument_id: str,
+    underlying_id: str,
+    strike: Decimal,
+    expiry_date: date,
+    option_type: OptionType,
+    option_style: OptionStyle,
+    settlement_type: SettlementType,
+    currency: str,
+    exchange: str,
+    parties: tuple[Party, ...],
+    trade_date: date,
+    multiplier: Decimal = Decimal("100"),
+) -> Ok[Instrument] | Err[str]:
+    """Create an option Instrument from basic parameters."""
+    match OptionPayoutSpec.create(
+        underlying_id=underlying_id, strike=strike, expiry_date=expiry_date,
+        option_type=option_type, option_style=option_style,
+        settlement_type=settlement_type, currency=currency,
+        exchange=exchange, multiplier=multiplier,
+    ):
+        case Err(e):
+            return Err(e)
+        case Ok(payout):
+            pass
+    match NonEmptyStr.parse(instrument_id):
+        case Err(e):
+            return Err(f"Instrument.instrument_id: {e}")
+        case Ok(iid):
+            pass
+    terms = EconomicTerms(
+        payout=payout, effective_date=trade_date, termination_date=expiry_date,
+    )
+    product = Product(economic_terms=terms)
+    return Ok(Instrument(
+        instrument_id=iid,
+        product=product,
+        parties=parties,
+        trade_date=trade_date,
+        status=PositionStatusEnum.PROPOSED,
+    ))
+
+
+def create_futures_instrument(
+    instrument_id: str,
+    underlying_id: str,
+    expiry_date: date,
+    last_trading_date: date,
+    settlement_type: SettlementType,
+    contract_size: Decimal,
+    currency: str,
+    exchange: str,
+    parties: tuple[Party, ...],
+    trade_date: date,
+) -> Ok[Instrument] | Err[str]:
+    """Create a futures Instrument from basic parameters."""
+    match FuturesPayoutSpec.create(
+        underlying_id=underlying_id, expiry_date=expiry_date,
+        last_trading_date=last_trading_date, settlement_type=settlement_type,
+        contract_size=contract_size, currency=currency, exchange=exchange,
+    ):
+        case Err(e):
+            return Err(e)
+        case Ok(payout):
+            pass
+    match NonEmptyStr.parse(instrument_id):
+        case Err(e):
+            return Err(f"Instrument.instrument_id: {e}")
+        case Ok(iid):
+            pass
+    terms = EconomicTerms(
+        payout=payout, effective_date=trade_date, termination_date=expiry_date,
+    )
+    product = Product(economic_terms=terms)
+    return Ok(Instrument(
+        instrument_id=iid,
+        product=product,
+        parties=parties,
+        trade_date=trade_date,
+        status=PositionStatusEnum.PROPOSED,
+    ))
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 instrument factories
+# ---------------------------------------------------------------------------
+
+
+def create_fx_spot_instrument(
+    instrument_id: str,
+    currency_pair: str,
+    base_notional: Decimal,
+    currency: str,
+    parties: tuple[Party, ...],
+    trade_date: date,
+) -> Ok[Instrument] | Err[str]:
+    """Create an FX spot Instrument."""
+    match FXSpotPayoutSpec.create(
+        currency_pair=currency_pair, base_notional=base_notional,
+        currency=currency,
+    ):
+        case Err(e):
+            return Err(e)
+        case Ok(payout):
+            pass
+    match NonEmptyStr.parse(instrument_id):
+        case Err(e):
+            return Err(f"Instrument.instrument_id: {e}")
+        case Ok(iid):
+            pass
+    terms = EconomicTerms(payout=payout, effective_date=trade_date, termination_date=None)
+    product = Product(economic_terms=terms)
+    return Ok(Instrument(
+        instrument_id=iid, product=product, parties=parties,
+        trade_date=trade_date, status=PositionStatusEnum.PROPOSED,
+    ))
+
+
+def create_fx_forward_instrument(
+    instrument_id: str,
+    currency_pair: str,
+    base_notional: Decimal,
+    forward_rate: Decimal,
+    settlement_date: date,
+    currency: str,
+    parties: tuple[Party, ...],
+    trade_date: date,
+) -> Ok[Instrument] | Err[str]:
+    """Create an FX forward Instrument."""
+    match FXForwardPayoutSpec.create(
+        currency_pair=currency_pair, base_notional=base_notional,
+        forward_rate=forward_rate, settlement_date=settlement_date,
+        currency=currency,
+    ):
+        case Err(e):
+            return Err(e)
+        case Ok(payout):
+            pass
+    match NonEmptyStr.parse(instrument_id):
+        case Err(e):
+            return Err(f"Instrument.instrument_id: {e}")
+        case Ok(iid):
+            pass
+    terms = EconomicTerms(
+        payout=payout, effective_date=trade_date, termination_date=settlement_date,
+    )
+    product = Product(economic_terms=terms)
+    return Ok(Instrument(
+        instrument_id=iid, product=product, parties=parties,
+        trade_date=trade_date, status=PositionStatusEnum.PROPOSED,
+    ))
+
+
+def create_ndf_instrument(
+    instrument_id: str,
+    currency_pair: str,
+    base_notional: Decimal,
+    forward_rate: Decimal,
+    fixing_date: date,
+    settlement_date: date,
+    fixing_source: str,
+    currency: str,
+    parties: tuple[Party, ...],
+    trade_date: date,
+) -> Ok[Instrument] | Err[str]:
+    """Create an NDF Instrument."""
+    match NDFPayoutSpec.create(
+        currency_pair=currency_pair, base_notional=base_notional,
+        forward_rate=forward_rate, fixing_date=fixing_date,
+        settlement_date=settlement_date, fixing_source=fixing_source,
+        currency=currency,
+    ):
+        case Err(e):
+            return Err(e)
+        case Ok(payout):
+            pass
+    match NonEmptyStr.parse(instrument_id):
+        case Err(e):
+            return Err(f"Instrument.instrument_id: {e}")
+        case Ok(iid):
+            pass
+    terms = EconomicTerms(
+        payout=payout, effective_date=trade_date, termination_date=settlement_date,
+    )
+    product = Product(economic_terms=terms)
+    return Ok(Instrument(
+        instrument_id=iid, product=product, parties=parties,
+        trade_date=trade_date, status=PositionStatusEnum.PROPOSED,
+    ))
+
+
+def create_irs_instrument(
+    instrument_id: str,
+    fixed_rate: Decimal,
+    float_index: str,
+    day_count: DayCountConvention,
+    payment_frequency: PaymentFrequency,
+    notional: Decimal,
+    currency: str,
+    start_date: date,
+    end_date: date,
+    parties: tuple[Party, ...],
+    trade_date: date,
+    spread: Decimal = Decimal("0"),
+) -> Ok[Instrument] | Err[str]:
+    """Create a vanilla IRS Instrument."""
+    match IRSwapPayoutSpec.create(
+        fixed_rate=fixed_rate, float_index=float_index,
+        day_count=day_count, payment_frequency=payment_frequency,
+        notional=notional, currency=currency,
+        start_date=start_date, end_date=end_date, spread=spread,
+    ):
+        case Err(e):
+            return Err(e)
+        case Ok(payout):
+            pass
+    match NonEmptyStr.parse(instrument_id):
+        case Err(e):
+            return Err(f"Instrument.instrument_id: {e}")
+        case Ok(iid):
+            pass
+    terms = EconomicTerms(
+        payout=payout, effective_date=start_date, termination_date=end_date,
+    )
+    product = Product(economic_terms=terms)
+    return Ok(Instrument(
+        instrument_id=iid, product=product, parties=parties,
+        trade_date=trade_date, status=PositionStatusEnum.PROPOSED,
     ))

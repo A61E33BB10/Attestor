@@ -1,6 +1,31 @@
 """attestor.ledger — Ledger domain types and engine."""
 
 from attestor.ledger.engine import LedgerEngine as LedgerEngine
+
+# Phase 3: FX settlement
+from attestor.ledger.fx_settlement import (
+    create_fx_forward_settlement as create_fx_forward_settlement,
+)
+from attestor.ledger.fx_settlement import (
+    create_fx_spot_settlement as create_fx_spot_settlement,
+)
+from attestor.ledger.fx_settlement import (
+    create_ndf_settlement as create_ndf_settlement,
+)
+
+# Phase 3: IRS cashflow booking
+from attestor.ledger.irs import CashflowSchedule as CashflowSchedule
+from attestor.ledger.irs import ScheduledCashflow as ScheduledCashflow
+from attestor.ledger.irs import apply_rate_fixing as apply_rate_fixing
+from attestor.ledger.irs import (
+    create_irs_cashflow_transaction as create_irs_cashflow_transaction,
+)
+from attestor.ledger.irs import (
+    generate_fixed_leg_schedule as generate_fixed_leg_schedule,
+)
+from attestor.ledger.irs import (
+    generate_float_leg_schedule as generate_float_leg_schedule,
+)
 from attestor.ledger.transactions import Account as Account
 from attestor.ledger.transactions import AccountType as AccountType
 from attestor.ledger.transactions import DeltaBool as DeltaBool

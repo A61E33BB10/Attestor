@@ -206,6 +206,36 @@ class TestIdempotencyKey:
 # ---------------------------------------------------------------------------
 
 
+class TestBusinessDayCalendar:
+    def test_add_1_business_day_from_monday(self) -> None:
+        from datetime import date as _date
+
+        from attestor.core.calendar import add_business_days
+        # Monday 2025-06-16 + 1 = Tuesday 2025-06-17
+        assert add_business_days(_date(2025, 6, 16), 1) == _date(2025, 6, 17)
+
+    def test_add_2_business_days_from_monday(self) -> None:
+        from datetime import date as _date
+
+        from attestor.core.calendar import add_business_days
+        # Monday 2025-06-16 + 2 = Wednesday 2025-06-18
+        assert add_business_days(_date(2025, 6, 16), 2) == _date(2025, 6, 18)
+
+    def test_add_1_business_day_from_friday(self) -> None:
+        from datetime import date as _date
+
+        from attestor.core.calendar import add_business_days
+        # Friday 2025-06-13 + 1 = Monday 2025-06-16
+        assert add_business_days(_date(2025, 6, 13), 1) == _date(2025, 6, 16)
+
+    def test_add_5_business_days_skips_weekend(self) -> None:
+        from datetime import date as _date
+
+        from attestor.core.calendar import add_business_days
+        # Monday 2025-06-16 + 5 = Monday 2025-06-23
+        assert add_business_days(_date(2025, 6, 16), 5) == _date(2025, 6, 23)
+
+
 class TestEventTime:
     def test_wraps_utc_datetime(self) -> None:
         utc = UtcDatetime.now()

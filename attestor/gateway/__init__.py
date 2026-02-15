@@ -4,6 +4,12 @@ from attestor.gateway.parser import (
     order_to_dict as order_to_dict,
 )
 from attestor.gateway.parser import (
+    parse_futures_order as parse_futures_order,
+)
+from attestor.gateway.parser import (
+    parse_option_order as parse_option_order,
+)
+from attestor.gateway.parser import (
     parse_order as parse_order,
 )
 from attestor.gateway.types import (

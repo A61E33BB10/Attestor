@@ -23,6 +23,10 @@ CREATE INDEX idx_positions_instrument
 CREATE INDEX idx_positions_system_time
     ON attestor.positions (system_time);
 
+CREATE TRIGGER prevent_positions_mutation
+    BEFORE UPDATE OR DELETE ON attestor.positions
+    FOR EACH ROW EXECUTE FUNCTION prevent_mutation();
+
 COMMENT ON TABLE attestor.positions IS
     'Bitemporal position store. Each row is a snapshot of a position at a '
     'specific valid_time. Query with valid_time <= ? AND system_time <= ? '

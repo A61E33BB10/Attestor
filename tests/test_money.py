@@ -279,6 +279,46 @@ _money_amounts = st.decimals(
 )
 
 
+class TestMoneyAbs:
+    def test_abs_positive(self) -> None:
+        m = _usd("42.50")
+        assert m.abs().amount == Decimal("42.50")
+
+    def test_abs_negative(self) -> None:
+        m = _usd("-42.50")
+        assert m.abs().amount == Decimal("42.50")
+
+    def test_abs_zero(self) -> None:
+        m = _usd("0")
+        assert m.abs().amount == Decimal("0")
+
+    def test_abs_preserves_currency(self) -> None:
+        m = _usd("-100")
+        assert m.abs().currency == m.currency
+
+
+class TestValidateCurrency:
+    def test_valid_usd(self) -> None:
+        from attestor.core.money import validate_currency
+        assert validate_currency("USD") is True
+
+    def test_valid_eur(self) -> None:
+        from attestor.core.money import validate_currency
+        assert validate_currency("EUR") is True
+
+    def test_valid_hkd(self) -> None:
+        from attestor.core.money import validate_currency
+        assert validate_currency("HKD") is True
+
+    def test_invalid_xxx(self) -> None:
+        from attestor.core.money import validate_currency
+        assert validate_currency("XXX") is False
+
+    def test_invalid_empty(self) -> None:
+        from attestor.core.money import validate_currency
+        assert validate_currency("") is False
+
+
 class TestMoneyProperties:
     @given(a=_money_amounts, b=_money_amounts)
     def test_add_commutativity(self, a: Decimal, b: Decimal) -> None:

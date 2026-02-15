@@ -37,6 +37,33 @@ PHASE1_TOPICS: tuple[str, ...] = (
     TOPIC_EMIR_REPORTS,
 )
 
+# Phase 2 topics
+TOPIC_DERIVATIVE_ORDERS: str = "attestor.derivative_orders"
+TOPIC_OPTION_PRICES: str = "attestor.option_prices"
+TOPIC_FUTURES_SETTLEMENTS: str = "attestor.futures_settlements"
+TOPIC_MIFID2_REPORTS: str = "attestor.mifid2_reports"
+TOPIC_MARGIN_EVENTS: str = "attestor.margin_events"
+
+PHASE2_TOPICS: tuple[str, ...] = (
+    TOPIC_DERIVATIVE_ORDERS,
+    TOPIC_OPTION_PRICES,
+    TOPIC_FUTURES_SETTLEMENTS,
+    TOPIC_MIFID2_REPORTS,
+    TOPIC_MARGIN_EVENTS,
+)
+
+# Phase 3 topics
+TOPIC_FX_RATES: str = "attestor.oracle.fx_rates"
+TOPIC_YIELD_CURVES: str = "attestor.oracle.yield_curves"
+TOPIC_RATE_FIXINGS: str = "attestor.oracle.rate_fixings"
+TOPIC_CALIBRATION_EVENTS: str = "attestor.oracle.calibration_events"
+TOPIC_MODEL_CONFIGS: str = "attestor.oracle.model_configs"
+
+PHASE3_TOPICS: frozenset[str] = frozenset({
+    TOPIC_FX_RATES, TOPIC_YIELD_CURVES, TOPIC_RATE_FIXINGS,
+    TOPIC_CALIBRATION_EVENTS, TOPIC_MODEL_CONFIGS,
+})
+
 
 # ---------------------------------------------------------------------------
 # Topic configuration
@@ -80,6 +107,42 @@ def phase0_topic_configs() -> tuple[TopicConfig, ...]:
     )
 
 
+def phase2_topic_configs() -> tuple[TopicConfig, ...]:
+    """Return topic configs for the five Phase 2 topics."""
+    return (
+        TopicConfig(
+            name=TOPIC_DERIVATIVE_ORDERS,
+            partitions=6, replication_factor=3,
+            retention_ms=90 * 24 * 3600 * 1000,
+            cleanup_policy="delete", min_insync_replicas=2,
+        ),
+        TopicConfig(
+            name=TOPIC_OPTION_PRICES,
+            partitions=6, replication_factor=3,
+            retention_ms=30 * 24 * 3600 * 1000,
+            cleanup_policy="delete", min_insync_replicas=2,
+        ),
+        TopicConfig(
+            name=TOPIC_FUTURES_SETTLEMENTS,
+            partitions=6, replication_factor=3,
+            retention_ms=90 * 24 * 3600 * 1000,
+            cleanup_policy="delete", min_insync_replicas=2,
+        ),
+        TopicConfig(
+            name=TOPIC_MIFID2_REPORTS,
+            partitions=3, replication_factor=3,
+            retention_ms=-1,
+            cleanup_policy="delete", min_insync_replicas=2,
+        ),
+        TopicConfig(
+            name=TOPIC_MARGIN_EVENTS,
+            partitions=6, replication_factor=3,
+            retention_ms=-1,
+            cleanup_policy="delete", min_insync_replicas=2,
+        ),
+    )
+
+
 def phase1_topic_configs() -> tuple[TopicConfig, ...]:
     """Return topic configs for the five Phase 1 topics."""
     return (
@@ -109,6 +172,42 @@ def phase1_topic_configs() -> tuple[TopicConfig, ...]:
         ),
         TopicConfig(
             name=TOPIC_EMIR_REPORTS,
+            partitions=3, replication_factor=3,
+            retention_ms=-1,
+            cleanup_policy="delete", min_insync_replicas=2,
+        ),
+    )
+
+
+def phase3_topic_configs() -> tuple[TopicConfig, ...]:
+    """Return topic configs for the five Phase 3 topics."""
+    return (
+        TopicConfig(
+            name=TOPIC_FX_RATES,
+            partitions=6, replication_factor=3,
+            retention_ms=90 * 24 * 3600 * 1000,
+            cleanup_policy="delete", min_insync_replicas=2,
+        ),
+        TopicConfig(
+            name=TOPIC_YIELD_CURVES,
+            partitions=3, replication_factor=3,
+            retention_ms=-1,
+            cleanup_policy="delete", min_insync_replicas=2,
+        ),
+        TopicConfig(
+            name=TOPIC_RATE_FIXINGS,
+            partitions=3, replication_factor=3,
+            retention_ms=-1,
+            cleanup_policy="delete", min_insync_replicas=2,
+        ),
+        TopicConfig(
+            name=TOPIC_CALIBRATION_EVENTS,
+            partitions=3, replication_factor=3,
+            retention_ms=-1,
+            cleanup_policy="delete", min_insync_replicas=2,
+        ),
+        TopicConfig(
+            name=TOPIC_MODEL_CONFIGS,
             partitions=3, replication_factor=3,
             retention_ms=-1,
             cleanup_policy="delete", min_insync_replicas=2,

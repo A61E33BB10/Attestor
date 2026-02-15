@@ -26,6 +26,8 @@ class ValuationResult:
     components: FrozenMap[str, Decimal] = FrozenMap.EMPTY
     model_config_id: str = ""
     market_snapshot_id: str = ""
+    fixed_leg_pv: Decimal = Decimal("0")
+    floating_leg_pv: Decimal = Decimal("0")
 
 
 @final

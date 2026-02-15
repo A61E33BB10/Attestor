@@ -1,4 +1,4 @@
-"""Gateway types — normalised equity order, output of Pillar I.
+"""Gateway types — normalised order, output of Pillar I.
 
 CanonicalOrder is the single canonical representation of a trade entering the system.
 Every downstream pillar consumes this type.
@@ -17,6 +17,14 @@ from attestor.core.identifiers import ISIN, LEI
 from attestor.core.money import NonEmptyStr, PositiveDecimal
 from attestor.core.result import Err, Ok
 from attestor.core.types import UtcDatetime
+from attestor.instrument.derivative_types import (
+    EquityDetail,
+    FuturesDetail,
+    InstrumentDetail,
+    OptionDetail,
+)
+
+_DEFAULT_EQUITY_DETAIL = EquityDetail()
 
 
 class OrderSide(Enum):
@@ -56,7 +64,7 @@ def _parse_lei(
 @final
 @dataclass(frozen=True, slots=True)
 class CanonicalOrder:
-    """Normalised equity order — output of Gateway, input to Ledger."""
+    """Normalised order — output of Gateway, input to Ledger."""
 
     order_id: NonEmptyStr
     instrument_id: NonEmptyStr
@@ -72,6 +80,7 @@ class CanonicalOrder:
     settlement_date: date
     venue: NonEmptyStr
     timestamp: UtcDatetime
+    instrument_detail: InstrumentDetail = _DEFAULT_EQUITY_DETAIL
 
     @staticmethod
     def create(
@@ -90,6 +99,7 @@ class CanonicalOrder:
         settlement_date: date,
         venue: str,
         timestamp: UtcDatetime,
+        instrument_detail: InstrumentDetail = _DEFAULT_EQUITY_DETAIL,
     ) -> Ok[CanonicalOrder] | Err[ValidationError]:
         """Validate all fields and return Result."""
         violations: list[FieldViolation] = []
@@ -136,6 +146,25 @@ class CanonicalOrder:
                 actual_value=f"{settlement_date} < {trade_date}",
             ))
 
+        # Derivative expiry must be after trade date
+        match instrument_detail:
+            case OptionDetail(expiry_date=exp):
+                if exp <= trade_date:
+                    violations.append(FieldViolation(
+                        path="instrument_detail.expiry_date",
+                        constraint="must be > trade_date",
+                        actual_value=f"{exp} <= {trade_date}",
+                    ))
+            case FuturesDetail(expiry_date=exp):
+                if exp <= trade_date:
+                    violations.append(FieldViolation(
+                        path="instrument_detail.expiry_date",
+                        constraint="must be > trade_date",
+                        actual_value=f"{exp} <= {trade_date}",
+                    ))
+            case EquityDetail():
+                pass
+
         if violations:
             return Err(ValidationError(
                 message=f"CanonicalOrder validation failed: {len(violations)} violation(s)",
@@ -164,4 +193,5 @@ class CanonicalOrder:
             settlement_date=settlement_date,
             venue=ven,
             timestamp=timestamp,
+            instrument_detail=instrument_detail,
         ))

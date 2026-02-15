@@ -6,25 +6,24 @@ INV-G01: idempotent. INV-G02: total (never panics).
 
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from attestor.core.calendar import add_business_days
 from attestor.core.errors import FieldViolation, ValidationError
 from attestor.core.result import Err, Ok
 from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType
-
-
-def _add_business_days(start: date, days: int) -> date:
-    """Add business days (skip weekends only — Phase 1 simplification)."""
-    current = start
-    added = 0
-    while added < days:
-        current += timedelta(days=1)
-        if current.weekday() < 5:  # Mon=0 .. Fri=4
-            added += 1
-    return current
+from attestor.instrument.derivative_types import (
+    FuturesDetail,
+    FXDetail,
+    IRSwapDetail,
+    OptionDetail,
+    OptionStyle,
+    OptionType,
+    SettlementType,
+)
 
 
 def _extract_str(raw: dict[str, object], key: str) -> str | None:
@@ -183,7 +182,7 @@ def parse_order(raw: dict[str, object]) -> Ok[CanonicalOrder] | Err[ValidationEr
     # settlement_date: computed from trade_date + 2 business days if not provided
     settlement_date = _extract_date(raw, "settlement_date")
     if settlement_date is None and trade_date is not None:
-        settlement_date = _add_business_days(trade_date, 2)
+        settlement_date = add_business_days(trade_date, 2)
 
     # --- Timestamp ---
     ts_raw = _extract_datetime(raw, "timestamp")
@@ -238,6 +237,630 @@ def parse_order(raw: dict[str, object]) -> Ok[CanonicalOrder] | Err[ValidationEr
         settlement_date=settlement_date,
         venue=venue,
         timestamp=ts,
+    )
+
+
+def _parse_enum(
+    raw: dict[str, object], key: str, enum_cls: type[Any],
+    violations: list[FieldViolation],
+) -> Any | None:
+    val = _extract_str(raw, key)
+    if val is None:
+        violations.append(FieldViolation(
+            path=key, constraint="required", actual_value=repr(raw.get(key)),
+        ))
+        return None
+    try:
+        return enum_cls(val)
+    except ValueError:
+        violations.append(FieldViolation(
+            path=key, constraint=f"must be one of {[e.value for e in enum_cls]}",
+            actual_value=repr(val),
+        ))
+        return None
+
+
+def parse_option_order(
+    raw: dict[str, object],
+) -> Ok[CanonicalOrder] | Err[ValidationError]:
+    """Parse raw dict into a CanonicalOrder with OptionDetail.
+
+    Settlement date defaults to T+1 (premium settlement).
+    """
+    violations: list[FieldViolation] = []
+
+    # Derivative-specific fields
+    strike = _extract_decimal(raw, "strike")
+    if strike is None:
+        violations.append(FieldViolation(
+            path="strike", constraint="required numeric",
+            actual_value=repr(raw.get("strike")),
+        ))
+    expiry_date = _extract_date(raw, "expiry_date")
+    if expiry_date is None:
+        violations.append(FieldViolation(
+            path="expiry_date", constraint="required date",
+            actual_value=repr(raw.get("expiry_date")),
+        ))
+    option_type: OptionType | None = _parse_enum(raw, "option_type", OptionType, violations)
+    option_style: OptionStyle | None = _parse_enum(raw, "option_style", OptionStyle, violations)
+    settlement_type: SettlementType | None = _parse_enum(
+        raw, "settlement_type", SettlementType, violations,
+    )
+    underlying_id = _extract_str(raw, "underlying_id")
+    if underlying_id is None:
+        violations.append(FieldViolation(
+            path="underlying_id", constraint="required string",
+            actual_value=repr(raw.get("underlying_id")),
+        ))
+    multiplier = _extract_decimal(raw, "multiplier") or Decimal("100")
+
+    if violations:
+        return Err(ValidationError(
+            message=f"parse_option_order failed: {len(violations)} field error(s)",
+            code="GATEWAY_PARSE",
+            timestamp=UtcDatetime.now(),
+            source="gateway.parser.parse_option_order",
+            fields=tuple(violations),
+        ))
+
+    assert strike is not None and expiry_date is not None and underlying_id is not None
+    assert option_type is not None and option_style is not None and settlement_type is not None
+
+    # Build OptionDetail
+    match OptionDetail.create(
+        strike=strike, expiry_date=expiry_date,
+        option_type=option_type, option_style=option_style,
+        settlement_type=settlement_type, underlying_id=underlying_id,
+        multiplier=multiplier,
+    ):
+        case Err(e):
+            return Err(ValidationError(
+                message=f"parse_option_order: {e}",
+                code="GATEWAY_PARSE",
+                timestamp=UtcDatetime.now(),
+                source="gateway.parser.parse_option_order",
+                fields=(FieldViolation(
+                    path="instrument_detail", constraint=e, actual_value="",
+                ),),
+            ))
+        case Ok(detail):
+            pass
+
+    # Override settlement_date to T+1 if not provided
+    trade_date = _extract_date(raw, "trade_date")
+    if trade_date is not None:
+        settlement_date = _extract_date(raw, "settlement_date")
+        if settlement_date is None:
+            raw = {**raw, "settlement_date": add_business_days(trade_date, 1)}
+
+    # Delegate to base parser with instrument_detail injected
+    base_raw: dict[str, object] = {**raw}
+    base_raw.pop("strike", None)
+    base_raw.pop("expiry_date", None)
+    base_raw.pop("option_type", None)
+    base_raw.pop("option_style", None)
+    base_raw.pop("settlement_type", None)
+    base_raw.pop("underlying_id", None)
+    base_raw.pop("multiplier", None)
+
+    # Parse common fields via parse_order then re-create with detail
+    match parse_order(base_raw):
+        case Err(ve):
+            return Err(ve)
+        case Ok(base_order):
+            pass
+
+    return CanonicalOrder.create(
+        order_id=base_order.order_id.value,
+        instrument_id=base_order.instrument_id.value,
+        isin=base_order.isin.value if base_order.isin else None,
+        side=base_order.side,
+        quantity=base_order.quantity.value,
+        price=base_order.price,
+        currency=base_order.currency.value,
+        order_type=base_order.order_type,
+        counterparty_lei=base_order.counterparty_lei.value,
+        executing_party_lei=base_order.executing_party_lei.value,
+        trade_date=base_order.trade_date,
+        settlement_date=base_order.settlement_date,
+        venue=base_order.venue.value,
+        timestamp=base_order.timestamp,
+        instrument_detail=detail,
+    )
+
+
+def parse_futures_order(
+    raw: dict[str, object],
+) -> Ok[CanonicalOrder] | Err[ValidationError]:
+    """Parse raw dict into a CanonicalOrder with FuturesDetail.
+
+    Settlement date defaults to T+0 (same day).
+    """
+    violations: list[FieldViolation] = []
+
+    # Futures-specific fields
+    expiry_date = _extract_date(raw, "expiry_date")
+    if expiry_date is None:
+        violations.append(FieldViolation(
+            path="expiry_date", constraint="required date",
+            actual_value=repr(raw.get("expiry_date")),
+        ))
+    contract_size = _extract_decimal(raw, "contract_size")
+    if contract_size is None:
+        violations.append(FieldViolation(
+            path="contract_size", constraint="required numeric",
+            actual_value=repr(raw.get("contract_size")),
+        ))
+    settlement_type: SettlementType | None = _parse_enum(
+        raw, "settlement_type", SettlementType, violations,
+    )
+    underlying_id = _extract_str(raw, "underlying_id")
+    if underlying_id is None:
+        violations.append(FieldViolation(
+            path="underlying_id", constraint="required string",
+            actual_value=repr(raw.get("underlying_id")),
+        ))
+
+    if violations:
+        return Err(ValidationError(
+            message=f"parse_futures_order failed: {len(violations)} field error(s)",
+            code="GATEWAY_PARSE",
+            timestamp=UtcDatetime.now(),
+            source="gateway.parser.parse_futures_order",
+            fields=tuple(violations),
+        ))
+
+    assert expiry_date is not None and contract_size is not None
+    assert settlement_type is not None and underlying_id is not None
+
+    # Build FuturesDetail
+    match FuturesDetail.create(
+        expiry_date=expiry_date, contract_size=contract_size,
+        settlement_type=settlement_type, underlying_id=underlying_id,
+    ):
+        case Err(e):
+            return Err(ValidationError(
+                message=f"parse_futures_order: {e}",
+                code="GATEWAY_PARSE",
+                timestamp=UtcDatetime.now(),
+                source="gateway.parser.parse_futures_order",
+                fields=(FieldViolation(
+                    path="instrument_detail", constraint=e, actual_value="",
+                ),),
+            ))
+        case Ok(detail):
+            pass
+
+    # Override settlement_date to T+0 if not provided
+    trade_date = _extract_date(raw, "trade_date")
+    if trade_date is not None:
+        settlement_date = _extract_date(raw, "settlement_date")
+        if settlement_date is None:
+            raw = {**raw, "settlement_date": trade_date}
+
+    # Delegate to base parser with instrument_detail injected
+    base_raw: dict[str, object] = {**raw}
+    base_raw.pop("expiry_date", None)
+    base_raw.pop("contract_size", None)
+    base_raw.pop("settlement_type", None)
+    base_raw.pop("underlying_id", None)
+
+    match parse_order(base_raw):
+        case Err(ve):
+            return Err(ve)
+        case Ok(base_order):
+            pass
+
+    return CanonicalOrder.create(
+        order_id=base_order.order_id.value,
+        instrument_id=base_order.instrument_id.value,
+        isin=base_order.isin.value if base_order.isin else None,
+        side=base_order.side,
+        quantity=base_order.quantity.value,
+        price=base_order.price,
+        currency=base_order.currency.value,
+        order_type=base_order.order_type,
+        counterparty_lei=base_order.counterparty_lei.value,
+        executing_party_lei=base_order.executing_party_lei.value,
+        trade_date=base_order.trade_date,
+        settlement_date=base_order.settlement_date,
+        venue=base_order.venue.value,
+        timestamp=base_order.timestamp,
+        instrument_detail=detail,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 parsers — FX and IRS
+# ---------------------------------------------------------------------------
+
+
+def _delegate_to_base(
+    raw: dict[str, object],
+    detail: FXDetail | IRSwapDetail,
+    *,
+    strip_keys: tuple[str, ...],
+    source: str,
+    default_settlement_days: int = 2,
+) -> Ok[CanonicalOrder] | Err[ValidationError]:
+    """Extract common fields, build CanonicalOrder with instrument_detail."""
+    trade_date = _extract_date(raw, "trade_date")
+    if trade_date is not None:
+        settlement_date = _extract_date(raw, "settlement_date")
+        if settlement_date is None:
+            raw = {**raw, "settlement_date": add_business_days(trade_date, default_settlement_days)}
+
+    base_raw: dict[str, object] = {**raw}
+    for k in strip_keys:
+        base_raw.pop(k, None)
+
+    match parse_order(base_raw):
+        case Err(ve):
+            return Err(ve)
+        case Ok(base_order):
+            pass
+
+    return CanonicalOrder.create(
+        order_id=base_order.order_id.value,
+        instrument_id=base_order.instrument_id.value,
+        isin=base_order.isin.value if base_order.isin else None,
+        side=base_order.side,
+        quantity=base_order.quantity.value,
+        price=base_order.price,
+        currency=base_order.currency.value,
+        order_type=base_order.order_type,
+        counterparty_lei=base_order.counterparty_lei.value,
+        executing_party_lei=base_order.executing_party_lei.value,
+        trade_date=base_order.trade_date,
+        settlement_date=base_order.settlement_date,
+        venue=base_order.venue.value,
+        timestamp=base_order.timestamp,
+        instrument_detail=detail,
+    )
+
+
+def _parse_optional_enum(
+    raw: dict[str, object], key: str, enum_cls: type[Any],
+    violations: list[FieldViolation], default: Any,
+) -> Any:
+    """Parse enum or return default if key missing. Only append violation on bad value."""
+    val = _extract_str(raw, key)
+    if val is None:
+        return default
+    try:
+        return enum_cls(val)
+    except ValueError:
+        violations.append(FieldViolation(
+            path=key, constraint=f"must be one of {[e.value for e in enum_cls]}",
+            actual_value=repr(val),
+        ))
+        return None
+
+
+def parse_fx_spot_order(
+    raw: dict[str, object],
+) -> Ok[CanonicalOrder] | Err[ValidationError]:
+    """Parse raw FX spot order. Settlement default: T+2."""
+    violations: list[FieldViolation] = []
+
+    currency_pair = _extract_str(raw, "currency_pair")
+    if currency_pair is None:
+        violations.append(FieldViolation(
+            path="currency_pair", constraint="required string",
+            actual_value=repr(raw.get("currency_pair")),
+        ))
+
+    settlement_type: SettlementType | None = _parse_optional_enum(
+        raw, "settlement_type", SettlementType, violations, SettlementType.PHYSICAL,
+    )
+
+    if violations:
+        return Err(ValidationError(
+            message=f"parse_fx_spot_order failed: {len(violations)} field error(s)",
+            code="GATEWAY_PARSE",
+            timestamp=UtcDatetime.now(),
+            source="gateway.parser.parse_fx_spot_order",
+            fields=tuple(violations),
+        ))
+
+    assert currency_pair is not None
+    assert settlement_type is not None
+
+    # Settlement date: T+2
+    trade_date = _extract_date(raw, "trade_date")
+    settlement_date = _extract_date(raw, "settlement_date")
+    if settlement_date is None and trade_date is not None:
+        settlement_date = add_business_days(trade_date, 2)
+
+    if settlement_date is None:
+        return Err(ValidationError(
+            message="parse_fx_spot_order: cannot compute settlement_date",
+            code="GATEWAY_PARSE",
+            timestamp=UtcDatetime.now(),
+            source="gateway.parser.parse_fx_spot_order",
+            fields=(FieldViolation(
+                path="settlement_date", constraint="required (or trade_date for T+2)",
+                actual_value="None",
+            ),),
+        ))
+
+    match FXDetail.create(
+        currency_pair=currency_pair,
+        settlement_date=settlement_date,
+        settlement_type=settlement_type,
+    ):
+        case Err(e):
+            return Err(ValidationError(
+                message=f"parse_fx_spot_order: {e}",
+                code="GATEWAY_PARSE",
+                timestamp=UtcDatetime.now(),
+                source="gateway.parser.parse_fx_spot_order",
+                fields=(FieldViolation(
+                    path="instrument_detail", constraint=e, actual_value="",
+                ),),
+            ))
+        case Ok(detail):
+            pass
+
+    return _delegate_to_base(
+        raw, detail,
+        strip_keys=("currency_pair", "settlement_type"),
+        source="gateway.parser.parse_fx_spot_order",
+    )
+
+
+def parse_fx_forward_order(
+    raw: dict[str, object],
+) -> Ok[CanonicalOrder] | Err[ValidationError]:
+    """Parse raw FX forward order. Settlement date from forward contract."""
+    violations: list[FieldViolation] = []
+
+    currency_pair = _extract_str(raw, "currency_pair")
+    if currency_pair is None:
+        violations.append(FieldViolation(
+            path="currency_pair", constraint="required string",
+            actual_value=repr(raw.get("currency_pair")),
+        ))
+
+    forward_rate = _extract_decimal(raw, "forward_rate")
+    if forward_rate is None:
+        violations.append(FieldViolation(
+            path="forward_rate", constraint="required numeric",
+            actual_value=repr(raw.get("forward_rate")),
+        ))
+
+    settlement_date = _extract_date(raw, "settlement_date")
+    if settlement_date is None:
+        violations.append(FieldViolation(
+            path="settlement_date", constraint="required date",
+            actual_value=repr(raw.get("settlement_date")),
+        ))
+
+    settlement_type: SettlementType | None = _parse_optional_enum(
+        raw, "settlement_type", SettlementType, violations, SettlementType.PHYSICAL,
+    )
+
+    if violations:
+        return Err(ValidationError(
+            message=f"parse_fx_forward_order failed: {len(violations)} field error(s)",
+            code="GATEWAY_PARSE",
+            timestamp=UtcDatetime.now(),
+            source="gateway.parser.parse_fx_forward_order",
+            fields=tuple(violations),
+        ))
+
+    assert currency_pair is not None and forward_rate is not None and settlement_date is not None
+    assert settlement_type is not None
+
+    match FXDetail.create(
+        currency_pair=currency_pair,
+        settlement_date=settlement_date,
+        settlement_type=settlement_type,
+        forward_rate=forward_rate,
+    ):
+        case Err(e):
+            return Err(ValidationError(
+                message=f"parse_fx_forward_order: {e}",
+                code="GATEWAY_PARSE",
+                timestamp=UtcDatetime.now(),
+                source="gateway.parser.parse_fx_forward_order",
+                fields=(FieldViolation(
+                    path="instrument_detail", constraint=e, actual_value="",
+                ),),
+            ))
+        case Ok(detail):
+            pass
+
+    return _delegate_to_base(
+        raw, detail,
+        strip_keys=("currency_pair", "forward_rate", "settlement_type"),
+        source="gateway.parser.parse_fx_forward_order",
+    )
+
+
+def parse_ndf_order(
+    raw: dict[str, object],
+) -> Ok[CanonicalOrder] | Err[ValidationError]:
+    """Parse raw NDF order. Fixing date + settlement date required."""
+    violations: list[FieldViolation] = []
+
+    currency_pair = _extract_str(raw, "currency_pair")
+    if currency_pair is None:
+        violations.append(FieldViolation(
+            path="currency_pair", constraint="required string",
+            actual_value=repr(raw.get("currency_pair")),
+        ))
+
+    forward_rate = _extract_decimal(raw, "forward_rate")
+    if forward_rate is None:
+        violations.append(FieldViolation(
+            path="forward_rate", constraint="required numeric",
+            actual_value=repr(raw.get("forward_rate")),
+        ))
+
+    fixing_date = _extract_date(raw, "fixing_date")
+    if fixing_date is None:
+        violations.append(FieldViolation(
+            path="fixing_date", constraint="required date",
+            actual_value=repr(raw.get("fixing_date")),
+        ))
+
+    settlement_date = _extract_date(raw, "settlement_date")
+    if settlement_date is None:
+        violations.append(FieldViolation(
+            path="settlement_date", constraint="required date",
+            actual_value=repr(raw.get("settlement_date")),
+        ))
+
+    fixing_source = _extract_str(raw, "fixing_source")
+    if fixing_source is None:
+        violations.append(FieldViolation(
+            path="fixing_source", constraint="required string",
+            actual_value=repr(raw.get("fixing_source")),
+        ))
+
+    if violations:
+        return Err(ValidationError(
+            message=f"parse_ndf_order failed: {len(violations)} field error(s)",
+            code="GATEWAY_PARSE",
+            timestamp=UtcDatetime.now(),
+            source="gateway.parser.parse_ndf_order",
+            fields=tuple(violations),
+        ))
+
+    assert currency_pair is not None and forward_rate is not None
+    assert fixing_date is not None and settlement_date is not None and fixing_source is not None
+
+    match FXDetail.create(
+        currency_pair=currency_pair,
+        settlement_date=settlement_date,
+        settlement_type=SettlementType.CASH,
+        forward_rate=forward_rate,
+        fixing_source=fixing_source,
+        fixing_date=fixing_date,
+    ):
+        case Err(e):
+            return Err(ValidationError(
+                message=f"parse_ndf_order: {e}",
+                code="GATEWAY_PARSE",
+                timestamp=UtcDatetime.now(),
+                source="gateway.parser.parse_ndf_order",
+                fields=(FieldViolation(
+                    path="instrument_detail", constraint=e, actual_value="",
+                ),),
+            ))
+        case Ok(detail):
+            pass
+
+    return _delegate_to_base(
+        raw, detail,
+        strip_keys=(
+            "currency_pair", "forward_rate", "fixing_date",
+            "settlement_type", "fixing_source",
+        ),
+        source="gateway.parser.parse_ndf_order",
+    )
+
+
+def parse_irs_order(
+    raw: dict[str, object],
+) -> Ok[CanonicalOrder] | Err[ValidationError]:
+    """Parse raw IRS order."""
+    violations: list[FieldViolation] = []
+
+    fixed_rate = _extract_decimal(raw, "fixed_rate")
+    if fixed_rate is None:
+        violations.append(FieldViolation(
+            path="fixed_rate", constraint="required numeric",
+            actual_value=repr(raw.get("fixed_rate")),
+        ))
+
+    float_index = _extract_str(raw, "float_index")
+    if float_index is None:
+        violations.append(FieldViolation(
+            path="float_index", constraint="required string",
+            actual_value=repr(raw.get("float_index")),
+        ))
+
+    day_count = _extract_str(raw, "day_count")
+    if day_count is None:
+        violations.append(FieldViolation(
+            path="day_count", constraint="required string",
+            actual_value=repr(raw.get("day_count")),
+        ))
+
+    payment_frequency = _extract_str(raw, "payment_frequency")
+    if payment_frequency is None:
+        violations.append(FieldViolation(
+            path="payment_frequency", constraint="required string",
+            actual_value=repr(raw.get("payment_frequency")),
+        ))
+
+    tenor_months = _extract_decimal(raw, "tenor_months")
+    if tenor_months is None:
+        violations.append(FieldViolation(
+            path="tenor_months", constraint="required numeric",
+            actual_value=repr(raw.get("tenor_months")),
+        ))
+
+    start_date = _extract_date(raw, "start_date")
+    if start_date is None:
+        violations.append(FieldViolation(
+            path="start_date", constraint="required date",
+            actual_value=repr(raw.get("start_date")),
+        ))
+
+    end_date = _extract_date(raw, "end_date")
+    if end_date is None:
+        violations.append(FieldViolation(
+            path="end_date", constraint="required date",
+            actual_value=repr(raw.get("end_date")),
+        ))
+
+    if violations:
+        return Err(ValidationError(
+            message=f"parse_irs_order failed: {len(violations)} field error(s)",
+            code="GATEWAY_PARSE",
+            timestamp=UtcDatetime.now(),
+            source="gateway.parser.parse_irs_order",
+            fields=tuple(violations),
+        ))
+
+    assert fixed_rate is not None and float_index is not None
+    assert day_count is not None and payment_frequency is not None
+    assert tenor_months is not None and start_date is not None and end_date is not None
+
+    match IRSwapDetail.create(
+        fixed_rate=fixed_rate,
+        float_index=float_index,
+        day_count=day_count,
+        payment_frequency=payment_frequency,
+        tenor_months=int(tenor_months),
+        start_date=start_date,
+        end_date=end_date,
+    ):
+        case Err(e):
+            return Err(ValidationError(
+                message=f"parse_irs_order: {e}",
+                code="GATEWAY_PARSE",
+                timestamp=UtcDatetime.now(),
+                source="gateway.parser.parse_irs_order",
+                fields=(FieldViolation(
+                    path="instrument_detail", constraint=e, actual_value="",
+                ),),
+            ))
+        case Ok(detail):
+            pass
+
+    # IRS settles T+2 by default
+    return _delegate_to_base(
+        raw, detail,
+        strip_keys=(
+            "fixed_rate", "float_index", "day_count", "payment_frequency",
+            "tenor_months", "start_date", "end_date",
+        ),
+        source="gateway.parser.parse_irs_order",
     )
 
 

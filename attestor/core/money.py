@@ -89,6 +89,17 @@ _ISO4217_MINOR_UNITS: dict[str, int] = {
     "BTC": 8, "ETH": 18,
 }
 
+# Gatheral Phase 1 finding: validate currency codes
+VALID_CURRENCIES: frozenset[str] = frozenset(_ISO4217_MINOR_UNITS.keys()) | frozenset({
+    "HKD", "SGD", "NZD", "NOK", "DKK", "ZAR", "MXN", "BRL", "INR",
+    "CNY", "TWD", "THB", "PLN", "CZK", "HUF", "TRY", "ILS", "KRW",
+})
+
+
+def validate_currency(code: str) -> bool:
+    """Check if a currency code is in the known set."""
+    return code in VALID_CURRENCIES
+
 
 @final
 @dataclass(frozen=True, slots=True)
@@ -139,6 +150,10 @@ class Money:
         with localcontext(ATTESTOR_DECIMAL_CONTEXT):
             return Money(amount=self.amount / divisor.value, currency=self.currency)
 
+    def abs(self) -> Money:
+        """Absolute value. Currency preserved."""
+        return Money(amount=abs(self.amount), currency=self.currency)
+
     def round_to_minor_unit(self) -> Money:
         """Quantize to ISO 4217 minor unit (GAP-28). Defaults to 2 decimal places."""
         minor_units = _ISO4217_MINOR_UNITS.get(self.currency.value, 2)
@@ -146,3 +161,47 @@ class Money:
         with localcontext(ATTESTOR_DECIMAL_CONTEXT):
             rounded = self.amount.quantize(quantizer)
         return Money(amount=rounded, currency=self.currency)
+
+
+# ---------------------------------------------------------------------------
+# CurrencyPair — validated FX pair (Phase 3)
+# ---------------------------------------------------------------------------
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class CurrencyPair:
+    """Validated FX currency pair, e.g. EUR/USD (base/quote)."""
+
+    base: NonEmptyStr
+    quote: NonEmptyStr
+
+    @staticmethod
+    def parse(raw: str) -> Ok[CurrencyPair] | Err[str]:
+        """Parse 'BASE/QUOTE' string into CurrencyPair."""
+        parts = raw.split("/")
+        if len(parts) != 2:
+            return Err(f"CurrencyPair must be BASE/QUOTE, got '{raw}'")
+        base_str, quote_str = parts[0].strip(), parts[1].strip()
+        if not validate_currency(base_str):
+            return Err(f"Invalid base currency: {base_str}")
+        if not validate_currency(quote_str):
+            return Err(f"Invalid quote currency: {quote_str}")
+        if base_str == quote_str:
+            return Err(f"Base and quote must differ: {base_str}")
+        match NonEmptyStr.parse(base_str):
+            case Err(e):
+                return Err(f"CurrencyPair.base: {e}")
+            case Ok(b):
+                pass
+        match NonEmptyStr.parse(quote_str):
+            case Err(e):
+                return Err(f"CurrencyPair.quote: {e}")
+            case Ok(q):
+                pass
+        return Ok(CurrencyPair(base=b, quote=q))
+
+    @property
+    def value(self) -> str:
+        """String representation: BASE/QUOTE."""
+        return f"{self.base.value}/{self.quote.value}"

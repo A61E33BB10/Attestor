@@ -72,6 +72,7 @@ class AccountType(Enum):
     MARGIN = "MARGIN"
     ACCRUALS = "ACCRUALS"
     PNL = "PNL"
+    NETTING = "NETTING"
 
 
 class ExecuteResult(Enum):
@@ -141,6 +142,34 @@ class Move:
     quantity: PositiveDecimal
     contract_id: str
 
+    @staticmethod
+    def create(
+        source: str,
+        destination: str,
+        unit: str,
+        quantity: PositiveDecimal,
+        contract_id: str,
+    ) -> Ok[Move] | Err[str]:
+        """Validated construction.
+
+        F-HIGH-01: source != destination.
+        Minsky: all string fields non-empty.
+        """
+        if not source:
+            return Err("Move.source must be non-empty")
+        if not destination:
+            return Err("Move.destination must be non-empty")
+        if source == destination:
+            return Err(f"Move.source must differ from destination, both are '{source}'")
+        if not unit:
+            return Err("Move.unit must be non-empty")
+        if not contract_id:
+            return Err("Move.contract_id must be non-empty")
+        return Ok(Move(
+            source=source, destination=destination,
+            unit=unit, quantity=quantity, contract_id=contract_id,
+        ))
+
 
 @final
 @dataclass(frozen=True, slots=True)
@@ -151,6 +180,27 @@ class Transaction:
     moves: tuple[Move, ...]
     timestamp: UtcDatetime
     state_deltas: tuple[StateDelta, ...] = ()
+
+    @staticmethod
+    def create(
+        tx_id: str,
+        moves: tuple[Move, ...],
+        timestamp: UtcDatetime,
+        state_deltas: tuple[StateDelta, ...] = (),
+    ) -> Ok[Transaction] | Err[str]:
+        """Validated construction.
+
+        F-HIGH-02: moves must be non-empty.
+        Minsky: tx_id must be non-empty.
+        """
+        if not tx_id:
+            return Err("Transaction.tx_id must be non-empty")
+        if not moves:
+            return Err("Transaction.moves must contain at least one Move")
+        return Ok(Transaction(
+            tx_id=tx_id, moves=moves,
+            timestamp=timestamp, state_deltas=state_deltas,
+        ))
 
 
 @final
