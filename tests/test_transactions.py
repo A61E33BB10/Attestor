@@ -241,12 +241,16 @@ class TestTransaction:
         assert tx.timestamp == ts
 
     def test_state_deltas_default_empty(self) -> None:
+        qty = unwrap(PositiveDecimal.parse(Decimal("50")))
+        m = Move("A", "B", "USD", qty, "C")
         ts = UtcDatetime.now()
-        tx = Transaction(tx_id="TX-1", moves=(), timestamp=ts)
+        tx = Transaction(tx_id="TX-1", moves=(m,), timestamp=ts)
         assert tx.state_deltas == ()
 
     def test_frozen(self) -> None:
-        tx = Transaction(tx_id="TX-1", moves=(), timestamp=UtcDatetime.now())
+        qty = unwrap(PositiveDecimal.parse(Decimal("50")))
+        m = Move("A", "B", "USD", qty, "C")
+        tx = Transaction(tx_id="TX-1", moves=(m,), timestamp=UtcDatetime.now())
         with pytest.raises(dataclasses.FrozenInstanceError):
             tx.tx_id = "TX-2"  # type: ignore[misc]
 

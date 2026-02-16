@@ -93,7 +93,7 @@ class TestOptionPayoutSpec:
         assert isinstance(result, Err)
         assert "underlying_id" in result.error
 
-    def test_create_zero_strike_err(self) -> None:
+    def test_create_zero_strike_ok(self) -> None:
         result = OptionPayoutSpec.create(
             underlying_id="AAPL", strike=Decimal("0"),
             expiry_date=date(2025, 12, 19), option_type=OptionType.CALL,
@@ -101,8 +101,8 @@ class TestOptionPayoutSpec:
             settlement_type=SettlementType.PHYSICAL,
             currency="USD", exchange="CBOE",
         )
-        assert isinstance(result, Err)
-        assert "strike" in result.error
+        assert isinstance(result, Ok)
+        assert unwrap(result).strike.value == Decimal("0")
 
     def test_create_empty_currency_err(self) -> None:
         result = OptionPayoutSpec.create(
@@ -214,13 +214,14 @@ class TestOptionDetail:
         assert od.option_type == OptionType.CALL
         assert od.multiplier.value == Decimal("100")
 
-    def test_create_zero_strike_err(self) -> None:
+    def test_create_zero_strike_ok(self) -> None:
         result = OptionDetail.create(
             strike=Decimal("0"), expiry_date=date(2025, 12, 19),
             option_type=OptionType.CALL, option_style=OptionStyle.AMERICAN,
             settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
         )
-        assert isinstance(result, Err)
+        assert isinstance(result, Ok)
+        assert unwrap(result).strike.value == Decimal("0")
 
     def test_create_empty_underlying_err(self) -> None:
         result = OptionDetail.create(
@@ -281,9 +282,9 @@ class TestInstrumentDetailPatternMatch:
 class TestPayoutUnion:
     def test_equity_payout(self) -> None:
         payout = unwrap(EquityPayoutSpec.create("AAPL", "USD", "XNYS"))
-        terms = EconomicTerms(payout=payout, effective_date=date(2025, 6, 15),
+        terms = EconomicTerms(payouts=(payout,), effective_date=date(2025, 6, 15),
                               termination_date=None)
-        assert isinstance(terms.payout, EquityPayoutSpec)
+        assert isinstance(terms.payouts[0], EquityPayoutSpec)
 
     def test_option_payout(self) -> None:
         payout = unwrap(OptionPayoutSpec.create(
@@ -293,9 +294,9 @@ class TestPayoutUnion:
             settlement_type=SettlementType.PHYSICAL,
             currency="USD", exchange="CBOE",
         ))
-        terms = EconomicTerms(payout=payout, effective_date=date(2025, 6, 15),
+        terms = EconomicTerms(payouts=(payout,), effective_date=date(2025, 6, 15),
                               termination_date=date(2025, 12, 19))
-        assert isinstance(terms.payout, OptionPayoutSpec)
+        assert isinstance(terms.payouts[0], OptionPayoutSpec)
 
     def test_futures_payout(self) -> None:
         payout = unwrap(FuturesPayoutSpec.create(
@@ -304,9 +305,9 @@ class TestPayoutUnion:
             settlement_type=SettlementType.CASH,
             contract_size=Decimal("50"), currency="USD", exchange="CME",
         ))
-        terms = EconomicTerms(payout=payout, effective_date=date(2025, 6, 15),
+        terms = EconomicTerms(payouts=(payout,), effective_date=date(2025, 6, 15),
                               termination_date=date(2025, 12, 19))
-        assert isinstance(terms.payout, FuturesPayoutSpec)
+        assert isinstance(terms.payouts[0], FuturesPayoutSpec)
 
 
 # ---------------------------------------------------------------------------
@@ -328,7 +329,7 @@ class TestCreateOptionInstrument:
         )
         assert isinstance(result, Ok)
         inst = unwrap(result)
-        assert isinstance(inst.product.economic_terms.payout, OptionPayoutSpec)
+        assert isinstance(inst.product.economic_terms.payouts[0], OptionPayoutSpec)
         assert inst.product.economic_terms.termination_date == date(2025, 12, 19)
 
     def test_empty_instrument_id_err(self) -> None:
@@ -369,7 +370,7 @@ class TestCreateFuturesInstrument:
         )
         assert isinstance(result, Ok)
         inst = unwrap(result)
-        assert isinstance(inst.product.economic_terms.payout, FuturesPayoutSpec)
+        assert isinstance(inst.product.economic_terms.payouts[0], FuturesPayoutSpec)
         assert inst.product.economic_terms.termination_date == date(2025, 12, 19)
 
     def test_empty_instrument_id_err(self) -> None:

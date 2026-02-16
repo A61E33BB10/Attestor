@@ -95,7 +95,7 @@ def project_dodd_frank_report(
             reference_entity = None
             spread_bps = None
             expiry_date = sd.expiry_date
-            underlying_fixed_rate = sd.underlying_fixed_rate.value
+            underlying_fixed_rate = sd.underlying_fixed_rate
 
         case _:
             return Err(

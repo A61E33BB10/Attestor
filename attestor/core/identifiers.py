@@ -19,6 +19,10 @@ class LEI:
 
     value: str
 
+    def __post_init__(self) -> None:
+        if len(self.value) != 20 or not self.value.isalnum():
+            raise TypeError(f"LEI must be 20 alphanumeric characters, got {self.value!r}")
+
     @staticmethod
     def parse(raw: str) -> Ok[LEI] | Err[str]:
         if len(raw) != 20:
@@ -34,6 +38,10 @@ class UTI:
     """Unique Transaction Identifier — 1-52 chars, first 20 alphanumeric."""
 
     value: str
+
+    def __post_init__(self) -> None:
+        if not self.value or len(self.value) > 52:
+            raise TypeError(f"UTI must be 1-52 characters, got length {len(self.value)}")
 
     @staticmethod
     def parse(raw: str) -> Ok[UTI] | Err[str]:
@@ -75,6 +83,10 @@ class ISIN:
     """International Securities Identification Number — 12 chars with Luhn check."""
 
     value: str
+
+    def __post_init__(self) -> None:
+        if len(self.value) != 12 or not _isin_luhn_check(self.value):
+            raise TypeError(f"ISIN must be 12 characters with valid Luhn check, got {self.value!r}")
 
     @staticmethod
     def parse(raw: str) -> Ok[ISIN] | Err[str]:

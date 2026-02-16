@@ -143,6 +143,13 @@ class NDFPayoutSpec:
     fixing_source: NonEmptyStr
     currency: NonEmptyStr  # settlement currency (freely tradeable leg)
 
+    def __post_init__(self) -> None:
+        if self.fixing_date > self.settlement_date:
+            raise TypeError(
+                f"NDFPayoutSpec: fixing_date ({self.fixing_date}) "
+                f"must be <= settlement_date ({self.settlement_date})"
+            )
+
     @staticmethod
     def create(
         currency_pair: str,
@@ -198,13 +205,20 @@ class NDFPayoutSpec:
 @final
 @dataclass(frozen=True, slots=True)
 class FixedLeg:
-    """Fixed leg of a vanilla IRS."""
+    """Fixed leg of a vanilla IRS.
 
-    fixed_rate: PositiveDecimal
+    fixed_rate is Decimal (negative rates allowed for EUR/JPY/CHF).
+    """
+
+    fixed_rate: Decimal
     day_count: DayCountConvention
     payment_frequency: PaymentFrequency
     currency: NonEmptyStr
     notional: PositiveDecimal
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.fixed_rate, Decimal) or not self.fixed_rate.is_finite():
+            raise TypeError(f"FixedLeg.fixed_rate must be finite Decimal, got {self.fixed_rate!r}")
 
 
 @final
@@ -231,6 +245,13 @@ class IRSwapPayoutSpec:
     end_date: date
     currency: NonEmptyStr
 
+    def __post_init__(self) -> None:
+        if self.start_date >= self.end_date:
+            raise TypeError(
+                f"IRSwapPayoutSpec: start_date ({self.start_date}) "
+                f"must be < end_date ({self.end_date})"
+            )
+
     @staticmethod
     def create(
         fixed_rate: Decimal,
@@ -249,11 +270,8 @@ class IRSwapPayoutSpec:
                 f"IRSwapPayoutSpec: start_date ({start_date}) "
                 f"must be < end_date ({end_date})"
             )
-        match PositiveDecimal.parse(fixed_rate):
-            case Err(e):
-                return Err(f"IRSwapPayoutSpec.fixed_rate: {e}")
-            case Ok(fr):
-                pass
+        if not isinstance(fixed_rate, Decimal) or not fixed_rate.is_finite():
+            return Err(f"IRSwapPayoutSpec.fixed_rate must be finite Decimal, got {fixed_rate!r}")
         match NonEmptyStr.parse(float_index):
             case Err(e):
                 return Err(f"IRSwapPayoutSpec.float_index: {e}")
@@ -270,7 +288,7 @@ class IRSwapPayoutSpec:
             case Ok(cur):
                 pass
         fixed = FixedLeg(
-            fixed_rate=fr, day_count=day_count,
+            fixed_rate=fixed_rate, day_count=day_count,
             payment_frequency=payment_frequency, currency=cur, notional=n,
         )
         floating = FloatLeg(

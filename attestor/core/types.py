@@ -17,6 +17,10 @@ class UtcDatetime:
 
     value: datetime
 
+    def __post_init__(self) -> None:
+        if self.value.tzinfo is None:
+            raise TypeError("UtcDatetime requires timezone-aware datetime, got naive")
+
     @staticmethod
     def parse(raw: datetime) -> Ok[UtcDatetime] | Err[str]:
         """Parse a datetime, rejecting naive (no tzinfo) datetimes."""
@@ -111,6 +115,10 @@ class IdempotencyKey:
     """Non-empty string key for idempotent operations."""
 
     value: str
+
+    def __post_init__(self) -> None:
+        if not self.value:
+            raise TypeError("IdempotencyKey requires non-empty string")
 
     @staticmethod
     def create(raw: str) -> Ok[IdempotencyKey] | Err[str]:

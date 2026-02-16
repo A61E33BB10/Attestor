@@ -57,6 +57,25 @@ class CollateralAgreement:
     minimum_transfer_amount: Decimal  # >= 0
     currency: NonEmptyStr
 
+    def __post_init__(self) -> None:
+        if not self.eligible_collateral:
+            raise TypeError("CollateralAgreement: eligible_collateral must be non-empty")
+        if self.threshold_a < 0:
+            raise TypeError(
+                f"CollateralAgreement: threshold_a must be >= 0, "
+                f"got {self.threshold_a}"
+            )
+        if self.threshold_b < 0:
+            raise TypeError(
+                f"CollateralAgreement: threshold_b must be >= 0, "
+                f"got {self.threshold_b}"
+            )
+        if self.minimum_transfer_amount < 0:
+            raise TypeError(
+                f"CollateralAgreement: minimum_transfer_amount must be >= 0, "
+                f"got {self.minimum_transfer_amount}"
+            )
+
     @staticmethod
     def create(
         agreement_id: str,

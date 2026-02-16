@@ -168,7 +168,7 @@ def project_mifid2_report(
             )
         case IRSwapDetail() as ird:
             inst_fields = IRSwapReportFields(
-                fixed_rate=ird.fixed_rate.value,
+                fixed_rate=ird.fixed_rate,
                 float_index=ird.float_index.value,
                 day_count=ird.day_count,
                 tenor_months=ird.tenor_months,
@@ -185,7 +185,7 @@ def project_mifid2_report(
             inst_fields = SwaptionReportFields(
                 swaption_type=sd.swaption_type.value,
                 expiry_date=sd.expiry_date,
-                underlying_fixed_rate=sd.underlying_fixed_rate.value,
+                underlying_fixed_rate=sd.underlying_fixed_rate,
                 underlying_tenor_months=sd.underlying_tenor_months,
                 settlement_type=sd.settlement_type.value,
             )

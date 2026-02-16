@@ -167,7 +167,7 @@ class TestParseSwaptionOrder:
         result = parse_swaption_order(raw)
         assert isinstance(result, Err)
 
-    def test_negative_underlying_fixed_rate_err(self) -> None:
+    def test_negative_underlying_fixed_rate_ok(self) -> None:
         raw = _with(
             swaption_type="PAYER",
             expiry_date="2026-06-15",
@@ -177,7 +177,8 @@ class TestParseSwaptionOrder:
             settlement_type="PHYSICAL",
         )
         result = parse_swaption_order(raw)
-        assert isinstance(result, Err)
+        assert isinstance(result, Ok)
+        assert result.value.instrument_detail.underlying_fixed_rate == Decimal("-0.01")
 
     def test_zero_tenor_months_err(self) -> None:
         raw = _with(
@@ -320,7 +321,7 @@ class TestFieldValueIntegration:
         assert detail.swaption_type is SwaptionType.RECEIVER
         from datetime import date
         assert detail.expiry_date == date(2026, 6, 15)
-        assert detail.underlying_fixed_rate.value == Decimal("0.035")
+        assert detail.underlying_fixed_rate == Decimal("0.035")
         assert detail.underlying_float_index.value == "SOFR"
         assert detail.underlying_tenor_months == 60
         assert detail.settlement_type is SettlementType.CASH

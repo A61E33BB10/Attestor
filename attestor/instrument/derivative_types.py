@@ -12,7 +12,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import final
 
-from attestor.core.money import NonEmptyStr, PositiveDecimal
+from attestor.core.money import NonEmptyStr, NonNegativeDecimal, PositiveDecimal
 from attestor.core.result import Err, Ok
 
 # ---------------------------------------------------------------------------
@@ -85,7 +85,7 @@ class OptionPayoutSpec:
     """Vanilla option payout specification."""
 
     underlying_id: NonEmptyStr
-    strike: PositiveDecimal
+    strike: NonNegativeDecimal  # zero-strike allowed for total return structures
     expiry_date: date
     option_type: OptionType
     option_style: OptionStyle
@@ -111,7 +111,7 @@ class OptionPayoutSpec:
                 return Err(f"OptionPayoutSpec.underlying_id: {e}")
             case Ok(uid):
                 pass
-        match PositiveDecimal.parse(strike):
+        match NonNegativeDecimal.parse(strike):
             case Err(e):
                 return Err(f"OptionPayoutSpec.strike: {e}")
             case Ok(s):
@@ -151,6 +151,13 @@ class FuturesPayoutSpec:
     contract_size: PositiveDecimal  # point value (USD per unit of price movement)
     currency: NonEmptyStr
     exchange: NonEmptyStr
+
+    def __post_init__(self) -> None:
+        if self.last_trading_date > self.expiry_date:
+            raise TypeError(
+                f"FuturesPayoutSpec: last_trading_date ({self.last_trading_date}) "
+                f"must be <= expiry_date ({self.expiry_date})"
+            )
 
     @staticmethod
     def create(
@@ -211,7 +218,7 @@ class EquityDetail:
 class OptionDetail:
     """Option-specific fields on a CanonicalOrder."""
 
-    strike: PositiveDecimal
+    strike: NonNegativeDecimal
     expiry_date: date
     option_type: OptionType
     option_style: OptionStyle
@@ -229,7 +236,7 @@ class OptionDetail:
         underlying_id: str,
         multiplier: Decimal = Decimal("100"),
     ) -> Ok[OptionDetail] | Err[str]:
-        match PositiveDecimal.parse(strike):
+        match NonNegativeDecimal.parse(strike):
             case Err(e):
                 return Err(f"OptionDetail.strike: {e}")
             case Ok(s):
@@ -339,13 +346,26 @@ class FXDetail:
 class IRSwapDetail:
     """IRS order detail on a CanonicalOrder."""
 
-    fixed_rate: PositiveDecimal
+    fixed_rate: Decimal
     float_index: NonEmptyStr
     day_count: str  # "ACT/360", "ACT/365", "30/360"
     payment_frequency: str  # "MONTHLY", "QUARTERLY", etc.
     tenor_months: int
     start_date: date
     end_date: date
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.fixed_rate, Decimal) or not self.fixed_rate.is_finite():
+            raise TypeError(
+                f"IRSwapDetail.fixed_rate must be finite Decimal, "
+                f"got {self.fixed_rate!r}"
+            )
+        if self.tenor_months <= 0:
+            raise TypeError(f"IRSwapDetail.tenor_months must be > 0, got {self.tenor_months}")
+        if self.start_date >= self.end_date:
+            raise TypeError(
+                f"IRSwapDetail: start_date ({self.start_date}) must be < end_date ({self.end_date})"
+            )
 
     @staticmethod
     def create(
@@ -357,11 +377,8 @@ class IRSwapDetail:
         start_date: date,
         end_date: date,
     ) -> Ok[IRSwapDetail] | Err[str]:
-        match PositiveDecimal.parse(fixed_rate):
-            case Err(e):
-                return Err(f"IRSwapDetail.fixed_rate: {e}")
-            case Ok(fr):
-                pass
+        if not isinstance(fixed_rate, Decimal) or not fixed_rate.is_finite():
+            return Err(f"IRSwapDetail.fixed_rate must be finite Decimal, got {fixed_rate!r}")
         match NonEmptyStr.parse(float_index):
             case Err(e):
                 return Err(f"IRSwapDetail.float_index: {e}")
@@ -375,7 +392,7 @@ class IRSwapDetail:
                 f"must be < end_date ({end_date})"
             )
         return Ok(IRSwapDetail(
-            fixed_rate=fr, float_index=fi, day_count=day_count,
+            fixed_rate=fixed_rate, float_index=fi, day_count=day_count,
             payment_frequency=payment_frequency, tenor_months=tenor_months,
             start_date=start_date, end_date=end_date,
         ))
@@ -392,6 +409,13 @@ class CDSDetail:
     protection_side: ProtectionSide
     start_date: date
     maturity_date: date
+
+    def __post_init__(self) -> None:
+        if self.start_date >= self.maturity_date:
+            raise TypeError(
+                f"CDSDetail: start_date ({self.start_date}) must be "
+                f"< maturity_date ({self.maturity_date})"
+            )
 
     @staticmethod
     def create(
@@ -431,10 +455,23 @@ class SwaptionDetail:
 
     swaption_type: SwaptionType
     expiry_date: date
-    underlying_fixed_rate: PositiveDecimal
+    underlying_fixed_rate: Decimal
     underlying_float_index: NonEmptyStr
     underlying_tenor_months: int
     settlement_type: SettlementType
+
+    def __post_init__(self) -> None:
+        ufr = self.underlying_fixed_rate
+        if not isinstance(ufr, Decimal) or not ufr.is_finite():
+            raise TypeError(
+                f"SwaptionDetail.underlying_fixed_rate must be finite Decimal, "
+                f"got {self.underlying_fixed_rate!r}"
+            )
+        if self.underlying_tenor_months <= 0:
+            raise TypeError(
+                f"SwaptionDetail.underlying_tenor_months must be > 0, "
+                f"got {self.underlying_tenor_months}"
+            )
 
     @staticmethod
     def create(
@@ -445,11 +482,11 @@ class SwaptionDetail:
         underlying_tenor_months: int,
         settlement_type: SettlementType,
     ) -> Ok[SwaptionDetail] | Err[str]:
-        match PositiveDecimal.parse(underlying_fixed_rate):
-            case Err(e):
-                return Err(f"SwaptionDetail.underlying_fixed_rate: {e}")
-            case Ok(fr):
-                pass
+        if not isinstance(underlying_fixed_rate, Decimal) or not underlying_fixed_rate.is_finite():
+            return Err(
+                f"SwaptionDetail.underlying_fixed_rate must be finite Decimal, "
+                f"got {underlying_fixed_rate!r}"
+            )
         match NonEmptyStr.parse(underlying_float_index):
             case Err(e):
                 return Err(f"SwaptionDetail.underlying_float_index: {e}")
@@ -462,7 +499,7 @@ class SwaptionDetail:
             )
         return Ok(SwaptionDetail(
             swaption_type=swaption_type, expiry_date=expiry_date,
-            underlying_fixed_rate=fr, underlying_float_index=fi,
+            underlying_fixed_rate=underlying_fixed_rate, underlying_float_index=fi,
             underlying_tenor_months=underlying_tenor_months,
             settlement_type=settlement_type,
         ))

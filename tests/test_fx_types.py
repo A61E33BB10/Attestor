@@ -218,7 +218,7 @@ class TestIRSwapPayoutSpec:
         )
         assert isinstance(result, Ok)
         spec = result.value
-        assert spec.fixed_leg.fixed_rate.value == Decimal("0.035")
+        assert spec.fixed_leg.fixed_rate == Decimal("0.035")
         assert spec.float_leg.float_index.value == "SOFR"
         assert spec.fixed_leg.notional.value == Decimal("10000000")
 
@@ -419,7 +419,7 @@ class TestFXSpotInstrument:
         assert isinstance(result, Ok)
         inst = result.value
         assert inst.instrument_id.value == "FXSPOT-001"
-        assert isinstance(inst.product.economic_terms.payout, FXSpotPayoutSpec)
+        assert isinstance(inst.product.economic_terms.payouts[0], FXSpotPayoutSpec)
 
     def test_invalid_pair(self) -> None:
         result = create_fx_spot_instrument(
@@ -446,7 +446,7 @@ class TestFXForwardInstrument:
             trade_date=date(2026, 3, 15),
         )
         assert isinstance(result, Ok)
-        assert isinstance(result.value.product.economic_terms.payout, FXForwardPayoutSpec)
+        assert isinstance(result.value.product.economic_terms.payouts[0], FXForwardPayoutSpec)
 
 
 class TestNDFInstrument:
@@ -464,7 +464,7 @@ class TestNDFInstrument:
             trade_date=date(2026, 3, 15),
         )
         assert isinstance(result, Ok)
-        assert isinstance(result.value.product.economic_terms.payout, NDFPayoutSpec)
+        assert isinstance(result.value.product.economic_terms.payouts[0], NDFPayoutSpec)
 
 
 class TestIRSInstrument:
@@ -484,10 +484,10 @@ class TestIRSInstrument:
         )
         assert isinstance(result, Ok)
         inst = result.value
-        assert isinstance(inst.product.economic_terms.payout, IRSwapPayoutSpec)
+        assert isinstance(inst.product.economic_terms.payouts[0], IRSwapPayoutSpec)
         assert inst.product.economic_terms.termination_date == date(2031, 3, 15)
 
-    def test_invalid_rate(self) -> None:
+    def test_negative_rate_ok(self) -> None:
         result = create_irs_instrument(
             instrument_id="IRS-001",
             fixed_rate=Decimal("-0.035"),
@@ -501,7 +501,10 @@ class TestIRSInstrument:
             parties=_make_parties(),
             trade_date=date(2026, 3, 15),
         )
-        assert isinstance(result, Err)
+        assert isinstance(result, Ok)
+        spec = result.value.product.economic_terms.payouts[0]
+        assert isinstance(spec, IRSwapPayoutSpec)
+        assert spec.fixed_leg.fixed_rate == Decimal("-0.035")
 
 
 # ---------------------------------------------------------------------------

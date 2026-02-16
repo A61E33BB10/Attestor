@@ -354,7 +354,7 @@ class TestFullSwaptionPhysicalLifecycle:
         order = order_result.value
         assert isinstance(order.instrument_detail, SwaptionDetail)
         assert order.instrument_detail.swaption_type is SwaptionType.PAYER
-        assert order.instrument_detail.underlying_fixed_rate.value == Decimal("0.035")
+        assert order.instrument_detail.underlying_fixed_rate == Decimal("0.035")
         assert order.instrument_detail.underlying_tenor_months == 120
         assert order.instrument_detail.settlement_type is SettlementType.PHYSICAL
 
@@ -457,9 +457,9 @@ class TestFullSwaptionPhysicalLifecycle:
         # ---------------------------------------------------------------
         # Step 6: Verify IRS: fixed_rate == swaption strike
         # ---------------------------------------------------------------
-        irs_payout = irs_instrument.product.economic_terms.payout
+        irs_payout = irs_instrument.product.economic_terms.payouts[0]
         assert isinstance(irs_payout, IRSwapPayoutSpec)
-        assert irs_payout.fixed_leg.fixed_rate.value == Decimal("0.035")
+        assert irs_payout.fixed_leg.fixed_rate == Decimal("0.035")
         assert irs_payout.float_leg.float_index.value == "SOFR"
         assert irs_payout.start_date == date(2030, 6, 15)
         assert irs_payout.end_date == date(2040, 6, 15)
@@ -1292,7 +1292,7 @@ class TestCDSInstrumentCreation:
         ))
         assert instr.status is PositionStatusEnum.PROPOSED
         assert instr.instrument_id.value == "CDS-TEST"
-        payout = instr.product.economic_terms.payout
+        payout = instr.product.economic_terms.payouts[0]
         assert isinstance(payout, CDSPayoutSpec)
         assert payout.spread == Decimal("0.02")
 

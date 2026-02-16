@@ -179,5 +179,5 @@ class TestReportingProjection:
         fields = report.instrument_fields
         assert isinstance(fields, IRSwapReportFields)
         # All fields projected from detail, not computed
-        assert fields.fixed_rate == detail.fixed_rate.value
+        assert fields.fixed_rate == detail.fixed_rate
         assert fields.float_index == detail.float_index.value

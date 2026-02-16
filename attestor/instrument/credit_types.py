@@ -15,7 +15,7 @@ from datetime import date
 from decimal import Decimal
 from typing import final
 
-from attestor.core.money import NonEmptyStr, PositiveDecimal
+from attestor.core.money import NonEmptyStr, NonNegativeDecimal, PositiveDecimal
 from attestor.core.result import Err, Ok
 from attestor.instrument.derivative_types import SettlementType, SwaptionType
 from attestor.instrument.fx_types import (
@@ -47,6 +47,19 @@ class CDSPayoutSpec:
     payment_frequency: PaymentFrequency  # typically QUARTERLY
     day_count: DayCountConvention  # ACT_360 per ISDA
     recovery_rate: Decimal  # assumed recovery (typically 0.4)
+
+    def __post_init__(self) -> None:
+        if self.spread <= 0:
+            raise TypeError(f"CDSPayoutSpec.spread must be > 0, got {self.spread}")
+        if self.effective_date >= self.maturity_date:
+            raise TypeError(
+                f"CDSPayoutSpec: effective_date ({self.effective_date}) "
+                f"must be < maturity_date ({self.maturity_date})"
+            )
+        if self.recovery_rate < 0 or self.recovery_rate >= 1:
+            raise TypeError(
+                f"CDSPayoutSpec.recovery_rate must be in [0, 1), got {self.recovery_rate}"
+            )
 
     @staticmethod
     def create(
@@ -121,12 +134,19 @@ class SwaptionPayoutSpec:
     """
 
     swaption_type: SwaptionType
-    strike: PositiveDecimal  # fixed rate K
+    strike: NonNegativeDecimal  # fixed rate K (zero-strike allowed for total return)
     exercise_date: date
     underlying_swap: IRSwapPayoutSpec  # the IRS that exercise creates
     settlement_type: SettlementType  # PHYSICAL or CASH
     currency: NonEmptyStr
     notional: PositiveDecimal
+
+    def __post_init__(self) -> None:
+        if self.exercise_date > self.underlying_swap.start_date:
+            raise TypeError(
+                f"SwaptionPayoutSpec: exercise_date ({self.exercise_date}) "
+                f"must be <= underlying_swap.start_date ({self.underlying_swap.start_date})"
+            )
 
     @staticmethod
     def create(
@@ -141,12 +161,12 @@ class SwaptionPayoutSpec:
         """Create a swaption payout spec with full validation.
 
         Validates:
-        - strike is positive
+        - strike is non-negative
         - exercise_date <= underlying_swap.start_date
         - currency is non-empty
         - notional is positive
         """
-        match PositiveDecimal.parse(strike):
+        match NonNegativeDecimal.parse(strike):
             case Err(e):
                 return Err(f"SwaptionPayoutSpec.strike: {e}")
             case Ok(s):

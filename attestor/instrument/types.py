@@ -118,11 +118,20 @@ type Payout = (
 @final
 @dataclass(frozen=True, slots=True)
 class EconomicTerms:
-    """Economic terms of an instrument."""
+    """Economic terms of an instrument. CDM: payout (1..*)."""
 
-    payout: Payout
+    payouts: tuple[Payout, ...]
     effective_date: date
     termination_date: date | None  # None for perpetual equities
+
+    def __post_init__(self) -> None:
+        if not self.payouts:
+            raise TypeError("EconomicTerms.payouts must contain at least one Payout")
+        if self.termination_date is not None and self.effective_date > self.termination_date:
+            raise TypeError(
+                f"EconomicTerms: effective_date ({self.effective_date}) "
+                f"must be <= termination_date ({self.termination_date})"
+            )
 
 
 @final
@@ -163,7 +172,7 @@ def create_equity_instrument(
             return Err(f"Instrument.instrument_id: {e}")
         case Ok(iid):
             pass
-    terms = EconomicTerms(payout=payout, effective_date=trade_date, termination_date=None)
+    terms = EconomicTerms(payouts=(payout,), effective_date=trade_date, termination_date=None)
     product = Product(economic_terms=terms)
     return Ok(Instrument(
         instrument_id=iid,
@@ -205,7 +214,7 @@ def create_option_instrument(
         case Ok(iid):
             pass
     terms = EconomicTerms(
-        payout=payout, effective_date=trade_date, termination_date=expiry_date,
+        payouts=(payout,), effective_date=trade_date, termination_date=expiry_date,
     )
     product = Product(economic_terms=terms)
     return Ok(Instrument(
@@ -245,7 +254,7 @@ def create_futures_instrument(
         case Ok(iid):
             pass
     terms = EconomicTerms(
-        payout=payout, effective_date=trade_date, termination_date=expiry_date,
+        payouts=(payout,), effective_date=trade_date, termination_date=expiry_date,
     )
     product = Product(economic_terms=terms)
     return Ok(Instrument(
@@ -284,7 +293,7 @@ def create_fx_spot_instrument(
             return Err(f"Instrument.instrument_id: {e}")
         case Ok(iid):
             pass
-    terms = EconomicTerms(payout=payout, effective_date=trade_date, termination_date=None)
+    terms = EconomicTerms(payouts=(payout,), effective_date=trade_date, termination_date=None)
     product = Product(economic_terms=terms)
     return Ok(Instrument(
         instrument_id=iid, product=product, parties=parties,
@@ -318,7 +327,7 @@ def create_fx_forward_instrument(
         case Ok(iid):
             pass
     terms = EconomicTerms(
-        payout=payout, effective_date=trade_date, termination_date=settlement_date,
+        payouts=(payout,), effective_date=trade_date, termination_date=settlement_date,
     )
     product = Product(economic_terms=terms)
     return Ok(Instrument(
@@ -356,7 +365,7 @@ def create_ndf_instrument(
         case Ok(iid):
             pass
     terms = EconomicTerms(
-        payout=payout, effective_date=trade_date, termination_date=settlement_date,
+        payouts=(payout,), effective_date=trade_date, termination_date=settlement_date,
     )
     product = Product(economic_terms=terms)
     return Ok(Instrument(
@@ -396,7 +405,7 @@ def create_irs_instrument(
         case Ok(iid):
             pass
     terms = EconomicTerms(
-        payout=payout, effective_date=start_date, termination_date=end_date,
+        payouts=(payout,), effective_date=start_date, termination_date=end_date,
     )
     product = Product(economic_terms=terms)
     return Ok(Instrument(
@@ -441,7 +450,7 @@ def create_cds_instrument(
         case Ok(iid):
             pass
     terms = EconomicTerms(
-        payout=payout, effective_date=effective_date, termination_date=maturity_date,
+        payouts=(payout,), effective_date=effective_date, termination_date=maturity_date,
     )
     product = Product(economic_terms=terms)
     return Ok(Instrument(
@@ -478,7 +487,7 @@ def create_swaption_instrument(
         case Ok(iid):
             pass
     terms = EconomicTerms(
-        payout=payout, effective_date=trade_date, termination_date=exercise_date,
+        payouts=(payout,), effective_date=trade_date, termination_date=exercise_date,
     )
     product = Product(economic_terms=terms)
     return Ok(Instrument(

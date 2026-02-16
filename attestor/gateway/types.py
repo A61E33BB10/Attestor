@@ -18,10 +18,14 @@ from attestor.core.money import NonEmptyStr, PositiveDecimal
 from attestor.core.result import Err, Ok
 from attestor.core.types import UtcDatetime
 from attestor.instrument.derivative_types import (
+    CDSDetail,
     EquityDetail,
     FuturesDetail,
+    FXDetail,
     InstrumentDetail,
+    IRSwapDetail,
     OptionDetail,
+    SwaptionDetail,
 )
 
 _DEFAULT_EQUITY_DETAIL = EquityDetail()
@@ -164,6 +168,19 @@ class CanonicalOrder:
                     ))
             case EquityDetail():
                 pass
+            case FXDetail():
+                pass  # FX date validation handled at payout level
+            case IRSwapDetail():
+                pass  # IRS date validation handled at payout level
+            case CDSDetail():
+                pass  # CDS date validation handled at payout level
+            case SwaptionDetail(expiry_date=exp):
+                if exp <= trade_date:
+                    violations.append(FieldViolation(
+                        path="instrument_detail.expiry_date",
+                        constraint="must be > trade_date",
+                        actual_value=f"{exp} <= {trade_date}",
+                    ))
 
         if violations:
             return Err(ValidationError(

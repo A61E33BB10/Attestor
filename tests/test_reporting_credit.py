@@ -148,7 +148,7 @@ class TestMiFIDIISwaption:
         assert isinstance(detail, SwaptionDetail)
         assert fields.swaption_type == detail.swaption_type.value
         assert fields.expiry_date == detail.expiry_date
-        assert fields.underlying_fixed_rate == detail.underlying_fixed_rate.value
+        assert fields.underlying_fixed_rate == detail.underlying_fixed_rate
         assert fields.underlying_tenor_months == detail.underlying_tenor_months
         assert fields.settlement_type == detail.settlement_type.value
 

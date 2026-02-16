@@ -82,6 +82,14 @@ class QuotedConfidence:
     size: Decimal | None
     conditions: QuoteCondition
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.bid, Decimal) or not self.bid.is_finite():
+            raise TypeError(f"QuotedConfidence.bid must be finite Decimal, got {self.bid!r}")
+        if not isinstance(self.ask, Decimal) or not self.ask.is_finite():
+            raise TypeError(f"QuotedConfidence.ask must be finite Decimal, got {self.ask!r}")
+        if self.bid > self.ask:
+            raise TypeError(f"QuotedConfidence: bid ({self.bid}) > ask ({self.ask})")
+
     @staticmethod
     def create(
         bid: Decimal, ask: Decimal, venue: str,

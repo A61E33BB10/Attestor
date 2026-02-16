@@ -344,7 +344,8 @@ class TestSwaptionPayoutSpec:
         assert isinstance(result, Err)
         assert "exercise_date" in result.error
 
-    def test_zero_strike_err(self) -> None:
+    def test_zero_strike_ok(self) -> None:
+        """P0-4: zero-strike is now valid for total return structures."""
         swap = _make_underlying_swap()
         result = SwaptionPayoutSpec.create(
             swaption_type=SwaptionType.PAYER,
@@ -355,8 +356,8 @@ class TestSwaptionPayoutSpec:
             currency="USD",
             notional=Decimal("10000000"),
         )
-        assert isinstance(result, Err)
-        assert "strike" in result.error
+        assert isinstance(result, Ok)
+        assert result.value.strike.value == Decimal("0")
 
     def test_zero_notional_err(self) -> None:
         swap = _make_underlying_swap()
@@ -492,7 +493,8 @@ class TestSwaptionDetail:
         assert detail.swaption_type == SwaptionType.PAYER
         assert detail.underlying_tenor_months == 60
 
-    def test_zero_fixed_rate_err(self) -> None:
+    def test_zero_fixed_rate_ok(self) -> None:
+        """P0-4: zero/negative fixed rates are now valid (EUR/JPY/CHF markets)."""
         result = SwaptionDetail.create(
             swaption_type=SwaptionType.RECEIVER,
             expiry_date=date(2027, 6, 15),
@@ -501,8 +503,8 @@ class TestSwaptionDetail:
             underlying_tenor_months=60,
             settlement_type=SettlementType.CASH,
         )
-        assert isinstance(result, Err)
-        assert "underlying_fixed_rate" in result.error
+        assert isinstance(result, Ok)
+        assert result.value.underlying_fixed_rate == Decimal("0")
 
     def test_empty_float_index_err(self) -> None:
         result = SwaptionDetail.create(
@@ -655,7 +657,7 @@ class TestCreateCDSInstrument:
         assert isinstance(result, Ok)
         inst = unwrap(result)
         assert inst.instrument_id.value == "CDS-001"
-        assert isinstance(inst.product.economic_terms.payout, CDSPayoutSpec)
+        assert isinstance(inst.product.economic_terms.payouts[0], CDSPayoutSpec)
         assert inst.product.economic_terms.effective_date == date(2026, 3, 20)
         assert inst.product.economic_terms.termination_date == date(2031, 3, 20)
 
@@ -712,7 +714,7 @@ class TestCreateSwaptionInstrument:
         assert isinstance(result, Ok)
         inst = unwrap(result)
         assert inst.instrument_id.value == "SWPTN-001"
-        assert isinstance(inst.product.economic_terms.payout, SwaptionPayoutSpec)
+        assert isinstance(inst.product.economic_terms.payouts[0], SwaptionPayoutSpec)
         assert inst.product.economic_terms.termination_date == date(2027, 6, 15)
 
     def test_empty_instrument_id_err(self) -> None:

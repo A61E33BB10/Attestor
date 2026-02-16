@@ -91,7 +91,7 @@ def project_emir_report(
             inst_fields = SwaptionReportFields(
                 swaption_type=sd.swaption_type.value,
                 expiry_date=sd.expiry_date,
-                underlying_fixed_rate=sd.underlying_fixed_rate.value,
+                underlying_fixed_rate=sd.underlying_fixed_rate,
                 underlying_tenor_months=sd.underlying_tenor_months,
                 settlement_type=sd.settlement_type.value,
             )

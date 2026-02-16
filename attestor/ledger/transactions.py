@@ -120,6 +120,15 @@ class DistinctAccountPair:
     debit: str
     credit: str
 
+    def __post_init__(self) -> None:
+        if not self.debit or not self.credit:
+            raise TypeError("DistinctAccountPair: debit and credit must be non-empty")
+        if self.debit == self.credit:
+            raise TypeError(
+                f"DistinctAccountPair: debit and credit must differ, "
+                f"both are '{self.debit}'"
+            )
+
     @staticmethod
     def create(debit: str, credit: str) -> Ok[DistinctAccountPair] | Err[str]:
         if not debit:
@@ -141,6 +150,12 @@ class Move:
     unit: str
     quantity: PositiveDecimal
     contract_id: str
+
+    def __post_init__(self) -> None:
+        if not self.source or not self.destination or not self.unit or not self.contract_id:
+            raise TypeError("Move: source, destination, unit, contract_id must be non-empty")
+        if self.source == self.destination:
+            raise TypeError(f"Move: source must differ from destination, both are '{self.source}'")
 
     @staticmethod
     def create(
@@ -180,6 +195,12 @@ class Transaction:
     moves: tuple[Move, ...]
     timestamp: UtcDatetime
     state_deltas: tuple[StateDelta, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not self.tx_id:
+            raise TypeError("Transaction.tx_id must be non-empty")
+        if not self.moves:
+            raise TypeError("Transaction.moves must contain at least one Move")
 
     @staticmethod
     def create(

@@ -42,6 +42,10 @@ class PositiveDecimal:
 
     value: Decimal
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, Decimal) or not (self.value > 0):
+            raise TypeError(f"PositiveDecimal requires Decimal > 0, got {self.value!r}")
+
     @staticmethod
     def parse(raw: Decimal) -> Ok[PositiveDecimal] | Err[str]:
         if not isinstance(raw, Decimal):
@@ -57,6 +61,10 @@ class NonZeroDecimal:
     """Decimal constrained to be != 0."""
 
     value: Decimal
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, Decimal) or self.value == 0:
+            raise TypeError(f"NonZeroDecimal requires Decimal != 0, got {self.value!r}")
 
     @staticmethod
     def parse(raw: Decimal) -> Ok[NonZeroDecimal] | Err[str]:
@@ -74,11 +82,35 @@ class NonEmptyStr:
 
     value: str
 
+    def __post_init__(self) -> None:
+        if not self.value:
+            raise TypeError("NonEmptyStr requires non-empty string")
+
     @staticmethod
     def parse(raw: str) -> Ok[NonEmptyStr] | Err[str]:
         if not raw:
             return Err("NonEmptyStr requires non-empty string")
         return Ok(NonEmptyStr(value=raw))
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class NonNegativeDecimal:
+    """Decimal constrained to be >= 0."""
+
+    value: Decimal
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, Decimal) or self.value < 0:
+            raise TypeError(f"NonNegativeDecimal requires Decimal >= 0, got {self.value!r}")
+
+    @staticmethod
+    def parse(raw: Decimal) -> Ok[NonNegativeDecimal] | Err[str]:
+        if not isinstance(raw, Decimal):
+            return Err(f"NonNegativeDecimal requires Decimal, got {type(raw).__name__}")
+        if raw < 0:
+            return Err(f"NonNegativeDecimal requires >= 0, got {raw}")
+        return Ok(NonNegativeDecimal(value=raw))
 
 
 # GAP-28: ISO 4217 minor unit lookup (subset for Phase 0)
@@ -108,6 +140,10 @@ class Money:
 
     amount: Decimal
     currency: NonEmptyStr
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.amount, Decimal) or not self.amount.is_finite():
+            raise TypeError(f"Money.amount must be finite Decimal, got {self.amount!r}")
 
     @staticmethod
     def create(amount: Decimal, currency: str) -> Ok[Money] | Err[str]:
@@ -175,6 +211,13 @@ class CurrencyPair:
 
     base: NonEmptyStr
     quote: NonEmptyStr
+
+    def __post_init__(self) -> None:
+        if self.base.value == self.quote.value:
+            raise TypeError(
+                f"CurrencyPair base and quote must differ, "
+                f"both are '{self.base.value}'"
+            )
 
     @staticmethod
     def parse(raw: str) -> Ok[CurrencyPair] | Err[str]:

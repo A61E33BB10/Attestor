@@ -6,12 +6,12 @@ III-08 (calibration failure handling with fallback).
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
 from typing import final
 
+from attestor.core.decimal_math import exp_d, ln_d
 from attestor.core.money import NonEmptyStr
 from attestor.core.result import Err, Ok
 from attestor.core.types import FrozenMap, UtcDatetime
@@ -127,7 +127,7 @@ class YieldCurve:
 
 
 def discount_factor(curve: YieldCurve, tenor: Decimal) -> Ok[Decimal] | Err[str]:
-    """Interpolate discount factor at arbitrary tenor (log-linear)."""
+    """Interpolate discount factor at arbitrary tenor (log-linear). Pure Decimal arithmetic."""
     if tenor <= 0:
         return Ok(Decimal("1"))  # D(0) = 1 by convention
 
@@ -136,8 +136,9 @@ def discount_factor(curve: YieldCurve, tenor: Decimal) -> Ok[Decimal] | Err[str]
 
     if tenor <= tenors[0]:
         # Extrapolate from D(0)=1 to first point
-        ln_d = float(tenor) / float(tenors[0]) * math.log(float(dfs[0]))
-        return Ok(Decimal(str(math.exp(ln_d))))
+        ln_df0 = ln_d(dfs[0])
+        exponent = tenor / tenors[0] * ln_df0
+        return Ok(exp_d(exponent))
 
     if tenor >= tenors[-1]:
         # Flat extrapolation beyond last point
@@ -146,11 +147,11 @@ def discount_factor(curve: YieldCurve, tenor: Decimal) -> Ok[Decimal] | Err[str]
     # Find bracketing points
     for i in range(len(tenors) - 1):
         if tenors[i] <= tenor <= tenors[i + 1]:
-            t1, t2 = float(tenors[i]), float(tenors[i + 1])
-            d1, d2 = float(dfs[i]), float(dfs[i + 1])
-            w = (float(tenor) - t1) / (t2 - t1)
-            ln_d = (1 - w) * math.log(d1) + w * math.log(d2)
-            return Ok(Decimal(str(math.exp(ln_d))))
+            t1, t2 = tenors[i], tenors[i + 1]
+            d1, d2 = dfs[i], dfs[i + 1]
+            w = (tenor - t1) / (t2 - t1)
+            exponent = (Decimal("1") - w) * ln_d(d1) + w * ln_d(d2)
+            return Ok(exp_d(exponent))
 
     return Err(f"Cannot interpolate at tenor={tenor}")
 
@@ -173,7 +174,7 @@ def forward_rate(
             pass
     if d1 <= 0 or d2 <= 0:
         return Err("Discount factors must be positive")
-    fwd = -Decimal(str(math.log(float(d2) / float(d1)))) / (t2 - t1)
+    fwd = -(ln_d(d2) - ln_d(d1)) / (t2 - t1)
     return Ok(fwd)
 
 

@@ -242,16 +242,16 @@ class TestExerciseSwaptionIntoIrs:
         irs = unwrap(exercise_swaption_into_irs(
             payout, date(2026, 1, 15), _make_parties(), "IRS-FROM-SWN-003",
         ))
-        payout_spec = irs.product.economic_terms.payout
+        payout_spec = irs.product.economic_terms.payouts[0]
         assert isinstance(payout_spec, IRSwapPayoutSpec)
-        assert payout_spec.fixed_leg.fixed_rate.value == Decimal("0.035")
+        assert payout_spec.fixed_leg.fixed_rate == Decimal("0.035")
 
     def test_irs_start_date_matches_underlying(self) -> None:
         payout = _make_swaption_payout()
         irs = unwrap(exercise_swaption_into_irs(
             payout, date(2026, 1, 15), _make_parties(), "IRS-FROM-SWN-004",
         ))
-        payout_spec = irs.product.economic_terms.payout
+        payout_spec = irs.product.economic_terms.payouts[0]
         assert isinstance(payout_spec, IRSwapPayoutSpec)
         assert payout_spec.start_date == date(2026, 1, 15)
 
@@ -260,7 +260,7 @@ class TestExerciseSwaptionIntoIrs:
         irs = unwrap(exercise_swaption_into_irs(
             payout, date(2026, 1, 15), _make_parties(), "IRS-FROM-SWN-005",
         ))
-        payout_spec = irs.product.economic_terms.payout
+        payout_spec = irs.product.economic_terms.payouts[0]
         assert isinstance(payout_spec, IRSwapPayoutSpec)
         assert payout_spec.end_date == date(2031, 1, 15)
 
@@ -269,7 +269,7 @@ class TestExerciseSwaptionIntoIrs:
         irs = unwrap(exercise_swaption_into_irs(
             payout, date(2026, 1, 15), _make_parties(), "IRS-FROM-SWN-006",
         ))
-        payout_spec = irs.product.economic_terms.payout
+        payout_spec = irs.product.economic_terms.payouts[0]
         assert isinstance(payout_spec, IRSwapPayoutSpec)
         assert payout_spec.fixed_leg.notional.value == Decimal("10000000")
 
@@ -278,7 +278,7 @@ class TestExerciseSwaptionIntoIrs:
         irs = unwrap(exercise_swaption_into_irs(
             payout, date(2026, 1, 15), _make_parties(), "IRS-FROM-SWN-007",
         ))
-        payout_spec = irs.product.economic_terms.payout
+        payout_spec = irs.product.economic_terms.payouts[0]
         assert isinstance(payout_spec, IRSwapPayoutSpec)
         assert payout_spec.float_leg.float_index.value == "USD-SOFR"
 

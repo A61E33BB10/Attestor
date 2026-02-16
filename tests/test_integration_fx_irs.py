@@ -224,7 +224,7 @@ class TestIRSLifecycle:
         order = self._irs_order()
         detail = order.instrument_detail
         assert isinstance(detail, IRSwapDetail)
-        assert detail.fixed_rate.value == Decimal("0.035")
+        assert detail.fixed_rate == Decimal("0.035")
         assert detail.float_index.value == "SOFR"
 
     def test_step3_4_schedules(self) -> None:
