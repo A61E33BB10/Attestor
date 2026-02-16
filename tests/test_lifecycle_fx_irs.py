@@ -8,7 +8,7 @@ from decimal import Decimal
 
 import pytest
 
-from attestor.core.money import Money, NonEmptyStr, PositiveDecimal
+from attestor.core.money import Money, NonEmptyStr
 from attestor.core.result import Err, Ok, unwrap
 from attestor.instrument.lifecycle import (
     FX_TRANSITIONS,
@@ -19,7 +19,6 @@ from attestor.instrument.lifecycle import (
     check_transition,
 )
 from attestor.instrument.types import PositionStatusEnum
-
 
 # ---------------------------------------------------------------------------
 # FX_TRANSITIONS
@@ -215,8 +214,8 @@ class TestPrimitiveInstructionUnion:
         from attestor.instrument.lifecycle import (
             AssignPI,
             DividendPI,
-            ExercisePI,
             ExecutePI,
+            ExercisePI,
             ExpiryPI,
             MarginPI,
             TransferPI,

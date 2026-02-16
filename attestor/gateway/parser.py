@@ -16,13 +16,18 @@ from attestor.core.result import Err, Ok
 from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType
 from attestor.instrument.derivative_types import (
+    CDSDetail,
     FuturesDetail,
     FXDetail,
     IRSwapDetail,
     OptionDetail,
     OptionStyle,
     OptionType,
+    ProtectionSide,
+    SeniorityLevel,
     SettlementType,
+    SwaptionDetail,
+    SwaptionType,
 )
 
 
@@ -478,7 +483,7 @@ def parse_futures_order(
 
 def _delegate_to_base(
     raw: dict[str, object],
-    detail: FXDetail | IRSwapDetail,
+    detail: FXDetail | IRSwapDetail | CDSDetail | SwaptionDetail,
     *,
     strip_keys: tuple[str, ...],
     source: str,
@@ -861,6 +866,197 @@ def parse_irs_order(
             "tenor_months", "start_date", "end_date",
         ),
         source="gateway.parser.parse_irs_order",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 parsers — CDS and Swaptions
+# ---------------------------------------------------------------------------
+
+
+def parse_cds_order(
+    raw: dict[str, object],
+) -> Ok[CanonicalOrder] | Err[ValidationError]:
+    """Parse raw CDS order into CanonicalOrder with CDSDetail.
+
+    Required fields: reference_entity, spread_bps, start_date, maturity_date,
+    seniority (SENIOR_UNSECURED|SUBORDINATED|SENIOR_SECURED),
+    protection_side (BUYER|SELLER).  Settlement default: T+1.
+    """
+    violations: list[FieldViolation] = []
+
+    reference_entity = _extract_str(raw, "reference_entity")
+    if reference_entity is None:
+        violations.append(FieldViolation(
+            path="reference_entity", constraint="required string",
+            actual_value=repr(raw.get("reference_entity")),
+        ))
+
+    spread_bps = _extract_decimal(raw, "spread_bps")
+    if spread_bps is None:
+        violations.append(FieldViolation(
+            path="spread_bps", constraint="required numeric",
+            actual_value=repr(raw.get("spread_bps")),
+        ))
+
+    seniority: SeniorityLevel | None = _parse_enum(
+        raw, "seniority", SeniorityLevel, violations,
+    )
+
+    protection_side: ProtectionSide | None = _parse_enum(
+        raw, "protection_side", ProtectionSide, violations,
+    )
+
+    start_date = _extract_date(raw, "start_date")
+    if start_date is None:
+        violations.append(FieldViolation(
+            path="start_date", constraint="required date",
+            actual_value=repr(raw.get("start_date")),
+        ))
+
+    maturity_date = _extract_date(raw, "maturity_date")
+    if maturity_date is None:
+        violations.append(FieldViolation(
+            path="maturity_date", constraint="required date",
+            actual_value=repr(raw.get("maturity_date")),
+        ))
+
+    if violations:
+        return Err(ValidationError(
+            message=f"parse_cds_order failed: {len(violations)} field error(s)",
+            code="GATEWAY_PARSE",
+            timestamp=UtcDatetime.now(),
+            source="gateway.parser.parse_cds_order",
+            fields=tuple(violations),
+        ))
+
+    assert reference_entity is not None and spread_bps is not None
+    assert seniority is not None and protection_side is not None
+    assert start_date is not None and maturity_date is not None
+
+    match CDSDetail.create(
+        reference_entity=reference_entity,
+        spread_bps=spread_bps,
+        seniority=seniority,
+        protection_side=protection_side,
+        start_date=start_date,
+        maturity_date=maturity_date,
+    ):
+        case Err(e):
+            return Err(ValidationError(
+                message=f"parse_cds_order: {e}",
+                code="GATEWAY_PARSE",
+                timestamp=UtcDatetime.now(),
+                source="gateway.parser.parse_cds_order",
+                fields=(FieldViolation(
+                    path="instrument_detail", constraint=e, actual_value="",
+                ),),
+            ))
+        case Ok(detail):
+            pass
+
+    # CDS settles T+1 by default
+    return _delegate_to_base(
+        raw, detail,
+        strip_keys=(
+            "reference_entity", "spread_bps", "seniority", "protection_side",
+            "start_date", "maturity_date",
+        ),
+        source="gateway.parser.parse_cds_order",
+        default_settlement_days=1,
+    )
+
+
+def parse_swaption_order(
+    raw: dict[str, object],
+) -> Ok[CanonicalOrder] | Err[ValidationError]:
+    """Parse raw swaption order into CanonicalOrder with SwaptionDetail.
+
+    Required fields: swaption_type (PAYER|RECEIVER), expiry_date, underlying_fixed_rate,
+    underlying_float_index, underlying_tenor_months, settlement_type (PHYSICAL|CASH).
+    Settlement default: T+1.
+    """
+    violations: list[FieldViolation] = []
+
+    swaption_type: SwaptionType | None = _parse_enum(
+        raw, "swaption_type", SwaptionType, violations,
+    )
+
+    expiry_date = _extract_date(raw, "expiry_date")
+    if expiry_date is None:
+        violations.append(FieldViolation(
+            path="expiry_date", constraint="required date",
+            actual_value=repr(raw.get("expiry_date")),
+        ))
+
+    underlying_fixed_rate = _extract_decimal(raw, "underlying_fixed_rate")
+    if underlying_fixed_rate is None:
+        violations.append(FieldViolation(
+            path="underlying_fixed_rate", constraint="required numeric",
+            actual_value=repr(raw.get("underlying_fixed_rate")),
+        ))
+
+    underlying_float_index = _extract_str(raw, "underlying_float_index")
+    if underlying_float_index is None:
+        violations.append(FieldViolation(
+            path="underlying_float_index", constraint="required string",
+            actual_value=repr(raw.get("underlying_float_index")),
+        ))
+
+    underlying_tenor_months_raw = _extract_decimal(raw, "underlying_tenor_months")
+    if underlying_tenor_months_raw is None:
+        violations.append(FieldViolation(
+            path="underlying_tenor_months", constraint="required numeric",
+            actual_value=repr(raw.get("underlying_tenor_months")),
+        ))
+
+    settlement_type: SettlementType | None = _parse_enum(
+        raw, "settlement_type", SettlementType, violations,
+    )
+
+    if violations:
+        return Err(ValidationError(
+            message=f"parse_swaption_order failed: {len(violations)} field error(s)",
+            code="GATEWAY_PARSE",
+            timestamp=UtcDatetime.now(),
+            source="gateway.parser.parse_swaption_order",
+            fields=tuple(violations),
+        ))
+
+    assert swaption_type is not None and expiry_date is not None
+    assert underlying_fixed_rate is not None and underlying_float_index is not None
+    assert underlying_tenor_months_raw is not None and settlement_type is not None
+
+    match SwaptionDetail.create(
+        swaption_type=swaption_type,
+        expiry_date=expiry_date,
+        underlying_fixed_rate=underlying_fixed_rate,
+        underlying_float_index=underlying_float_index,
+        underlying_tenor_months=int(underlying_tenor_months_raw),
+        settlement_type=settlement_type,
+    ):
+        case Err(e):
+            return Err(ValidationError(
+                message=f"parse_swaption_order: {e}",
+                code="GATEWAY_PARSE",
+                timestamp=UtcDatetime.now(),
+                source="gateway.parser.parse_swaption_order",
+                fields=(FieldViolation(
+                    path="instrument_detail", constraint=e, actual_value="",
+                ),),
+            ))
+        case Ok(detail):
+            pass
+
+    # Swaptions settle T+1 by default
+    return _delegate_to_base(
+        raw, detail,
+        strip_keys=(
+            "swaption_type", "expiry_date", "underlying_fixed_rate",
+            "underlying_float_index", "underlying_tenor_months", "settlement_type",
+        ),
+        source="gateway.parser.parse_swaption_order",
+        default_settlement_days=1,
     )
 
 

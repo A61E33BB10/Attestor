@@ -1,5 +1,17 @@
-"""attestor.instrument — Pillar II: instrument model and lifecycle."""
+"""attestor.instrument -- Pillar II: instrument model and lifecycle."""
 
+from attestor.instrument.credit_types import (
+    CDSPayoutSpec as CDSPayoutSpec,
+)
+from attestor.instrument.credit_types import (
+    SwaptionPayoutSpec as SwaptionPayoutSpec,
+)
+from attestor.instrument.derivative_types import (
+    CDSDetail as CDSDetail,
+)
+from attestor.instrument.derivative_types import (
+    CreditEventType as CreditEventType,
+)
 from attestor.instrument.derivative_types import (
     EquityDetail as EquityDetail,
 )
@@ -36,7 +48,19 @@ from attestor.instrument.derivative_types import (
     OptionType as OptionType,
 )
 from attestor.instrument.derivative_types import (
+    ProtectionSide as ProtectionSide,
+)
+from attestor.instrument.derivative_types import (
+    SeniorityLevel as SeniorityLevel,
+)
+from attestor.instrument.derivative_types import (
     SettlementType as SettlementType,
+)
+from attestor.instrument.derivative_types import (
+    SwaptionDetail as SwaptionDetail,
+)
+from attestor.instrument.derivative_types import (
+    SwaptionType as SwaptionType,
 )
 from attestor.instrument.fx_types import (
     DayCountConvention as DayCountConvention,
@@ -78,6 +102,9 @@ from attestor.instrument.types import (
     Product as Product,
 )
 from attestor.instrument.types import (
+    create_cds_instrument as create_cds_instrument,
+)
+from attestor.instrument.types import (
     create_equity_instrument as create_equity_instrument,
 )
 from attestor.instrument.types import (
@@ -97,4 +124,7 @@ from attestor.instrument.types import (
 )
 from attestor.instrument.types import (
     create_option_instrument as create_option_instrument,
+)
+from attestor.instrument.types import (
+    create_swaption_instrument as create_swaption_instrument,
 )

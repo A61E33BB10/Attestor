@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from attestor.core.result import Err, Ok, unwrap
-from attestor.core.types import UtcDatetime
 from attestor.gateway.parser import parse_fx_forward_order, parse_fx_spot_order, parse_ndf_order
 from attestor.gateway.types import CanonicalOrder
 from attestor.instrument.derivative_types import FXDetail

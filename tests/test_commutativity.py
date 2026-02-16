@@ -91,8 +91,12 @@ class TestMasterSquare:
 
         # Master Square: both paths produce same NPV and same positions
         assert npv_a == npv_b == Decimal("175.50")
-        assert engine_a.get_balance("BUYER_CASH", "USD") == engine_b.get_balance("BUYER_CASH", "USD")
-        assert engine_a.get_balance("BUYER_SEC", "AAPL") == engine_b.get_balance("BUYER_SEC", "AAPL")
+        bal_a = engine_a.get_balance("BUYER_CASH", "USD")
+        bal_b = engine_b.get_balance("BUYER_CASH", "USD")
+        assert bal_a == bal_b
+        sec_a = engine_a.get_balance("BUYER_SEC", "AAPL")
+        sec_b = engine_b.get_balance("BUYER_SEC", "AAPL")
+        assert sec_a == sec_b
         assert engine_a.total_supply("USD") == engine_b.total_supply("USD") == Decimal(0)
 
     def test_equity_sell(self) -> None:
@@ -109,7 +113,9 @@ class TestMasterSquare:
         _book(engine_b, order, "STL-B")
 
         assert npv_a == npv_b == Decimal("200.00")
-        assert engine_a.get_balance("BUYER_CASH", "USD") == engine_b.get_balance("BUYER_CASH", "USD")
+        bal_a = engine_a.get_balance("BUYER_CASH", "USD")
+        bal_b = engine_b.get_balance("BUYER_CASH", "USD")
+        assert bal_a == bal_b
 
 
 # ---------------------------------------------------------------------------
@@ -197,9 +203,11 @@ class TestLifecycleBookingNaturality:
         _book(engine_b, order1, "STL-B1")
 
         # Same final positions
-        assert engine_a.get_balance("BUYER_CASH", "USD") == engine_b.get_balance("BUYER_CASH", "USD")
-        assert engine_a.get_balance("BUYER_SEC", "AAPL") == engine_b.get_balance("BUYER_SEC", "AAPL")
-        assert engine_a.get_balance("SELLER_CASH", "USD") == engine_b.get_balance("SELLER_CASH", "USD")
+        for acct, unit in [
+            ("BUYER_CASH", "USD"), ("BUYER_SEC", "AAPL"),
+            ("SELLER_CASH", "USD"),
+        ]:
+            assert engine_a.get_balance(acct, unit) == engine_b.get_balance(acct, unit)
 
 
 # ---------------------------------------------------------------------------
@@ -238,5 +246,7 @@ class TestPropertyBasedCommutativity:
         _book(engine_b, order, "STL-B")
 
         assert npv_a == npv_b
-        assert engine_a.get_balance("BUYER_CASH", "USD") == engine_b.get_balance("BUYER_CASH", "USD")
+        bal_a = engine_a.get_balance("BUYER_CASH", "USD")
+        bal_b = engine_b.get_balance("BUYER_CASH", "USD")
+        assert bal_a == bal_b
         assert engine_a.total_supply("USD") == Decimal(0)

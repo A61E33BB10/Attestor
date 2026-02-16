@@ -16,10 +16,10 @@ from hypothesis import strategies as st
 from attestor.core.money import NonEmptyStr, PositiveDecimal
 from attestor.core.result import Ok, unwrap
 from attestor.core.types import UtcDatetime
+from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType
 from attestor.ledger.engine import LedgerEngine
 from attestor.ledger.settlement import create_settlement_transaction
 from attestor.ledger.transactions import Account, AccountType, ExecuteResult, Move, Transaction
-from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType
 
 _TS = UtcDatetime(value=datetime(2025, 6, 15, 10, 0, 0, tzinfo=UTC))
 

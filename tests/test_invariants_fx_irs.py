@@ -14,10 +14,10 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from attestor.core.money import CurrencyPair, NonEmptyStr
-from attestor.core.result import Err, Ok, unwrap
+from attestor.core.result import unwrap
 from attestor.core.types import UtcDatetime
 from attestor.gateway.parser import parse_fx_forward_order, parse_fx_spot_order, parse_ndf_order
-from attestor.instrument.derivative_types import FXDetail
+from attestor.instrument.fx_types import DayCountConvention, PaymentFrequency
 from attestor.ledger.engine import LedgerEngine
 from attestor.ledger.fx_settlement import (
     create_fx_forward_settlement,
@@ -30,7 +30,6 @@ from attestor.ledger.irs import (
     generate_fixed_leg_schedule,
     generate_float_leg_schedule,
 )
-from attestor.instrument.fx_types import DayCountConvention, PaymentFrequency
 from attestor.oracle.arbitrage_gates import (
     check_fx_spot_forward_consistency,
     check_fx_triangular_arbitrage,
@@ -39,7 +38,6 @@ from attestor.oracle.arbitrage_gates import (
 from attestor.oracle.calibration import (
     ModelConfig,
     RateInstrument,
-    YieldCurve,
     bootstrap_curve,
 )
 from attestor.pricing.protocols import StubPricingEngine
@@ -425,7 +423,8 @@ def test_cs_f2_master_square_irs() -> None:
 
 def test_cs_f4_oracle_ledger_fx_consistency() -> None:
     """FX rate from Oracle matches the settlement rate used in ledger."""
-    from datetime import datetime, UTC
+    from datetime import UTC, datetime
+
     from attestor.oracle.fx_ingest import ingest_fx_rate
     oracle_rate = Decimal("1.0850")
     att = unwrap(ingest_fx_rate(

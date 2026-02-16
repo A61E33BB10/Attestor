@@ -28,6 +28,8 @@ class ValuationResult:
     market_snapshot_id: str = ""
     fixed_leg_pv: Decimal = Decimal("0")
     floating_leg_pv: Decimal = Decimal("0")
+    premium_leg_pv: Decimal = Decimal("0")     # CDS premium leg
+    protection_leg_pv: Decimal = Decimal("0")  # CDS protection leg
 
 
 @final

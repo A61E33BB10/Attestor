@@ -35,7 +35,6 @@ from attestor.instrument.types import (
     create_ndf_instrument,
 )
 
-
 # ---------------------------------------------------------------------------
 # CurrencyPair
 # ---------------------------------------------------------------------------
@@ -513,11 +512,10 @@ class TestIRSInstrument:
 class TestPayoutUnion:
     def test_all_seven_payout_variants(self) -> None:
         """Payout union has 7 variants after Phase 3."""
-        from attestor.instrument.types import Payout
         # type Payout = ... has 7 alternatives
         # Just verify all types are importable and distinct
         from attestor.instrument.derivative_types import FuturesPayoutSpec, OptionPayoutSpec
-        from attestor.instrument.types import EquityPayoutSpec
+        from attestor.instrument.types import EquityPayoutSpec, Payout
 
         payout_types = {
             EquityPayoutSpec, OptionPayoutSpec, FuturesPayoutSpec,

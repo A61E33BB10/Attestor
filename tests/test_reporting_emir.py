@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
-from attestor.core.result import Err, Ok, unwrap
+from attestor.core.result import Ok, unwrap
 from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType
 from attestor.oracle.attestation import FirmConfidence

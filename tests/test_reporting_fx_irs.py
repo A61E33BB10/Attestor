@@ -5,9 +5,9 @@ from __future__ import annotations
 from decimal import Decimal
 
 from attestor.core.result import Ok, unwrap
-from attestor.gateway.parser import parse_fx_spot_order, parse_fx_forward_order, parse_irs_order
+from attestor.gateway.parser import parse_fx_forward_order, parse_fx_spot_order, parse_irs_order
 from attestor.gateway.types import CanonicalOrder
-from attestor.instrument.derivative_types import FXDetail, IRSwapDetail
+from attestor.instrument.derivative_types import IRSwapDetail
 from attestor.reporting.emir import project_emir_report
 from attestor.reporting.mifid2 import (
     FXReportFields,

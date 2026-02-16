@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 from decimal import Decimal
 
-from attestor.core.money import NonEmptyStr, PositiveDecimal
+from attestor.core.money import NonEmptyStr
 from attestor.core.result import Err, Ok, unwrap
 from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType

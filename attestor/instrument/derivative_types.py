@@ -44,6 +44,36 @@ class MarginType(Enum):
     INITIAL = "INITIAL"
 
 
+class CreditEventType(Enum):
+    """ISDA credit event triggers for CDS contracts."""
+
+    BANKRUPTCY = "BANKRUPTCY"
+    FAILURE_TO_PAY = "FAILURE_TO_PAY"
+    RESTRUCTURING = "RESTRUCTURING"
+
+
+class SeniorityLevel(Enum):
+    """Debt seniority for CDS reference obligation."""
+
+    SENIOR_UNSECURED = "SENIOR_UNSECURED"
+    SUBORDINATED = "SUBORDINATED"
+    SENIOR_SECURED = "SENIOR_SECURED"
+
+
+class ProtectionSide(Enum):
+    """CDS protection buyer or seller."""
+
+    BUYER = "BUYER"
+    SELLER = "SELLER"
+
+
+class SwaptionType(Enum):
+    """Payer or receiver swaption."""
+
+    PAYER = "PAYER"
+    RECEIVER = "RECEIVER"
+
+
 # ---------------------------------------------------------------------------
 # PayoutSpec types
 # ---------------------------------------------------------------------------
@@ -351,4 +381,94 @@ class IRSwapDetail:
         ))
 
 
-type InstrumentDetail = EquityDetail | OptionDetail | FuturesDetail | FXDetail | IRSwapDetail
+@final
+@dataclass(frozen=True, slots=True)
+class CDSDetail:
+    """CDS order detail on a CanonicalOrder."""
+
+    reference_entity: NonEmptyStr
+    spread_bps: PositiveDecimal
+    seniority: SeniorityLevel
+    protection_side: ProtectionSide
+    start_date: date
+    maturity_date: date
+
+    @staticmethod
+    def create(
+        reference_entity: str,
+        spread_bps: Decimal,
+        seniority: SeniorityLevel,
+        protection_side: ProtectionSide,
+        start_date: date,
+        maturity_date: date,
+    ) -> Ok[CDSDetail] | Err[str]:
+        match NonEmptyStr.parse(reference_entity):
+            case Err(e):
+                return Err(f"CDSDetail.reference_entity: {e}")
+            case Ok(ref):
+                pass
+        match PositiveDecimal.parse(spread_bps):
+            case Err(e):
+                return Err(f"CDSDetail.spread_bps: {e}")
+            case Ok(s):
+                pass
+        if start_date >= maturity_date:
+            return Err(
+                f"CDSDetail: start_date ({start_date}) "
+                f"must be < maturity_date ({maturity_date})"
+            )
+        return Ok(CDSDetail(
+            reference_entity=ref, spread_bps=s, seniority=seniority,
+            protection_side=protection_side,
+            start_date=start_date, maturity_date=maturity_date,
+        ))
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class SwaptionDetail:
+    """Swaption order detail on a CanonicalOrder."""
+
+    swaption_type: SwaptionType
+    expiry_date: date
+    underlying_fixed_rate: PositiveDecimal
+    underlying_float_index: NonEmptyStr
+    underlying_tenor_months: int
+    settlement_type: SettlementType
+
+    @staticmethod
+    def create(
+        swaption_type: SwaptionType,
+        expiry_date: date,
+        underlying_fixed_rate: Decimal,
+        underlying_float_index: str,
+        underlying_tenor_months: int,
+        settlement_type: SettlementType,
+    ) -> Ok[SwaptionDetail] | Err[str]:
+        match PositiveDecimal.parse(underlying_fixed_rate):
+            case Err(e):
+                return Err(f"SwaptionDetail.underlying_fixed_rate: {e}")
+            case Ok(fr):
+                pass
+        match NonEmptyStr.parse(underlying_float_index):
+            case Err(e):
+                return Err(f"SwaptionDetail.underlying_float_index: {e}")
+            case Ok(fi):
+                pass
+        if underlying_tenor_months <= 0:
+            return Err(
+                f"SwaptionDetail.underlying_tenor_months must be > 0, "
+                f"got {underlying_tenor_months}"
+            )
+        return Ok(SwaptionDetail(
+            swaption_type=swaption_type, expiry_date=expiry_date,
+            underlying_fixed_rate=fr, underlying_float_index=fi,
+            underlying_tenor_months=underlying_tenor_months,
+            settlement_type=settlement_type,
+        ))
+
+
+type InstrumentDetail = (
+    EquityDetail | OptionDetail | FuturesDetail | FXDetail | IRSwapDetail
+    | CDSDetail | SwaptionDetail
+)

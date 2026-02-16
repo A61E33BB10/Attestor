@@ -1,8 +1,8 @@
 """Lifecycle state machine and PrimitiveInstruction variants.
 
-EQUITY_TRANSITIONS / DERIVATIVE_TRANSITIONS / FX_TRANSITIONS / IRS_TRANSITIONS
-define valid state transitions.
-PrimitiveInstruction covers equities, options, futures, FX, and IRS.
+EQUITY_TRANSITIONS / DERIVATIVE_TRANSITIONS / FX_TRANSITIONS / IRS_TRANSITIONS /
+CDS_TRANSITIONS / SWAPTION_TRANSITIONS define valid state transitions.
+PrimitiveInstruction covers equities, options, futures, FX, IRS, CDS, and swaptions.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from attestor.core.money import Money, NonEmptyStr, PositiveDecimal
 from attestor.core.result import Err, Ok
 from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder
-from attestor.instrument.derivative_types import MarginType
+from attestor.instrument.derivative_types import CreditEventType, MarginType
 from attestor.instrument.types import PositionStatusEnum
 
 # ---------------------------------------------------------------------------
@@ -42,6 +42,12 @@ FX_TRANSITIONS: TransitionTable = EQUITY_TRANSITIONS
 
 # IRS instruments share equity transition edges.
 IRS_TRANSITIONS: TransitionTable = EQUITY_TRANSITIONS
+
+# CDS instruments share equity transition edges.
+CDS_TRANSITIONS: TransitionTable = EQUITY_TRANSITIONS
+
+# Swaption instruments share equity transition edges.
+SWAPTION_TRANSITIONS: TransitionTable = EQUITY_TRANSITIONS
 
 
 def check_transition(
@@ -172,10 +178,64 @@ class MaturityPI:
     maturity_date: date
 
 
+# ---------------------------------------------------------------------------
+# Phase 4 PrimitiveInstruction variants — CDS / Swaptions / Collateral
+# ---------------------------------------------------------------------------
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class CreditEventPI:
+    """Credit event declaration -- triggers protection leg."""
+
+    instrument_id: NonEmptyStr
+    event_type: CreditEventType
+    determination_date: date
+    auction_price: Decimal | None  # None before auction, populated after
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class SwaptionCashSettlement:
+    """Cash settlement details for swaption exercise."""
+
+    settlement_amount: Money
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class SwaptionPhysicalSettlement:
+    """Physical settlement details for swaption exercise."""
+
+    underlying_irs_id: NonEmptyStr
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class SwaptionExercisePI:
+    """Swaption exercise -- converts swaption into underlying IRS."""
+
+    instrument_id: NonEmptyStr
+    exercise_date: date
+    settlement: SwaptionCashSettlement | SwaptionPhysicalSettlement
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class CollateralCallPI:
+    """Collateral margin call instruction."""
+
+    agreement_id: NonEmptyStr
+    call_amount: Money
+    call_date: date
+    collateral_type: NonEmptyStr  # "CASH" or instrument ID
+
+
 PrimitiveInstruction = (
     ExecutePI | TransferPI | DividendPI
     | ExercisePI | AssignPI | ExpiryPI | MarginPI
     | FixingPI | NettingPI | MaturityPI
+    | CreditEventPI | SwaptionExercisePI | CollateralCallPI
 )
 
 

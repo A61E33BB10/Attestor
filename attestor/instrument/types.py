@@ -1,7 +1,8 @@
-"""Instrument model types — Party, PayoutSpecs, EconomicTerms, Product, Instrument.
+"""Instrument model types -- Party, PayoutSpecs, EconomicTerms, Product, Instrument.
 
 Payout = EquityPayoutSpec | OptionPayoutSpec | FuturesPayoutSpec
-       | FXSpotPayoutSpec | FXForwardPayoutSpec | NDFPayoutSpec | IRSwapPayoutSpec.
+       | FXSpotPayoutSpec | FXForwardPayoutSpec | NDFPayoutSpec | IRSwapPayoutSpec
+       | CDSPayoutSpec | SwaptionPayoutSpec.
 """
 
 from __future__ import annotations
@@ -15,12 +16,17 @@ from typing import final
 from attestor.core.identifiers import LEI
 from attestor.core.money import NonEmptyStr
 from attestor.core.result import Err, Ok
+from attestor.instrument.credit_types import (
+    CDSPayoutSpec,
+    SwaptionPayoutSpec,
+)
 from attestor.instrument.derivative_types import (
     FuturesPayoutSpec,
     OptionPayoutSpec,
     OptionStyle,
     OptionType,
     SettlementType,
+    SwaptionType,
 )
 from attestor.instrument.fx_types import (
     DayCountConvention,
@@ -105,6 +111,7 @@ class EquityPayoutSpec:
 type Payout = (
     EquityPayoutSpec | OptionPayoutSpec | FuturesPayoutSpec
     | FXSpotPayoutSpec | FXForwardPayoutSpec | NDFPayoutSpec | IRSwapPayoutSpec
+    | CDSPayoutSpec | SwaptionPayoutSpec
 )
 
 
@@ -390,6 +397,88 @@ def create_irs_instrument(
             pass
     terms = EconomicTerms(
         payout=payout, effective_date=start_date, termination_date=end_date,
+    )
+    product = Product(economic_terms=terms)
+    return Ok(Instrument(
+        instrument_id=iid, product=product, parties=parties,
+        trade_date=trade_date, status=PositionStatusEnum.PROPOSED,
+    ))
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 instrument factories — CDS and Swaption
+# ---------------------------------------------------------------------------
+
+
+def create_cds_instrument(
+    instrument_id: str,
+    reference_entity: str,
+    notional: Decimal,
+    spread: Decimal,
+    currency: str,
+    effective_date: date,
+    maturity_date: date,
+    payment_frequency: PaymentFrequency,
+    day_count: DayCountConvention,
+    recovery_rate: Decimal,
+    parties: tuple[Party, ...],
+    trade_date: date,
+) -> Ok[Instrument] | Err[str]:
+    """Create a CDS Instrument from basic parameters."""
+    match CDSPayoutSpec.create(
+        reference_entity=reference_entity, notional=notional, spread=spread,
+        currency=currency, effective_date=effective_date,
+        maturity_date=maturity_date, payment_frequency=payment_frequency,
+        day_count=day_count, recovery_rate=recovery_rate,
+    ):
+        case Err(e):
+            return Err(e)
+        case Ok(payout):
+            pass
+    match NonEmptyStr.parse(instrument_id):
+        case Err(e):
+            return Err(f"Instrument.instrument_id: {e}")
+        case Ok(iid):
+            pass
+    terms = EconomicTerms(
+        payout=payout, effective_date=effective_date, termination_date=maturity_date,
+    )
+    product = Product(economic_terms=terms)
+    return Ok(Instrument(
+        instrument_id=iid, product=product, parties=parties,
+        trade_date=trade_date, status=PositionStatusEnum.PROPOSED,
+    ))
+
+
+def create_swaption_instrument(
+    instrument_id: str,
+    swaption_type: SwaptionType,
+    strike: Decimal,
+    exercise_date: date,
+    underlying_swap: IRSwapPayoutSpec,
+    settlement_type: SettlementType,
+    currency: str,
+    notional: Decimal,
+    parties: tuple[Party, ...],
+    trade_date: date,
+) -> Ok[Instrument] | Err[str]:
+    """Create a swaption Instrument from basic parameters."""
+    match SwaptionPayoutSpec.create(
+        swaption_type=swaption_type, strike=strike,
+        exercise_date=exercise_date, underlying_swap=underlying_swap,
+        settlement_type=settlement_type, currency=currency, notional=notional,
+    ):
+        case Err(e):
+            return Err(e)
+        case Ok(payout):
+            pass
+    match NonEmptyStr.parse(instrument_id):
+        case Err(e):
+            return Err(f"Instrument.instrument_id: {e}")
+        case Ok(iid):
+            pass
+    terms = EconomicTerms(
+        payout=payout, effective_date=trade_date, termination_date=exercise_date,
     )
     product = Product(economic_terms=terms)
     return Ok(Instrument(

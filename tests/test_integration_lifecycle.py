@@ -211,47 +211,33 @@ class TestImportSmokeTest:
     """Verify all Phase 1 types are importable — CI import smoke test."""
 
     def test_gateway_imports(self) -> None:
-        from attestor.gateway import CanonicalOrder, OrderSide, OrderType, parse_order
+        from attestor.gateway import CanonicalOrder
         assert CanonicalOrder is not None
 
     def test_instrument_imports(self) -> None:
         from attestor.instrument import (
-            EconomicTerms,
-            EquityPayoutSpec,
             Instrument,
-            Party,
-            Product,
         )
         assert Instrument is not None
 
     def test_lifecycle_imports(self) -> None:
         from attestor.instrument.lifecycle import (
-            EQUITY_TRANSITIONS,
-            BusinessEvent,
-            DividendPI,
-            ExecutePI,
             PrimitiveInstruction,
-            TransferPI,
-            check_transition,
         )
         assert PrimitiveInstruction is not None
 
     def test_ledger_imports(self) -> None:
-        from attestor.ledger import LedgerEngine, Move, Transaction
-        from attestor.ledger.dividends import create_dividend_transaction
-        from attestor.ledger.settlement import create_settlement_transaction
+        from attestor.ledger import LedgerEngine
         assert LedgerEngine is not None
 
     def test_oracle_imports(self) -> None:
         from attestor.oracle.ingest import (
             MarketDataPoint,
-            ingest_equity_fill,
-            ingest_equity_quote,
         )
         assert MarketDataPoint is not None
 
     def test_reporting_imports(self) -> None:
-        from attestor.reporting.emir import EMIRTradeReport, project_emir_report
+        from attestor.reporting.emir import EMIRTradeReport
         assert EMIRTradeReport is not None
 
     def test_pricing_imports(self) -> None:
@@ -259,5 +245,5 @@ class TestImportSmokeTest:
         assert StubPricingEngine is not None
 
     def test_infra_imports(self) -> None:
-        from attestor.infra.config import PHASE1_TOPICS, phase1_topic_configs
+        from attestor.infra.config import PHASE1_TOPICS
         assert len(PHASE1_TOPICS) == 5

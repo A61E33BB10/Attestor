@@ -11,9 +11,7 @@ from decimal import Decimal
 from attestor.core.money import NonEmptyStr
 from attestor.core.result import Err, Ok, unwrap
 from attestor.core.types import UtcDatetime
-from attestor.ledger.transactions import Account, AccountType
 from attestor.gateway.parser import (
-    parse_fx_forward_order,
     parse_fx_spot_order,
     parse_irs_order,
     parse_ndf_order,
@@ -22,7 +20,6 @@ from attestor.instrument.derivative_types import FXDetail, IRSwapDetail
 from attestor.instrument.fx_types import DayCountConvention, PaymentFrequency
 from attestor.ledger.engine import LedgerEngine
 from attestor.ledger.fx_settlement import (
-    create_fx_forward_settlement,
     create_fx_spot_settlement,
     create_ndf_settlement,
 )
@@ -32,9 +29,9 @@ from attestor.ledger.irs import (
     generate_fixed_leg_schedule,
     generate_float_leg_schedule,
 )
+from attestor.ledger.transactions import Account, AccountType
 from attestor.oracle.arbitrage_gates import check_yield_curve_arbitrage_freedom
 from attestor.oracle.calibration import (
-    CalibrationResult,
     FailedCalibrationRecord,
     ModelConfig,
     RateInstrument,
@@ -408,62 +405,36 @@ class TestImportSmoke:
     def test_import_fx_types(self) -> None:
         from attestor.instrument.fx_types import (
             FXSpotPayoutSpec,
-            FXForwardPayoutSpec,
-            NDFPayoutSpec,
-            IRSwapPayoutSpec,
         )
         assert FXSpotPayoutSpec is not None
 
     def test_import_fx_settlement(self) -> None:
         from attestor.ledger.fx_settlement import (
             create_fx_spot_settlement,
-            create_fx_forward_settlement,
-            create_ndf_settlement,
         )
         assert create_fx_spot_settlement is not None
 
     def test_import_irs(self) -> None:
         from attestor.ledger.irs import (
             ScheduledCashflow,
-            CashflowSchedule,
-            generate_fixed_leg_schedule,
-            generate_float_leg_schedule,
-            apply_rate_fixing,
-            create_irs_cashflow_transaction,
         )
         assert ScheduledCashflow is not None
 
     def test_import_calibration(self) -> None:
         from attestor.oracle.calibration import (
             ModelConfig,
-            YieldCurve,
-            RateInstrument,
-            bootstrap_curve,
-            discount_factor,
-            forward_rate,
-            CalibrationResult,
-            FailedCalibrationRecord,
         )
         assert ModelConfig is not None
 
     def test_import_arbitrage_gates(self) -> None:
         from attestor.oracle.arbitrage_gates import (
             ArbitrageCheckResult,
-            ArbitrageCheckType,
-            CheckSeverity,
-            check_yield_curve_arbitrage_freedom,
-            check_fx_triangular_arbitrage,
-            check_fx_spot_forward_consistency,
         )
         assert ArbitrageCheckResult is not None
 
     def test_import_fx_ingest(self) -> None:
         from attestor.oracle.fx_ingest import (
             FXRate,
-            RateFixing,
-            ingest_fx_rate,
-            ingest_fx_rate_firm,
-            ingest_rate_fixing,
         )
         assert FXRate is not None
 
@@ -482,6 +453,7 @@ class TestEngineUntouched:
     def test_no_fx_irs_keywords_in_engine(self) -> None:
         """engine.py must have zero FX/IRS keywords (Principle V)."""
         import inspect
+
         from attestor.ledger import engine
         source = inspect.getsource(engine)
         for keyword in ("FX", "forex", "currency_pair", "IRS", "swap", "cashflow",

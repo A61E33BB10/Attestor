@@ -7,12 +7,9 @@ from datetime import date
 from attestor.core.result import Err, Ok, unwrap
 from attestor.core.serialization import canonical_bytes
 from attestor.instrument.types import (
-    EconomicTerms,
     EquityPayoutSpec,
-    Instrument,
     Party,
     PositionStatusEnum,
-    Product,
     create_equity_instrument,
 )
 

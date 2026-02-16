@@ -64,6 +64,17 @@ PHASE3_TOPICS: frozenset[str] = frozenset({
     TOPIC_CALIBRATION_EVENTS, TOPIC_MODEL_CONFIGS,
 })
 
+# Phase 4 topics
+TOPIC_VOL_SURFACES: str = "attestor.oracle.vol_surfaces"
+TOPIC_CREDIT_CURVES: str = "attestor.oracle.credit_curves"
+TOPIC_COLLATERAL: str = "attestor.ledger.collateral"
+TOPIC_CREDIT_EVENTS: str = "attestor.lifecycle.credit_events"
+
+PHASE4_TOPICS: frozenset[str] = frozenset({
+    TOPIC_VOL_SURFACES, TOPIC_CREDIT_CURVES,
+    TOPIC_COLLATERAL, TOPIC_CREDIT_EVENTS,
+})
+
 
 # ---------------------------------------------------------------------------
 # Topic configuration
@@ -209,6 +220,36 @@ def phase3_topic_configs() -> tuple[TopicConfig, ...]:
         TopicConfig(
             name=TOPIC_MODEL_CONFIGS,
             partitions=3, replication_factor=3,
+            retention_ms=-1,
+            cleanup_policy="delete", min_insync_replicas=2,
+        ),
+    )
+
+
+def phase4_topic_configs() -> tuple[TopicConfig, ...]:
+    """Return topic configs for the four Phase 4 topics."""
+    return (
+        TopicConfig(
+            name=TOPIC_VOL_SURFACES,
+            partitions=3, replication_factor=3,
+            retention_ms=-1,
+            cleanup_policy="delete", min_insync_replicas=2,
+        ),
+        TopicConfig(
+            name=TOPIC_CREDIT_CURVES,
+            partitions=3, replication_factor=3,
+            retention_ms=-1,
+            cleanup_policy="delete", min_insync_replicas=2,
+        ),
+        TopicConfig(
+            name=TOPIC_COLLATERAL,
+            partitions=6, replication_factor=3,
+            retention_ms=-1,
+            cleanup_policy="delete", min_insync_replicas=2,
+        ),
+        TopicConfig(
+            name=TOPIC_CREDIT_EVENTS,
+            partitions=6, replication_factor=3,
             retention_ms=-1,
             cleanup_policy="delete", min_insync_replicas=2,
         ),

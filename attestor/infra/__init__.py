@@ -4,8 +4,12 @@ from attestor.infra.config import PHASE0_TOPICS as PHASE0_TOPICS
 from attestor.infra.config import PHASE1_TOPICS as PHASE1_TOPICS
 from attestor.infra.config import PHASE2_TOPICS as PHASE2_TOPICS
 from attestor.infra.config import PHASE3_TOPICS as PHASE3_TOPICS
+from attestor.infra.config import PHASE4_TOPICS as PHASE4_TOPICS
 from attestor.infra.config import TOPIC_ATTESTATIONS as TOPIC_ATTESTATIONS
 from attestor.infra.config import TOPIC_CALIBRATION_EVENTS as TOPIC_CALIBRATION_EVENTS
+from attestor.infra.config import TOPIC_COLLATERAL as TOPIC_COLLATERAL
+from attestor.infra.config import TOPIC_CREDIT_CURVES as TOPIC_CREDIT_CURVES
+from attestor.infra.config import TOPIC_CREDIT_EVENTS as TOPIC_CREDIT_EVENTS
 from attestor.infra.config import TOPIC_DERIVATIVE_ORDERS as TOPIC_DERIVATIVE_ORDERS
 from attestor.infra.config import TOPIC_DIVIDENDS as TOPIC_DIVIDENDS
 from attestor.infra.config import TOPIC_EMIR_REPORTS as TOPIC_EMIR_REPORTS
@@ -21,6 +25,7 @@ from attestor.infra.config import TOPIC_OPTION_PRICES as TOPIC_OPTION_PRICES
 from attestor.infra.config import TOPIC_ORDERS as TOPIC_ORDERS
 from attestor.infra.config import TOPIC_RATE_FIXINGS as TOPIC_RATE_FIXINGS
 from attestor.infra.config import TOPIC_SETTLEMENTS as TOPIC_SETTLEMENTS
+from attestor.infra.config import TOPIC_VOL_SURFACES as TOPIC_VOL_SURFACES
 from attestor.infra.config import TOPIC_YIELD_CURVES as TOPIC_YIELD_CURVES
 from attestor.infra.config import KafkaConsumerConfig as KafkaConsumerConfig
 from attestor.infra.config import KafkaProducerConfig as KafkaProducerConfig
@@ -30,6 +35,7 @@ from attestor.infra.config import phase0_topic_configs as phase0_topic_configs
 from attestor.infra.config import phase1_topic_configs as phase1_topic_configs
 from attestor.infra.config import phase2_topic_configs as phase2_topic_configs
 from attestor.infra.config import phase3_topic_configs as phase3_topic_configs
+from attestor.infra.config import phase4_topic_configs as phase4_topic_configs
 from attestor.infra.health import HealthCheckable as HealthCheckable
 from attestor.infra.health import HealthStatus as HealthStatus
 from attestor.infra.health import SystemHealth as SystemHealth

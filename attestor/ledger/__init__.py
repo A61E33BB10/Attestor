@@ -1,5 +1,27 @@
 """attestor.ledger — Ledger domain types and engine."""
 
+# Phase 4: CDS
+from attestor.ledger.cds import ScheduledCDSPremium as ScheduledCDSPremium
+from attestor.ledger.cds import (
+    create_cds_credit_event_settlement as create_cds_credit_event_settlement,
+)
+from attestor.ledger.cds import create_cds_maturity_close as create_cds_maturity_close
+from attestor.ledger.cds import create_cds_premium_transaction as create_cds_premium_transaction
+from attestor.ledger.cds import create_cds_trade_transaction as create_cds_trade_transaction
+from attestor.ledger.cds import generate_cds_premium_schedule as generate_cds_premium_schedule
+
+# Phase 4: Collateral
+from attestor.ledger.collateral import CollateralAgreement as CollateralAgreement
+from attestor.ledger.collateral import CollateralType as CollateralType
+from attestor.ledger.collateral import (
+    create_collateral_return_transaction as create_collateral_return_transaction,
+)
+from attestor.ledger.collateral import (
+    create_collateral_substitution_transaction as create_collateral_substitution_transaction,
+)
+from attestor.ledger.collateral import (
+    create_margin_call_transaction as create_margin_call_transaction,
+)
 from attestor.ledger.engine import LedgerEngine as LedgerEngine
 
 # Phase 3: FX settlement
@@ -26,6 +48,19 @@ from attestor.ledger.irs import (
 from attestor.ledger.irs import (
     generate_float_leg_schedule as generate_float_leg_schedule,
 )
+
+# Phase 4: Swaption
+from attestor.ledger.swaption import (
+    create_swaption_cash_settlement as create_swaption_cash_settlement,
+)
+from attestor.ledger.swaption import (
+    create_swaption_exercise_close as create_swaption_exercise_close,
+)
+from attestor.ledger.swaption import create_swaption_expiry_close as create_swaption_expiry_close
+from attestor.ledger.swaption import (
+    create_swaption_premium_transaction as create_swaption_premium_transaction,
+)
+from attestor.ledger.swaption import exercise_swaption_into_irs as exercise_swaption_into_irs
 from attestor.ledger.transactions import Account as Account
 from attestor.ledger.transactions import AccountType as AccountType
 from attestor.ledger.transactions import DeltaBool as DeltaBool

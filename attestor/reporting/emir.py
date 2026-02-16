@@ -17,10 +17,16 @@ from attestor.core.result import Err, Ok
 from attestor.core.serialization import content_hash
 from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder, OrderSide
+from attestor.instrument.derivative_types import CDSDetail, SwaptionDetail
 from attestor.oracle.attestation import (
     Attestation,
     FirmConfidence,
     create_attestation,
+)
+from attestor.reporting.mifid2 import (
+    CDSReportFields,
+    InstrumentReportFields,
+    SwaptionReportFields,
 )
 
 
@@ -42,6 +48,7 @@ class EMIRTradeReport:
     settlement_date: date
     venue: NonEmptyStr
     report_timestamp: UtcDatetime
+    instrument_fields: InstrumentReportFields
     attestation_refs: tuple[str, ...]
 
 
@@ -70,6 +77,25 @@ def project_emir_report(
         case Ok(uti):
             pass
 
+    # Build instrument-specific fields from order detail
+    inst_fields: InstrumentReportFields = None
+    match order.instrument_detail:
+        case CDSDetail() as cd:
+            inst_fields = CDSReportFields(
+                reference_entity=cd.reference_entity.value,
+                spread_bps=cd.spread_bps.value,
+                seniority=cd.seniority.value,
+                protection_side=cd.protection_side.value,
+            )
+        case SwaptionDetail() as sd:
+            inst_fields = SwaptionReportFields(
+                swaption_type=sd.swaption_type.value,
+                expiry_date=sd.expiry_date,
+                underlying_fixed_rate=sd.underlying_fixed_rate.value,
+                underlying_tenor_months=sd.underlying_tenor_months,
+                settlement_type=sd.settlement_type.value,
+            )
+
     report = EMIRTradeReport(
         uti=uti,
         reporting_counterparty_lei=order.executing_party_lei,
@@ -84,6 +110,7 @@ def project_emir_report(
         settlement_date=order.settlement_date,
         venue=order.venue,
         report_timestamp=order.timestamp,
+        instrument_fields=inst_fields,
         attestation_refs=(trade_attestation_id,),
     )
 

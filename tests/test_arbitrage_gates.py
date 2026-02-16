@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from attestor.core.money import CurrencyPair, NonEmptyStr
-from attestor.core.result import Ok, unwrap
+from attestor.core.money import CurrencyPair
+from attestor.core.result import unwrap
 from attestor.oracle.arbitrage_gates import (
     ArbitrageCheckType,
     CheckSeverity,

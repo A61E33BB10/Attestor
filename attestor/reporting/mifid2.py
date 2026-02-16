@@ -18,12 +18,14 @@ from attestor.core.serialization import content_hash
 from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder, OrderSide
 from attestor.instrument.derivative_types import (
+    CDSDetail,
     FuturesDetail,
     FXDetail,
     IRSwapDetail,
     OptionDetail,
     OptionStyle,
     OptionType,
+    SwaptionDetail,
 )
 from attestor.oracle.attestation import (
     Attestation,
@@ -74,9 +76,34 @@ class IRSwapReportFields:
     notional_currency: str
 
 
+@final
+@dataclass(frozen=True, slots=True)
+class CDSReportFields:
+    """CDS-specific fields for MiFID II report."""
+
+    reference_entity: str
+    spread_bps: Decimal
+    seniority: str
+    protection_side: str
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class SwaptionReportFields:
+    """Swaption-specific fields for MiFID II report."""
+
+    swaption_type: str
+    expiry_date: date
+    underlying_fixed_rate: Decimal
+    underlying_tenor_months: int
+    settlement_type: str
+
+
 type InstrumentReportFields = (
     OptionReportFields | FuturesReportFields
-    | FXReportFields | IRSwapReportFields | None
+    | FXReportFields | IRSwapReportFields
+    | CDSReportFields | SwaptionReportFields
+    | None
 )
 
 
@@ -134,6 +161,21 @@ def project_mifid2_report(
                 day_count=ird.day_count,
                 tenor_months=ird.tenor_months,
                 notional_currency=order.currency.value,
+            )
+        case CDSDetail() as cd:
+            inst_fields = CDSReportFields(
+                reference_entity=cd.reference_entity.value,
+                spread_bps=cd.spread_bps.value,
+                seniority=cd.seniority.value,
+                protection_side=cd.protection_side.value,
+            )
+        case SwaptionDetail() as sd:
+            inst_fields = SwaptionReportFields(
+                swaption_type=sd.swaption_type.value,
+                expiry_date=sd.expiry_date,
+                underlying_fixed_rate=sd.underlying_fixed_rate.value,
+                underlying_tenor_months=sd.underlying_tenor_months,
+                settlement_type=sd.settlement_type.value,
             )
         case _:
             inst_fields = None

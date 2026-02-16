@@ -7,19 +7,17 @@ from decimal import Decimal
 
 from attestor.core.calendar import day_count_fraction
 from attestor.core.money import NonEmptyStr
-from attestor.core.result import Err, Ok, unwrap
+from attestor.core.result import Err, unwrap
 from attestor.core.types import UtcDatetime
 from attestor.instrument.fx_types import DayCountConvention, PaymentFrequency, SwapLegType
 from attestor.ledger.engine import LedgerEngine
 from attestor.ledger.irs import (
-    CashflowSchedule,
     ScheduledCashflow,
     apply_rate_fixing,
     create_irs_cashflow_transaction,
     generate_fixed_leg_schedule,
     generate_float_leg_schedule,
 )
-
 
 # ---------------------------------------------------------------------------
 # day_count_fraction
