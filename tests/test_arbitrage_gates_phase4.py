@@ -300,10 +300,10 @@ class TestVolSurfaceIntegration:
         results = unwrap(check_vol_surface_arbitrage_freedom(_valid_two_slice_surface()))
         assert results[0].severity == CheckSeverity.CRITICAL  # AF-VS-01
         assert results[1].severity == CheckSeverity.CRITICAL  # AF-VS-02
-        assert results[2].severity == CheckSeverity.HIGH      # AF-VS-03
-        assert results[3].severity == CheckSeverity.HIGH      # AF-VS-04
+        assert results[2].severity == CheckSeverity.CRITICAL  # AF-VS-03
+        assert results[3].severity == CheckSeverity.CRITICAL  # AF-VS-04
         assert results[4].severity == CheckSeverity.CRITICAL  # AF-VS-05
-        assert results[5].severity == CheckSeverity.HIGH      # AF-VS-06
+        assert results[5].severity == CheckSeverity.CRITICAL  # AF-VS-06
 
     def test_single_slice_surface_passes_all(self) -> None:
         """Single-slice surface has no adjacent pairs; calendar/ATM checks pass trivially."""

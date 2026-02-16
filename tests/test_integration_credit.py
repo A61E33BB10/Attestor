@@ -1325,3 +1325,239 @@ class TestDoddFrankRejection:
         order = unwrap(parse_order(raw))
         result = project_dodd_frank_report(order, "ATT-EQ-001")
         assert isinstance(result, Err)
+
+
+# ---------------------------------------------------------------------------
+# Test: Dodd-Frank Notional = Contract Notional (Phase 5 D4)
+# ---------------------------------------------------------------------------
+
+
+class TestDoddFrankNotional:
+    """Dodd-Frank notional uses order.quantity (contract notional), not qty*price."""
+
+    def test_cds_notional_is_quantity(self) -> None:
+        raw: dict[str, object] = {
+            "order_id": "CDS-DF-001",
+            "instrument_id": "CDS-DF-TEST",
+            "side": "BUY",
+            "quantity": "10000000",
+            "price": "100",
+            "currency": "USD",
+            "order_type": "LIMIT",
+            "counterparty_lei": _LEI_A,
+            "executing_party_lei": _LEI_B,
+            "venue": "OTC",
+            "trade_date": "2025-06-15",
+            "timestamp": "2025-06-15T10:00:00+00:00",
+            "reference_entity": "ACME Corp",
+            "spread_bps": "100",
+            "seniority": "SENIOR_UNSECURED",
+            "protection_side": "BUYER",
+            "start_date": "2025-06-20",
+            "maturity_date": "2030-06-20",
+        }
+        order = unwrap(parse_cds_order(raw))
+        df_att = unwrap(project_dodd_frank_report(order, "ATT-DF-001"))
+        # Notional should be quantity (10M), not quantity * price (1B)
+        assert df_att.value.notional == Decimal("10000000")
+
+    def test_swaption_notional_is_quantity(self) -> None:
+        raw: dict[str, object] = {
+            "order_id": "SWPTN-DF-001",
+            "instrument_id": "SWPTN-DF-TEST",
+            "side": "BUY",
+            "quantity": "5",
+            "price": "50000",
+            "currency": "USD",
+            "order_type": "LIMIT",
+            "counterparty_lei": _LEI_A,
+            "executing_party_lei": _LEI_B,
+            "venue": "OTC",
+            "trade_date": "2025-06-15",
+            "timestamp": "2025-06-15T10:00:00+00:00",
+            "swaption_type": "PAYER",
+            "expiry_date": "2030-06-15",
+            "underlying_fixed_rate": "0.035",
+            "underlying_float_index": "SOFR",
+            "underlying_tenor_months": "120",
+            "settlement_type": "PHYSICAL",
+        }
+        order = unwrap(parse_swaption_order(raw))
+        df_att = unwrap(project_dodd_frank_report(order, "ATT-DF-002"))
+        # Notional should be quantity (5), not quantity * price (250000)
+        assert df_att.value.notional == Decimal("5")
+
+
+# ---------------------------------------------------------------------------
+# Test: Multi-CDS Portfolio Lifecycle (Phase 5 D6)
+# ---------------------------------------------------------------------------
+
+
+class TestMultiCDSPortfolio:
+    """Multi-CDS portfolio: two CDS instruments share the engine, conservation
+    holds for each currency unit individually."""
+
+    def test_two_cds_shared_engine(self) -> None:
+        engine = _make_engine(
+            ("BUYER-CASH", AccountType.CASH),
+            ("SELLER-CASH", AccountType.CASH),
+            ("BUYER-POS", AccountType.DERIVATIVES),
+            ("SELLER-POS", AccountType.DERIVATIVES),
+        )
+        # CDS-1: 10M notional, 100bps spread
+        schedule_1 = unwrap(generate_cds_premium_schedule(
+            notional=Decimal("10000000"),
+            spread=Decimal("0.01"),
+            effective_date=date(2025, 3, 20),
+            maturity_date=date(2025, 6, 20),
+            day_count=DayCountConvention.ACT_360,
+            payment_frequency=PaymentFrequency.QUARTERLY,
+            currency="USD",
+        ))
+        # CDS-2: 5M notional EUR, 200bps spread
+        schedule_2 = unwrap(generate_cds_premium_schedule(
+            notional=Decimal("5000000"),
+            spread=Decimal("0.02"),
+            effective_date=date(2025, 3, 20),
+            maturity_date=date(2025, 6, 20),
+            day_count=DayCountConvention.ACT_360,
+            payment_frequency=PaymentFrequency.QUARTERLY,
+            currency="EUR",
+        ))
+
+        # Book premiums from both CDSs
+        tx1 = unwrap(create_cds_premium_transaction(
+            "BUYER-CASH", "SELLER-CASH",
+            schedule_1[0], "TX-MULTI-1", _TS_UTC,
+        ))
+        unwrap(engine.execute(tx1))
+        assert engine.total_supply("USD") == Decimal(0)
+
+        tx2 = unwrap(create_cds_premium_transaction(
+            "BUYER-CASH", "SELLER-CASH",
+            schedule_2[0], "TX-MULTI-2", _TS_UTC,
+        ))
+        unwrap(engine.execute(tx2))
+        assert engine.total_supply("EUR") == Decimal(0)
+
+        # Both currencies conserved
+        assert engine.total_supply("USD") == Decimal(0)
+        assert engine.total_supply("EUR") == Decimal(0)
+
+
+# ---------------------------------------------------------------------------
+# Test: Cross-Instrument Conservation (Phase 5 D6)
+# ---------------------------------------------------------------------------
+
+
+class TestCrossInstrumentConservation:
+    """CDS + swaption + collateral all in same engine: sigma=0 for each unit."""
+
+    def test_cross_instrument_sigma_zero(self) -> None:
+        engine = _make_engine(
+            ("BUYER-CASH", AccountType.CASH),
+            ("SELLER-CASH", AccountType.CASH),
+            ("BUYER-POS", AccountType.DERIVATIVES),
+            ("SELLER-POS", AccountType.DERIVATIVES),
+            ("COLL-A", AccountType.COLLATERAL),
+            ("COLL-B", AccountType.COLLATERAL),
+        )
+
+        # CDS premium
+        schedule = unwrap(generate_cds_premium_schedule(
+            notional=Decimal("10000000"),
+            spread=Decimal("0.01"),
+            effective_date=date(2025, 3, 20),
+            maturity_date=date(2025, 6, 20),
+            day_count=DayCountConvention.ACT_360,
+            payment_frequency=PaymentFrequency.QUARTERLY,
+            currency="USD",
+        ))
+        prem_tx = unwrap(create_cds_premium_transaction(
+            "BUYER-CASH", "SELLER-CASH",
+            schedule[0], "TX-CROSS-CDS", _TS_UTC,
+        ))
+        unwrap(engine.execute(prem_tx))
+
+        # Collateral margin call
+        margin_tx = unwrap(create_margin_call_transaction(
+            "COLL-A", "COLL-B", "TBILL-3M",
+            Decimal("2000000"), "TX-CROSS-MC", _TS_UTC,
+        ))
+        unwrap(engine.execute(margin_tx))
+
+        # Conservation
+        assert engine.total_supply("USD") == Decimal(0)
+        assert engine.total_supply("TBILL-3M") == Decimal(0)
+
+
+# ---------------------------------------------------------------------------
+# Test: Negative-Path Lifecycle (Phase 5 D6)
+# ---------------------------------------------------------------------------
+
+
+class TestNegativePathLifecycle:
+    """Invalid inputs at each stage produce Err, not exceptions."""
+
+    def test_invalid_cds_order_rejected(self) -> None:
+        from attestor.core.result import Err
+        raw: dict[str, object] = {
+            "order_id": "CDS-NEG-001",
+            "instrument_id": "CDS-NEG",
+            "side": "BUY",
+            "quantity": "0",
+            "price": "100",
+            "currency": "USD",
+            "order_type": "LIMIT",
+            "counterparty_lei": _LEI_A,
+            "executing_party_lei": _LEI_B,
+            "venue": "OTC",
+            "trade_date": "2025-06-15",
+            "timestamp": "2025-06-15T10:00:00+00:00",
+            "reference_entity": "ACME Corp",
+            "spread_bps": "100",
+            "seniority": "SENIOR_UNSECURED",
+            "protection_side": "BUYER",
+            "start_date": "2025-06-20",
+            "maturity_date": "2030-06-20",
+        }
+        result = parse_cds_order(raw)
+        assert isinstance(result, Err)
+
+    def test_invalid_auction_price_rejected(self) -> None:
+        from attestor.core.result import Err
+        result = create_cds_credit_event_settlement(
+            buyer_account="BUYER-CASH",
+            seller_account="SELLER-CASH",
+            notional=Decimal("10000000"),
+            auction_price=Decimal("1.5"),
+            currency="USD",
+            tx_id="TX-NEG-CE",
+            timestamp=_TS_UTC,
+        )
+        assert isinstance(result, Err)
+
+    def test_invalid_lifecycle_transition(self) -> None:
+        from attestor.core.result import Err
+        result = check_transition(
+            PositionStatusEnum.PROPOSED, PositionStatusEnum.CLOSED,
+            DERIVATIVE_TRANSITIONS,
+        )
+        assert isinstance(result, Err)
+
+    def test_empty_credit_curve_bootstrap(self) -> None:
+        from attestor.core.result import Err
+        result = bootstrap_credit_curve(
+            quotes=(),
+            discount_curve=unwrap(YieldCurve.create(
+                currency="USD",
+                as_of=date(2025, 6, 15),
+                tenors=(Decimal("1"),),
+                discount_factors=(Decimal("0.96"),),
+                model_config_ref="CFG-NEG",
+            )),
+            config=unwrap(ModelConfig.create("CFG-NEG", "TEST", "1.0.0")),
+            as_of=date(2025, 6, 15),
+            reference_entity="ACME Corp",
+        )
+        assert isinstance(result, Err)

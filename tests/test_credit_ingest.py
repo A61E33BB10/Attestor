@@ -322,3 +322,138 @@ class TestAttestationMetadata:
             timestamp=_TS,
         ))
         assert isinstance(att.provenance, tuple)
+
+
+# ---------------------------------------------------------------------------
+# CDSSpreadQuote.create smart constructor (Phase 5 D1)
+# ---------------------------------------------------------------------------
+
+
+class TestCDSSpreadQuoteCreate:
+    """CDSSpreadQuote.create validates all fields."""
+
+    def test_valid_ok(self) -> None:
+        from attestor.core.types import UtcDatetime
+        ts = UtcDatetime(value=_TS)
+        result = CDSSpreadQuote.create(
+            reference_entity="ACME Corp",
+            tenor=Decimal("5"),
+            spread_bps=Decimal("100"),
+            recovery_rate=Decimal("0.4"),
+            currency="USD",
+            timestamp=ts,
+        )
+        assert isinstance(result, Ok)
+        q = unwrap(result)
+        assert q.reference_entity.value == "ACME Corp"
+        assert q.tenor == Decimal("5")
+
+    def test_empty_entity_err(self) -> None:
+        from attestor.core.types import UtcDatetime
+        ts = UtcDatetime(value=_TS)
+        result = CDSSpreadQuote.create(
+            reference_entity="",
+            tenor=Decimal("5"),
+            spread_bps=Decimal("100"),
+            recovery_rate=Decimal("0.4"),
+            currency="USD",
+            timestamp=ts,
+        )
+        assert isinstance(result, Err)
+
+    def test_zero_tenor_err(self) -> None:
+        from attestor.core.types import UtcDatetime
+        ts = UtcDatetime(value=_TS)
+        result = CDSSpreadQuote.create(
+            reference_entity="ACME",
+            tenor=Decimal("0"),
+            spread_bps=Decimal("100"),
+            recovery_rate=Decimal("0.4"),
+            currency="USD",
+            timestamp=ts,
+        )
+        assert isinstance(result, Err)
+
+    def test_negative_spread_err(self) -> None:
+        from attestor.core.types import UtcDatetime
+        ts = UtcDatetime(value=_TS)
+        result = CDSSpreadQuote.create(
+            reference_entity="ACME",
+            tenor=Decimal("5"),
+            spread_bps=Decimal("-10"),
+            recovery_rate=Decimal("0.4"),
+            currency="USD",
+            timestamp=ts,
+        )
+        assert isinstance(result, Err)
+
+
+# ---------------------------------------------------------------------------
+# AuctionResult.create smart constructor (Phase 5 D1)
+# ---------------------------------------------------------------------------
+
+
+class TestAuctionResultCreate:
+    """AuctionResult.create validates auction_price in [0, 1]."""
+
+    def test_valid_ok(self) -> None:
+        from attestor.instrument.derivative_types import CreditEventType
+        result = AuctionResult.create(
+            reference_entity="ACME Corp",
+            event_type=CreditEventType.BANKRUPTCY,
+            determination_date=date(2025, 8, 1),
+            auction_price=Decimal("0.35"),
+        )
+        assert isinstance(result, Ok)
+        ar = unwrap(result)
+        assert ar.auction_price == Decimal("0.35")
+
+    def test_price_above_one_err(self) -> None:
+        from attestor.instrument.derivative_types import CreditEventType
+        result = AuctionResult.create(
+            reference_entity="ACME Corp",
+            event_type=CreditEventType.BANKRUPTCY,
+            determination_date=date(2025, 8, 1),
+            auction_price=Decimal("1.5"),
+        )
+        assert isinstance(result, Err)
+
+    def test_price_negative_err(self) -> None:
+        from attestor.instrument.derivative_types import CreditEventType
+        result = AuctionResult.create(
+            reference_entity="ACME Corp",
+            event_type=CreditEventType.BANKRUPTCY,
+            determination_date=date(2025, 8, 1),
+            auction_price=Decimal("-0.1"),
+        )
+        assert isinstance(result, Err)
+
+    def test_price_one_ok(self) -> None:
+        from attestor.instrument.derivative_types import CreditEventType
+        result = AuctionResult.create(
+            reference_entity="ACME Corp",
+            event_type=CreditEventType.BANKRUPTCY,
+            determination_date=date(2025, 8, 1),
+            auction_price=Decimal("1"),
+        )
+        assert isinstance(result, Ok)
+
+    def test_price_zero_ok(self) -> None:
+        from attestor.instrument.derivative_types import CreditEventType
+        result = AuctionResult.create(
+            reference_entity="ACME Corp",
+            event_type=CreditEventType.BANKRUPTCY,
+            determination_date=date(2025, 8, 1),
+            auction_price=Decimal("0"),
+        )
+        assert isinstance(result, Ok)
+
+    def test_empty_entity_err(self) -> None:
+        from attestor.instrument.derivative_types import CreditEventType
+        result = AuctionResult.create(
+            reference_entity="",
+            event_type=CreditEventType.BANKRUPTCY,
+            determination_date=date(2025, 8, 1),
+            auction_price=Decimal("0.35"),
+        )
+        assert isinstance(result, Err)

@@ -1256,3 +1256,175 @@ class TestSwaptionCashSettlementConservationHypothesis:
         assert isinstance(result, Ok)
         assert engine.total_supply("USD") == Decimal(0)
         assert engine.total_supply(contract) == Decimal(0)
+
+
+# ===========================================================================
+# CS-C1..C4: Commutativity Squares (Phase 5 D6 GAP-TC-H1)
+# ===========================================================================
+
+
+class TestCSC1CDSPremiumCommutativity:
+    """CS-C1: Two CDS premium payments in either order produce same final balances."""
+
+    def test_order_invariance(self) -> None:
+        schedule = unwrap(generate_cds_premium_schedule(
+            notional=Decimal("10000000"),
+            spread=Decimal("0.01"),
+            effective_date=date(2025, 3, 20),
+            maturity_date=date(2025, 9, 20),
+            day_count=DayCountConvention.ACT_360,
+            payment_frequency=PaymentFrequency.QUARTERLY,
+            currency="USD",
+        ))
+        assert len(schedule) >= 2
+
+        # Order A: prem0 then prem1
+        engine_a = _cds_engine()
+        tx0_a = unwrap(create_cds_premium_transaction(
+            "BUYER-CASH", "SELLER-CASH", schedule[0], "TX-A0", _TS,
+        ))
+        tx1_a = unwrap(create_cds_premium_transaction(
+            "BUYER-CASH", "SELLER-CASH", schedule[1], "TX-A1", _TS,
+        ))
+        unwrap(engine_a.execute(tx0_a))
+        unwrap(engine_a.execute(tx1_a))
+
+        # Order B: prem1 then prem0
+        engine_b = _cds_engine()
+        tx0_b = unwrap(create_cds_premium_transaction(
+            "BUYER-CASH", "SELLER-CASH", schedule[0], "TX-B0", _TS,
+        ))
+        tx1_b = unwrap(create_cds_premium_transaction(
+            "BUYER-CASH", "SELLER-CASH", schedule[1], "TX-B1", _TS,
+        ))
+        unwrap(engine_b.execute(tx1_b))
+        unwrap(engine_b.execute(tx0_b))
+
+        bal_a_buy = engine_a.get_balance("BUYER-CASH", "USD")
+        bal_b_buy = engine_b.get_balance("BUYER-CASH", "USD")
+        assert bal_a_buy == bal_b_buy
+        bal_a_sell = engine_a.get_balance("SELLER-CASH", "USD")
+        bal_b_sell = engine_b.get_balance("SELLER-CASH", "USD")
+        assert bal_a_sell == bal_b_sell
+
+
+class TestCSC2CollateralCommutativity:
+    """CS-C2: Two margin calls in either order produce same final balances."""
+
+    def test_order_invariance(self) -> None:
+        # Order A
+        engine_a = _collateral_engine()
+        mc1_a = unwrap(create_margin_call_transaction(
+            "CALLER-COLLATERAL", "POSTER-COLLATERAL",
+            "USD", Decimal("1000000"), "TX-MC1-A", _TS,
+        ))
+        mc2_a = unwrap(create_margin_call_transaction(
+            "CALLER-COLLATERAL", "POSTER-COLLATERAL",
+            "USD", Decimal("500000"), "TX-MC2-A", _TS,
+        ))
+        unwrap(engine_a.execute(mc1_a))
+        unwrap(engine_a.execute(mc2_a))
+
+        # Order B (reversed)
+        engine_b = _collateral_engine()
+        mc1_b = unwrap(create_margin_call_transaction(
+            "CALLER-COLLATERAL", "POSTER-COLLATERAL",
+            "USD", Decimal("1000000"), "TX-MC1-B", _TS,
+        ))
+        mc2_b = unwrap(create_margin_call_transaction(
+            "CALLER-COLLATERAL", "POSTER-COLLATERAL",
+            "USD", Decimal("500000"), "TX-MC2-B", _TS,
+        ))
+        unwrap(engine_b.execute(mc2_b))
+        unwrap(engine_b.execute(mc1_b))
+
+        assert engine_a.get_balance("CALLER-COLLATERAL", "USD") == \
+            engine_b.get_balance("CALLER-COLLATERAL", "USD")
+
+
+class TestCSC3ReportProjectionIdempotent:
+    """CS-C3: Projecting report twice from same order produces same content."""
+
+    def test_emir_idempotent(self) -> None:
+        from attestor.gateway.parser import parse_cds_order
+        from attestor.reporting.emir import project_emir_report
+        raw: dict[str, object] = {
+            "order_id": "CDS-CS3",
+            "instrument_id": "CDS-CS3-5Y",
+            "side": "BUY",
+            "quantity": "1",
+            "price": "100",
+            "currency": "USD",
+            "order_type": "LIMIT",
+            "counterparty_lei": _LEI_A,
+            "executing_party_lei": _LEI_B,
+            "venue": "OTC",
+            "trade_date": "2025-06-15",
+            "timestamp": "2025-06-15T10:00:00+00:00",
+            "reference_entity": "ACME Corp",
+            "spread_bps": "100",
+            "seniority": "SENIOR_UNSECURED",
+            "protection_side": "BUYER",
+            "start_date": "2025-06-20",
+            "maturity_date": "2030-06-20",
+        }
+        order = unwrap(parse_cds_order(raw))
+        r1 = unwrap(project_emir_report(order, "ATT-CS3"))
+        r2 = unwrap(project_emir_report(order, "ATT-CS3"))
+        assert r1.value.instrument_id == r2.value.instrument_id
+        assert r1.value.direction == r2.value.direction
+        assert r1.value.quantity == r2.value.quantity
+
+
+class TestCSC4CreditCurveIdempotent:
+    """CS-C4: Bootstrap is pure — same quotes → same curve (already tested in CS-C5,
+    this specifically verifies hazard rate computation idempotence)."""
+
+    def test_hazard_rate_idempotent(self) -> None:
+        from attestor.oracle.credit_curve import hazard_rate
+        curve = unwrap(bootstrap_credit_curve(
+            quotes=_sample_quotes(),
+            discount_curve=_sample_discount_curve(),
+            config=_sample_config(),
+            as_of=date(2025, 6, 15),
+            reference_entity="ACME Corp",
+        )).value
+        h1 = unwrap(hazard_rate(curve, Decimal("0"), Decimal("1")))
+        h2 = unwrap(hazard_rate(curve, Decimal("0"), Decimal("1")))
+        assert h1 == h2
+
+
+# ===========================================================================
+# Durrleman Butterfly Failure Mode Test (Phase 5 D6 GAP-TC-H3)
+# ===========================================================================
+
+
+class TestDurrlemanButterflyFailure:
+    """Verify that a surface with Durrleman butterfly violation is detected."""
+
+    def test_butterfly_violation_detected(self) -> None:
+        from attestor.oracle.arbitrage_gates import check_vol_surface_arbitrage_freedom
+        # Construct a slice with extreme parameters that may violate Durrleman
+        # condition. b=1.9, rho=0 => b*(1+|rho|)=1.9 <= 2 (valid for Roger Lee)
+        # but high curvature can cause butterfly violation.
+        # Durrleman condition: g(k) = (1 - kw'/2w)^2 - w'/4*(1/w + 1/4) + w''/2 >= 0
+        slc = unwrap(SVIParameters.create(
+            a=Decimal("0.001"),
+            b=Decimal("1.9"),
+            rho=Decimal("0"),
+            m=Decimal("0"),
+            sigma=Decimal("0.01"),  # very tight sigma => high curvature
+            expiry=Decimal("1"),
+        ))
+        surface = unwrap(VolSurface.create(
+            underlying="SPX",
+            as_of=date(2025, 6, 15),
+            expiries=(Decimal("1"),),
+            slices=(slc,),
+            model_config_ref="SVI-DURR-FAIL",
+        ))
+        results = unwrap(check_vol_surface_arbitrage_freedom(surface))
+        # AF-VS-02 is the Durrleman butterfly check
+        butterfly_result = next(r for r in results if r.check_id == "AF-VS-02")
+        # With these extreme params (high b, tiny sigma), butterfly condition should fail
+        assert butterfly_result.passed is False

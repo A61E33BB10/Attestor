@@ -123,6 +123,46 @@ class CollateralAgreement:
 
 
 # ---------------------------------------------------------------------------
+# Margin call computation (pure)
+# ---------------------------------------------------------------------------
+
+
+def compute_margin_call(
+    current_exposure: Decimal,
+    threshold: Decimal,
+    minimum_transfer_amount: Decimal,
+) -> Ok[Decimal] | Err[str]:
+    """Compute margin call amount (pure, no ledger side effects).
+
+    call_amount = max(0, current_exposure - threshold)
+    If call_amount > 0 but < minimum_transfer_amount, returns 0 (below MTA).
+
+    Validates: current_exposure >= 0, threshold >= 0, MTA >= 0.
+    """
+    if not isinstance(current_exposure, Decimal) or not current_exposure.is_finite():
+        return Err(f"current_exposure must be finite Decimal, got {current_exposure}")
+    if current_exposure < Decimal("0"):
+        return Err(f"current_exposure must be >= 0, got {current_exposure}")
+    if not isinstance(threshold, Decimal) or not threshold.is_finite():
+        return Err(f"threshold must be finite Decimal, got {threshold}")
+    if threshold < Decimal("0"):
+        return Err(f"threshold must be >= 0, got {threshold}")
+    if not isinstance(minimum_transfer_amount, Decimal) or not minimum_transfer_amount.is_finite():
+        return Err(
+            f"minimum_transfer_amount must be finite Decimal, got {minimum_transfer_amount}"
+        )
+    if minimum_transfer_amount < Decimal("0"):
+        return Err(f"minimum_transfer_amount must be >= 0, got {minimum_transfer_amount}")
+
+    raw = current_exposure - threshold
+    if raw <= Decimal("0"):
+        return Ok(Decimal("0"))
+    if raw < minimum_transfer_amount:
+        return Ok(Decimal("0"))
+    return Ok(raw)
+
+
+# ---------------------------------------------------------------------------
 # Margin call transaction
 # ---------------------------------------------------------------------------
 

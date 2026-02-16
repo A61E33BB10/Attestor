@@ -364,7 +364,7 @@ def check_vol_surface_arbitrage_freedom(
             "AF-VS-03",
             ArbitrageCheckType.VOL_SURFACE,
             lee_right_passed,
-            CheckSeverity.HIGH,
+            CheckSeverity.CRITICAL,
             {"check": "b*(1+rho) <= 2 (Roger Lee right wing)"},
         ))
 
@@ -380,7 +380,7 @@ def check_vol_surface_arbitrage_freedom(
             "AF-VS-04",
             ArbitrageCheckType.VOL_SURFACE,
             lee_left_passed,
-            CheckSeverity.HIGH,
+            CheckSeverity.CRITICAL,
             {"check": "b*(1-rho) <= 2 (Roger Lee left wing)"},
         ))
 
@@ -420,7 +420,7 @@ def check_vol_surface_arbitrage_freedom(
             "AF-VS-06",
             ArbitrageCheckType.VOL_SURFACE,
             atm_mono_passed,
-            CheckSeverity.HIGH,
+            CheckSeverity.CRITICAL,
             {"check": "w(0, T_{i+1}) >= w(0, T_i)"},
         ))
 

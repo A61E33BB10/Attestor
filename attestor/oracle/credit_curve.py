@@ -44,6 +44,41 @@ class CDSQuote:
     recovery_rate: Decimal  # typically 0.4
     currency: NonEmptyStr
 
+    @staticmethod
+    def create(
+        reference_entity: str,
+        tenor: Decimal,
+        spread: Decimal,
+        recovery_rate: Decimal,
+        currency: str,
+    ) -> Ok[CDSQuote] | Err[str]:
+        """Validated construction.
+
+        Rejects: empty strings, tenor <= 0, spread < 0, recovery_rate not in [0, 1).
+        """
+        match NonEmptyStr.parse(reference_entity):
+            case Err(e):
+                return Err(f"CDSQuote.reference_entity: {e}")
+            case Ok(ref):
+                pass
+        if tenor <= Decimal("0"):
+            return Err(f"CDSQuote.tenor must be > 0, got {tenor}")
+        if spread < Decimal("0"):
+            return Err(f"CDSQuote.spread must be >= 0, got {spread}")
+        if recovery_rate < Decimal("0") or recovery_rate >= Decimal("1"):
+            return Err(
+                f"CDSQuote.recovery_rate must be in [0, 1), got {recovery_rate}"
+            )
+        match NonEmptyStr.parse(currency):
+            case Err(e):
+                return Err(f"CDSQuote.currency: {e}")
+            case Ok(cur):
+                pass
+        return Ok(CDSQuote(
+            reference_entity=ref, tenor=tenor, spread=spread,
+            recovery_rate=recovery_rate, currency=cur,
+        ))
+
 
 # ---------------------------------------------------------------------------
 # CreditCurve

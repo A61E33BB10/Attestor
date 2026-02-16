@@ -24,6 +24,11 @@ from attestor.oracle.attestation import (
     create_attestation,
 )
 
+_AC_CREDIT = NonEmptyStr(value="CREDIT")
+_AC_INTEREST_RATE = NonEmptyStr(value="INTEREST_RATE")
+_PT_CDS = NonEmptyStr(value="CDS")
+_PT_SWAPTION = NonEmptyStr(value="SWAPTION")
+
 
 @final
 @dataclass(frozen=True, slots=True)
@@ -73,16 +78,8 @@ def project_dodd_frank_report(
     # Build asset-class-specific fields via exhaustive match
     match order.instrument_detail:
         case CDSDetail() as cd:
-            match NonEmptyStr.parse("CREDIT"):
-                case Err(e):
-                    return Err(f"asset_class: {e}")
-                case Ok(asset_class):
-                    pass
-            match NonEmptyStr.parse("CDS"):
-                case Err(e):
-                    return Err(f"product_type: {e}")
-                case Ok(product_type):
-                    pass
+            asset_class = _AC_CREDIT
+            product_type = _PT_CDS
             effective_date = cd.start_date
             maturity_date = cd.maturity_date
             reference_entity: NonEmptyStr | None = cd.reference_entity
@@ -91,16 +88,8 @@ def project_dodd_frank_report(
             underlying_fixed_rate: Decimal | None = None
 
         case SwaptionDetail() as sd:
-            match NonEmptyStr.parse("INTEREST_RATE"):
-                case Err(e):
-                    return Err(f"asset_class: {e}")
-                case Ok(asset_class):
-                    pass
-            match NonEmptyStr.parse("SWAPTION"):
-                case Err(e):
-                    return Err(f"product_type: {e}")
-                case Ok(product_type):
-                    pass
+            asset_class = _AC_INTEREST_RATE
+            product_type = _PT_SWAPTION
             effective_date = order.trade_date
             maturity_date = order.settlement_date
             reference_entity = None
@@ -115,7 +104,9 @@ def project_dodd_frank_report(
             )
 
     now = UtcDatetime.now()
-    notional = order.quantity.value * order.price
+    # CDS notional is the contract notional (quantity), not quantity * price.
+    # Swaption notional is also quantity (contract size).
+    notional = order.quantity.value
 
     report = DoddFrankSwapReport(
         usi=usi,

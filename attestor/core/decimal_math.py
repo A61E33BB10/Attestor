@@ -87,11 +87,6 @@ def exp_d(x: Decimal) -> Decimal:
 # ln_d -- natural logarithm via range reduction + series
 # ---------------------------------------------------------------------------
 
-# Pre-computed ln(10) constant for range reduction.
-# We compute it from the series; cached to avoid recomputation.
-_LN10_CACHE: Decimal | None = None
-
-
 def _ln2_const(prec: int) -> Decimal:
     """Compute ln(2) to the given precision using the series ln(2) = sum_{k=1}^{inf} (-1)^{k+1}/k.
 
@@ -208,7 +203,7 @@ def sqrt_d(x: Decimal) -> Decimal:
 def expm1_neg_d(x: Decimal) -> Decimal:
     """Compute 1 - exp(-x) without subtractive cancellation for small x.
 
-    For |x| < 0.1, uses the Taylor series directly:
+    For |x| < 1, uses the Taylor series directly:
         1 - exp(-x) = x - x^2/2! + x^3/3! - x^4/4! + ...
 
     For larger |x|, computes 1 - exp(-x) directly since cancellation

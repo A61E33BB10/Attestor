@@ -555,3 +555,86 @@ class TestDecimalOnly:
         for h in curve.hazard_rates:
             assert isinstance(h, Decimal)
         assert isinstance(curve.recovery_rate, Decimal)
+
+
+# ---------------------------------------------------------------------------
+# CDSQuote.create smart constructor (Phase 5 D1)
+# ---------------------------------------------------------------------------
+
+
+class TestCDSQuoteCreate:
+    """CDSQuote.create smart constructor validates all fields."""
+
+    def test_valid_ok(self) -> None:
+        result = CDSQuote.create(
+            reference_entity="ACME Corp",
+            tenor=Decimal("5"),
+            spread=Decimal("0.01"),
+            recovery_rate=Decimal("0.4"),
+            currency="USD",
+        )
+        assert isinstance(result, Ok)
+        q = unwrap(result)
+        assert q.reference_entity.value == "ACME Corp"
+        assert q.tenor == Decimal("5")
+        assert q.spread == Decimal("0.01")
+
+    def test_empty_entity_err(self) -> None:
+        result = CDSQuote.create(
+            reference_entity="",
+            tenor=Decimal("5"),
+            spread=Decimal("0.01"),
+            recovery_rate=Decimal("0.4"),
+            currency="USD",
+        )
+        assert isinstance(result, Err)
+
+    def test_tenor_zero_err(self) -> None:
+        result = CDSQuote.create(
+            reference_entity="ACME",
+            tenor=Decimal("0"),
+            spread=Decimal("0.01"),
+            recovery_rate=Decimal("0.4"),
+            currency="USD",
+        )
+        assert isinstance(result, Err)
+
+    def test_negative_spread_err(self) -> None:
+        result = CDSQuote.create(
+            reference_entity="ACME",
+            tenor=Decimal("5"),
+            spread=Decimal("-0.01"),
+            recovery_rate=Decimal("0.4"),
+            currency="USD",
+        )
+        assert isinstance(result, Err)
+
+    def test_recovery_rate_one_err(self) -> None:
+        result = CDSQuote.create(
+            reference_entity="ACME",
+            tenor=Decimal("5"),
+            spread=Decimal("0.01"),
+            recovery_rate=Decimal("1"),
+            currency="USD",
+        )
+        assert isinstance(result, Err)
+
+    def test_negative_recovery_err(self) -> None:
+        result = CDSQuote.create(
+            reference_entity="ACME",
+            tenor=Decimal("5"),
+            spread=Decimal("0.01"),
+            recovery_rate=Decimal("-0.1"),
+            currency="USD",
+        )
+        assert isinstance(result, Err)
+
+    def test_empty_currency_err(self) -> None:
+        result = CDSQuote.create(
+            reference_entity="ACME",
+            tenor=Decimal("5"),
+            spread=Decimal("0.01"),
+            recovery_rate=Decimal("0.4"),
+            currency="",
+        )
+        assert isinstance(result, Err)

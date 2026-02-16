@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS attestor.collateral_balances (
     agreement_id    TEXT NOT NULL,
     party           TEXT NOT NULL,
     collateral_type TEXT NOT NULL CHECK (collateral_type IN ('CASH', 'GOVERNMENT_BOND', 'CORPORATE_BOND', 'EQUITY')),
-    quantity        NUMERIC(28,10) NOT NULL,
+    quantity        NUMERIC(28,10) NOT NULL CHECK (quantity >= 0),
     currency        TEXT NOT NULL,
     valid_time      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     system_time     TIMESTAMPTZ NOT NULL DEFAULT NOW(),

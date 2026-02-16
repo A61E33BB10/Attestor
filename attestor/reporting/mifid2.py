@@ -99,10 +99,22 @@ class SwaptionReportFields:
     settlement_type: str
 
 
+@final
+@dataclass(frozen=True, slots=True)
+class CollateralReportFields:
+    """Collateral-specific fields for MiFID II report."""
+
+    collateral_type: str
+    agreement_id: str
+    threshold: Decimal
+    minimum_transfer_amount: Decimal
+
+
 type InstrumentReportFields = (
     OptionReportFields | FuturesReportFields
     | FXReportFields | IRSwapReportFields
     | CDSReportFields | SwaptionReportFields
+    | CollateralReportFields
     | None
 )
 

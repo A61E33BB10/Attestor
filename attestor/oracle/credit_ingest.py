@@ -40,6 +40,39 @@ class CDSSpreadQuote:
     currency: NonEmptyStr
     timestamp: UtcDatetime
 
+    @staticmethod
+    def create(
+        reference_entity: str,
+        tenor: Decimal,
+        spread_bps: Decimal,
+        recovery_rate: Decimal,
+        currency: str,
+        timestamp: UtcDatetime,
+    ) -> Ok[CDSSpreadQuote] | Err[str]:
+        """Validated construction."""
+        match NonEmptyStr.parse(reference_entity):
+            case Err(e):
+                return Err(f"CDSSpreadQuote.reference_entity: {e}")
+            case Ok(ref):
+                pass
+        if tenor <= Decimal("0"):
+            return Err(f"CDSSpreadQuote.tenor must be > 0, got {tenor}")
+        if spread_bps < Decimal("0"):
+            return Err(f"CDSSpreadQuote.spread_bps must be >= 0, got {spread_bps}")
+        if recovery_rate < Decimal("0") or recovery_rate >= Decimal("1"):
+            return Err(
+                f"CDSSpreadQuote.recovery_rate must be in [0, 1), got {recovery_rate}"
+            )
+        match NonEmptyStr.parse(currency):
+            case Err(e):
+                return Err(f"CDSSpreadQuote.currency: {e}")
+            case Ok(cur):
+                pass
+        return Ok(CDSSpreadQuote(
+            reference_entity=ref, tenor=tenor, spread_bps=spread_bps,
+            recovery_rate=recovery_rate, currency=cur, timestamp=timestamp,
+        ))
+
 
 def ingest_cds_spread(
     reference_entity: str,
@@ -207,6 +240,28 @@ class AuctionResult:
     event_type: CreditEventType
     determination_date: date
     auction_price: Decimal  # recovery price in [0, 1]
+
+    @staticmethod
+    def create(
+        reference_entity: str,
+        event_type: CreditEventType,
+        determination_date: date,
+        auction_price: Decimal,
+    ) -> Ok[AuctionResult] | Err[str]:
+        """Validated construction. Rejects auction_price outside [0, 1]."""
+        match NonEmptyStr.parse(reference_entity):
+            case Err(e):
+                return Err(f"AuctionResult.reference_entity: {e}")
+            case Ok(ref):
+                pass
+        if auction_price < Decimal("0") or auction_price > Decimal("1"):
+            return Err(
+                f"AuctionResult.auction_price must be in [0, 1], got {auction_price}"
+            )
+        return Ok(AuctionResult(
+            reference_entity=ref, event_type=event_type,
+            determination_date=determination_date, auction_price=auction_price,
+        ))
 
 
 def ingest_auction_result(

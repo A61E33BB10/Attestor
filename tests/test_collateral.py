@@ -15,6 +15,7 @@ from attestor.core.types import UtcDatetime
 from attestor.ledger.collateral import (
     CollateralAgreement,
     CollateralType,
+    compute_margin_call,
     create_collateral_return_transaction,
     create_collateral_substitution_transaction,
     create_margin_call_transaction,
@@ -640,3 +641,81 @@ class TestCollateralLifecycle:
         # Conservation holds for both
         assert engine.total_supply("CORP-BOND-5Y") == Decimal(0)
         assert engine.total_supply("GOVT-BOND-10Y") == Decimal(0)
+
+
+# ---------------------------------------------------------------------------
+# compute_margin_call (Phase 5 D3)
+# ---------------------------------------------------------------------------
+
+
+class TestComputeMarginCall:
+    """compute_margin_call — pure margin call amount computation."""
+
+    def test_above_threshold_and_mta(self) -> None:
+        result = compute_margin_call(
+            current_exposure=Decimal("10000000"),
+            threshold=Decimal("5000000"),
+            minimum_transfer_amount=Decimal("500000"),
+        )
+        assert isinstance(result, Ok)
+        assert unwrap(result) == Decimal("5000000")
+
+    def test_below_threshold_returns_zero(self) -> None:
+        result = compute_margin_call(
+            current_exposure=Decimal("3000000"),
+            threshold=Decimal("5000000"),
+            minimum_transfer_amount=Decimal("500000"),
+        )
+        assert isinstance(result, Ok)
+        assert unwrap(result) == Decimal("0")
+
+    def test_below_mta_returns_zero(self) -> None:
+        result = compute_margin_call(
+            current_exposure=Decimal("5200000"),
+            threshold=Decimal("5000000"),
+            minimum_transfer_amount=Decimal("500000"),
+        )
+        assert isinstance(result, Ok)
+        assert unwrap(result) == Decimal("0")
+
+    def test_exactly_at_threshold_returns_zero(self) -> None:
+        result = compute_margin_call(
+            current_exposure=Decimal("5000000"),
+            threshold=Decimal("5000000"),
+            minimum_transfer_amount=Decimal("500000"),
+        )
+        assert isinstance(result, Ok)
+        assert unwrap(result) == Decimal("0")
+
+    def test_negative_exposure_err(self) -> None:
+        result = compute_margin_call(
+            current_exposure=Decimal("-1"),
+            threshold=Decimal("5000000"),
+            minimum_transfer_amount=Decimal("500000"),
+        )
+        assert isinstance(result, Err)
+
+    def test_negative_threshold_err(self) -> None:
+        result = compute_margin_call(
+            current_exposure=Decimal("10000000"),
+            threshold=Decimal("-1"),
+            minimum_transfer_amount=Decimal("500000"),
+        )
+        assert isinstance(result, Err)
+
+    def test_negative_mta_err(self) -> None:
+        result = compute_margin_call(
+            current_exposure=Decimal("10000000"),
+            threshold=Decimal("5000000"),
+            minimum_transfer_amount=Decimal("-1"),
+        )
+        assert isinstance(result, Err)
+
+    def test_zero_threshold_returns_exposure(self) -> None:
+        result = compute_margin_call(
+            current_exposure=Decimal("1000000"),
+            threshold=Decimal("0"),
+            minimum_transfer_amount=Decimal("0"),
+        )
+        assert isinstance(result, Ok)
+        assert unwrap(result) == Decimal("1000000")

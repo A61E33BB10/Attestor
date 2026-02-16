@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS attestor.credit_events (
     event_type      TEXT NOT NULL CHECK (event_type IN ('BANKRUPTCY', 'FAILURE_TO_PAY', 'RESTRUCTURING')),
     determination_date DATE NOT NULL,
     auction_price   NUMERIC(10,6) CHECK (auction_price >= 0 AND auction_price <= 1),
+    settlement_date DATE,
+    recovery_rate   NUMERIC(10,6) CHECK (recovery_rate >= 0 AND recovery_rate < 1),
     valid_time      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     system_time     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

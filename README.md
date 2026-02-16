@@ -54,7 +54,7 @@ Credit curve bootstrap from CDS spreads. Arbitrage freedom gates (6 vol surface 
 
 | Metric | Value |
 |--------|-------|
-| Tests passing | 1429 |
+| Tests passing | 1467 |
 | Source files | 55 |
 | Test files | 68 |
 | Source LOC | ~10,900 |
