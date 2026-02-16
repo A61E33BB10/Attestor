@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 from enum import Enum
-from typing import final
+from typing import assert_never, final
 
 from attestor.core.errors import FieldViolation, ValidationError
 from attestor.core.identifiers import ISIN, LEI
@@ -181,6 +181,8 @@ class CanonicalOrder:
                         constraint="must be > trade_date",
                         actual_value=f"{exp} <= {trade_date}",
                     ))
+            case _never:
+                assert_never(_never)
 
         if violations:
             return Err(ValidationError(

@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from typing import final
+from typing import assert_never, final
 
 from attestor.core.identifiers import ISIN, LEI, UTI
 from attestor.core.money import NonEmptyStr, PositiveDecimal
@@ -17,7 +17,15 @@ from attestor.core.result import Err, Ok
 from attestor.core.serialization import content_hash
 from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder, OrderSide
-from attestor.instrument.derivative_types import CDSDetail, SwaptionDetail
+from attestor.instrument.derivative_types import (
+    CDSDetail,
+    EquityDetail,
+    FuturesDetail,
+    FXDetail,
+    IRSwapDetail,
+    OptionDetail,
+    SwaptionDetail,
+)
 from attestor.oracle.attestation import (
     Attestation,
     FirmConfidence,
@@ -95,6 +103,10 @@ def project_emir_report(
                 underlying_tenor_months=sd.underlying_tenor_months,
                 settlement_type=sd.settlement_type.value,
             )
+        case EquityDetail() | OptionDetail() | FuturesDetail() | FXDetail() | IRSwapDetail():
+            pass  # No EMIR instrument-specific fields for these types
+        case _never:
+            assert_never(_never)
 
     report = EMIRTradeReport(
         uti=uti,

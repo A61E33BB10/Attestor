@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, localcontext
-from typing import final
+from typing import assert_never, final
 
 from dateutil.relativedelta import relativedelta
 
@@ -38,6 +38,8 @@ def _frequency_months(freq: PaymentFrequency) -> int:
             return 6
         case PaymentFrequency.ANNUAL:
             return 12
+        case _never:
+            assert_never(_never)
 
 
 def _generate_period_dates(

@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from typing import final
+from typing import assert_never, final
 
 from attestor.core.identifiers import LEI
 from attestor.core.money import NonEmptyStr
@@ -17,7 +17,15 @@ from attestor.core.result import Err, Ok
 from attestor.core.serialization import content_hash
 from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder
-from attestor.instrument.derivative_types import CDSDetail, SwaptionDetail
+from attestor.instrument.derivative_types import (
+    CDSDetail,
+    EquityDetail,
+    FuturesDetail,
+    FXDetail,
+    IRSwapDetail,
+    OptionDetail,
+    SwaptionDetail,
+)
 from attestor.oracle.attestation import (
     Attestation,
     FirmConfidence,
@@ -97,11 +105,13 @@ def project_dodd_frank_report(
             expiry_date = sd.expiry_date
             underlying_fixed_rate = sd.underlying_fixed_rate
 
-        case _:
+        case EquityDetail() | OptionDetail() | FuturesDetail() | FXDetail() | IRSwapDetail():
             return Err(
                 "Dodd-Frank swap report requires CDS or swaption order, "
                 f"got {type(order.instrument_detail).__name__}"
             )
+        case _never:
+            assert_never(_never)
 
     now = UtcDatetime.now()
     # CDS notional is the contract notional (quantity), not quantity * price.

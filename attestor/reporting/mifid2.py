@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
-from typing import final
+from typing import assert_never, final
 
 from attestor.core.identifiers import LEI
 from attestor.core.money import NonEmptyStr, PositiveDecimal
@@ -19,6 +19,7 @@ from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder, OrderSide
 from attestor.instrument.derivative_types import (
     CDSDetail,
+    EquityDetail,
     FuturesDetail,
     FXDetail,
     IRSwapDetail,
@@ -189,8 +190,10 @@ def project_mifid2_report(
                 underlying_tenor_months=sd.underlying_tenor_months,
                 settlement_type=sd.settlement_type.value,
             )
-        case _:
+        case EquityDetail():
             inst_fields = None
+        case _never:
+            assert_never(_never)
 
     match NonEmptyStr.parse(trade_attestation_id):
         case Err(e):

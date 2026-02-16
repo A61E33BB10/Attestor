@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from decimal import Decimal
+from typing import assert_never
 
 from attestor.instrument.fx_types import DayCountConvention
 
@@ -36,3 +37,5 @@ def day_count_fraction(
             d2, m2, y2 = min(end.day, 30), end.month, end.year
             days = Decimal(str(360 * (y2 - y1) + 30 * (m2 - m1) + (d2 - d1)))
             return days / Decimal("360")
+        case _never:
+            assert_never(_never)
