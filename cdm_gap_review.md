@@ -376,6 +376,8 @@ Without this, Phase A's enum expansions will introduce silent missing-case bugs 
 
 **Estimated:** ~14 new types (CalculationPeriodDates and PaymentDates moved to Phase A), ~55 new tests.
 
+**Actual:** 14 types delivered in `oracle/observable.py`, 65 new tests (`tests/test_phase_b.py`), 1,664 total tests passing. mypy --strict clean, ruff clean. `FloatLeg.float_index` migrated from `NonEmptyStr` to `FloatingRateIndex` across `fx_types.py`, `instrument/types.py`, `ledger/swaption.py`. All Minsky/Formalis findings addressed: `FloatingRateIndex.__post_init__` runtime validation added, `CreditIndex` rejects `bool`/`float` for int fields, test literals corrected to use `RollConventionEnum` and proper `BusinessDayConvention` values. **COMPLETED.**
+
 **Test gate:** After Phase B, all floating rate references are validated against a known index set. No code path can introduce an unvalidated index string -- every constructor accepting a float index requires `FloatingRateIndex`, not `str` or `NonEmptyStr`. Observation identity is structured.
 
 ### Phase C: Product Enrichment

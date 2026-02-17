@@ -44,6 +44,7 @@ from attestor.instrument.fx_types import (
     NDFPayoutSpec,
     PaymentFrequency,
 )
+from attestor.oracle.observable import FloatingRateIndex
 
 
 class PositionStatusEnum(Enum):
@@ -385,7 +386,7 @@ def create_ndf_instrument(
 def create_irs_instrument(
     instrument_id: str,
     fixed_rate: Decimal,
-    float_index: str,
+    float_index: FloatingRateIndex,
     day_count: DayCountConvention,
     payment_frequency: PaymentFrequency,
     notional: Decimal,

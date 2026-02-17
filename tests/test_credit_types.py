@@ -13,7 +13,7 @@ from decimal import Decimal
 import pytest
 
 from attestor.core.result import Err, Ok, unwrap
-from attestor.core.types import PayerReceiver
+from attestor.core.types import PayerReceiver, Period
 from attestor.instrument.credit_types import (
     CDSPayoutSpec,
     SwaptionPayoutSpec,
@@ -50,6 +50,7 @@ from attestor.instrument.types import (
     create_cds_instrument,
     create_swaption_instrument,
 )
+from attestor.oracle.observable import FloatingRateIndex, FloatingRateIndexEnum
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -57,6 +58,7 @@ from attestor.instrument.types import (
 
 _LEI = "529900HNOAA1KXQJUQ27"
 _PR = PayerReceiver(payer="PARTY1", receiver="PARTY2")
+_SOFR = FloatingRateIndex(index=FloatingRateIndexEnum.SOFR, designated_maturity=Period(1, "D"))
 
 
 def _make_parties() -> tuple[Party, ...]:
@@ -68,7 +70,7 @@ def _make_parties() -> tuple[Party, ...]:
 def _make_underlying_swap() -> IRSwapPayoutSpec:
     result = IRSwapPayoutSpec.create(
         fixed_rate=Decimal("0.035"),
-        float_index="SOFR",
+        float_index=_SOFR,
         day_count=DayCountConvention.ACT_360,
         payment_frequency=PaymentFrequency.QUARTERLY,
         notional=Decimal("10000000"),

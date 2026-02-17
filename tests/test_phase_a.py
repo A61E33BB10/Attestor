@@ -45,9 +45,13 @@ from attestor.instrument.types import (
     CalculationPeriodDates,
     PaymentDates,
 )
+from attestor.oracle.observable import FloatingRateIndex, FloatingRateIndexEnum
 
 _PR = PayerReceiver(payer="PARTY1", receiver="PARTY2")
 _PR_INV = PayerReceiver(payer="PARTY2", receiver="PARTY1")
+_SOFR = FloatingRateIndex(
+    index=FloatingRateIndexEnum.SOFR, designated_maturity=Period(1, "D"),
+)
 _BDA = BusinessDayAdjustments(convention="MOD_FOLLOWING", business_centers=frozenset({"GBLO"}))
 
 
@@ -676,7 +680,7 @@ class TestPayerReceiverOnLegs:
 
         leg = FloatLeg(
             payer_receiver=_PR_INV,
-            float_index=NonEmptyStr(value="SOFR"),
+            float_index=_SOFR,
             spread=Decimal("0"),
             day_count=DayCountConvention.ACT_360,
             payment_frequency=PaymentFrequency.QUARTERLY,
@@ -693,7 +697,7 @@ class TestPayerReceiverOnLegs:
         with pytest.raises(TypeError, match="FloatLeg.spread must be finite"):
             FloatLeg(
                 payer_receiver=_PR_INV,
-                float_index=NonEmptyStr(value="SOFR"),
+                float_index=_SOFR,
                 spread=Decimal("NaN"),
                 day_count=DayCountConvention.ACT_360,
                 payment_frequency=PaymentFrequency.QUARTERLY,
@@ -712,7 +716,7 @@ class TestIRSwapConsistencyInvariant:
         """create() auto-generates inverse PayerReceiver for float leg."""
         result = IRSwapPayoutSpec.create(
             fixed_rate=Decimal("0.03"),
-            float_index="SOFR",
+            float_index=_SOFR,
             day_count=DayCountConvention.ACT_360,
             payment_frequency=PaymentFrequency.QUARTERLY,
             notional=Decimal("1000000"),
@@ -745,7 +749,7 @@ class TestIRSwapConsistencyInvariant:
         # Both legs have same direction → violates invariant
         floating = FloatLeg(
             payer_receiver=same_pr,
-            float_index=NonEmptyStr(value="SOFR"),
+            float_index=_SOFR,
             spread=Decimal("0"),
             day_count=DayCountConvention.ACT_360,
             payment_frequency=PaymentFrequency.QUARTERLY,
@@ -790,7 +794,7 @@ class TestPayerReceiverOnCredit:
 
         underlying = IRSwapPayoutSpec.create(
             fixed_rate=Decimal("0.03"),
-            float_index="SOFR",
+            float_index=_SOFR,
             day_count=DayCountConvention.ACT_360,
             payment_frequency=PaymentFrequency.QUARTERLY,
             notional=Decimal("1000000"),

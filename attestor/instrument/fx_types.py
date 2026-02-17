@@ -16,6 +16,7 @@ from attestor.core.money import CurrencyPair, NonEmptyStr, PositiveDecimal
 from attestor.core.result import Err, Ok
 from attestor.core.types import PayerReceiver
 from attestor.instrument.derivative_types import SettlementType
+from attestor.oracle.observable import FloatingRateIndex
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -238,7 +239,7 @@ class FloatLeg:
     """
 
     payer_receiver: PayerReceiver
-    float_index: NonEmptyStr
+    float_index: FloatingRateIndex
     spread: Decimal  # basis point spread over index (can be 0 or negative)
     day_count: DayCountConvention
     payment_frequency: PaymentFrequency
@@ -290,7 +291,7 @@ class IRSwapPayoutSpec:
     @staticmethod
     def create(
         fixed_rate: Decimal,
-        float_index: str,
+        float_index: FloatingRateIndex,
         day_count: DayCountConvention,
         payment_frequency: PaymentFrequency,
         notional: Decimal,
@@ -310,12 +311,10 @@ class IRSwapPayoutSpec:
                 f"must be < end_date ({end_date})"
             )
         if not isinstance(fixed_rate, Decimal) or not fixed_rate.is_finite():
-            return Err(f"IRSwapPayoutSpec.fixed_rate must be finite Decimal, got {fixed_rate!r}")
-        match NonEmptyStr.parse(float_index):
-            case Err(e):
-                return Err(f"IRSwapPayoutSpec.float_index: {e}")
-            case Ok(fi):
-                pass
+            return Err(
+                "IRSwapPayoutSpec.fixed_rate must be finite Decimal, "
+                f"got {fixed_rate!r}"
+            )
         match PositiveDecimal.parse(notional):
             case Err(e):
                 return Err(f"IRSwapPayoutSpec.notional: {e}")
@@ -335,7 +334,7 @@ class IRSwapPayoutSpec:
             currency=cur, notional=n,
         )
         floating = FloatLeg(
-            payer_receiver=float_pr, float_index=fi, spread=spread,
+            payer_receiver=float_pr, float_index=float_index, spread=spread,
             day_count=day_count, payment_frequency=payment_frequency,
             currency=cur, notional=n,
         )

@@ -13,7 +13,7 @@ import pytest
 
 from attestor.core.money import CurrencyPair
 from attestor.core.result import Err, Ok
-from attestor.core.types import PayerReceiver
+from attestor.core.types import PayerReceiver, Period
 from attestor.instrument.derivative_types import (
     FXDetail,
     IRSwapDetail,
@@ -35,8 +35,13 @@ from attestor.instrument.types import (
     create_irs_instrument,
     create_ndf_instrument,
 )
+from attestor.oracle.observable import FloatingRateIndex, FloatingRateIndexEnum
 
 _PR = PayerReceiver(payer="PARTY1", receiver="PARTY2")
+_SOFR = FloatingRateIndex(index=FloatingRateIndexEnum.SOFR, designated_maturity=Period(1, "D"))
+_EURIBOR_3M = FloatingRateIndex(
+    index=FloatingRateIndexEnum.EURIBOR, designated_maturity=Period(3, "M"),
+)
 
 # ---------------------------------------------------------------------------
 # CurrencyPair
@@ -211,7 +216,7 @@ class TestIRSwapPayoutSpec:
     def test_valid(self) -> None:
         result = IRSwapPayoutSpec.create(
             fixed_rate=Decimal("0.035"),
-            float_index="SOFR",
+            float_index=_SOFR,
             day_count=DayCountConvention.ACT_360,
             payment_frequency=PaymentFrequency.QUARTERLY,
             notional=Decimal("10000000"),
@@ -223,13 +228,13 @@ class TestIRSwapPayoutSpec:
         assert isinstance(result, Ok)
         spec = result.value
         assert spec.fixed_leg.fixed_rate == Decimal("0.035")
-        assert spec.float_leg.float_index.value == "SOFR"
+        assert spec.float_leg.float_index.index == FloatingRateIndexEnum.SOFR
         assert spec.fixed_leg.notional.value == Decimal("10000000")
 
     def test_start_after_end(self) -> None:
         result = IRSwapPayoutSpec.create(
             fixed_rate=Decimal("0.035"),
-            float_index="SOFR",
+            float_index=_SOFR,
             day_count=DayCountConvention.ACT_360,
             payment_frequency=PaymentFrequency.QUARTERLY,
             notional=Decimal("10000000"),
@@ -244,7 +249,7 @@ class TestIRSwapPayoutSpec:
     def test_same_start_end(self) -> None:
         result = IRSwapPayoutSpec.create(
             fixed_rate=Decimal("0.035"),
-            float_index="SOFR",
+            float_index=_SOFR,
             day_count=DayCountConvention.ACT_360,
             payment_frequency=PaymentFrequency.ANNUAL,
             notional=Decimal("10000000"),
@@ -258,7 +263,7 @@ class TestIRSwapPayoutSpec:
     def test_with_spread(self) -> None:
         result = IRSwapPayoutSpec.create(
             fixed_rate=Decimal("0.035"),
-            float_index="EURIBOR_3M",
+            float_index=_EURIBOR_3M,
             day_count=DayCountConvention.THIRTY_360,
             payment_frequency=PaymentFrequency.SEMI_ANNUAL,
             notional=Decimal("5000000"),
@@ -273,7 +278,7 @@ class TestIRSwapPayoutSpec:
 
     def test_frozen(self) -> None:
         r = IRSwapPayoutSpec.create(
-            fixed_rate=Decimal("0.035"), float_index="SOFR",
+            fixed_rate=Decimal("0.035"), float_index=_SOFR,
             day_count=DayCountConvention.ACT_360,
             payment_frequency=PaymentFrequency.QUARTERLY,
             notional=Decimal("10000000"), currency="USD",
@@ -480,7 +485,7 @@ class TestIRSInstrument:
         result = create_irs_instrument(
             instrument_id="IRS-001",
             fixed_rate=Decimal("0.035"),
-            float_index="SOFR",
+            float_index=_SOFR,
             day_count=DayCountConvention.ACT_360,
             payment_frequency=PaymentFrequency.QUARTERLY,
             notional=Decimal("10000000"),
@@ -500,7 +505,7 @@ class TestIRSInstrument:
         result = create_irs_instrument(
             instrument_id="IRS-001",
             fixed_rate=Decimal("-0.035"),
-            float_index="SOFR",
+            float_index=_SOFR,
             day_count=DayCountConvention.ACT_360,
             payment_frequency=PaymentFrequency.QUARTERLY,
             notional=Decimal("10000000"),

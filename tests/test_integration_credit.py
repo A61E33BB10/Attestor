@@ -12,7 +12,7 @@ from decimal import Decimal
 
 from attestor.core.money import NonEmptyStr
 from attestor.core.result import Ok, unwrap
-from attestor.core.types import PayerReceiver, UtcDatetime
+from attestor.core.types import PayerReceiver, Period, UtcDatetime
 from attestor.gateway.parser import parse_cds_order, parse_swaption_order
 from attestor.instrument.credit_types import CDSPayoutSpec, SwaptionPayoutSpec
 from attestor.instrument.derivative_types import (
@@ -70,6 +70,7 @@ from attestor.oracle.credit_curve import (
     bootstrap_credit_curve,
     survival_probability,
 )
+from attestor.oracle.observable import FloatingRateIndex, FloatingRateIndexEnum
 from attestor.oracle.vol_surface import SVIParameters, VolSurface, implied_vol
 from attestor.reporting.dodd_frank import (
     DoddFrankSwapReport,
@@ -87,6 +88,7 @@ _TS_UTC = UtcDatetime(value=_TS)
 _LEI_A = "529900HNOAA1KXQJUQ27"
 _LEI_B = "969500UEQ9HE3W646P42"
 _PR = PayerReceiver(payer="PARTY1", receiver="PARTY2")
+_SOFR = FloatingRateIndex(index=FloatingRateIndexEnum.SOFR, designated_maturity=Period(1, "D"))
 
 
 def _make_engine(*account_specs: tuple[str, AccountType]) -> LedgerEngine:
@@ -366,7 +368,7 @@ class TestFullSwaptionPhysicalLifecycle:
         parties = _make_parties()
         underlying_swap = unwrap(IRSwapPayoutSpec.create(
             fixed_rate=Decimal("0.035"),
-            float_index="SOFR",
+            float_index=_SOFR,
             day_count=DayCountConvention.ACT_360,
             payment_frequency=PaymentFrequency.QUARTERLY,
             notional=Decimal("10000000"),
@@ -465,7 +467,7 @@ class TestFullSwaptionPhysicalLifecycle:
         irs_payout = irs_instrument.product.economic_terms.payouts[0]
         assert isinstance(irs_payout, IRSwapPayoutSpec)
         assert irs_payout.fixed_leg.fixed_rate == Decimal("0.035")
-        assert irs_payout.float_leg.float_index.value == "SOFR"
+        assert irs_payout.float_leg.float_index.index == FloatingRateIndexEnum.SOFR
         assert irs_payout.start_date == date(2030, 6, 15)
         assert irs_payout.end_date == date(2040, 6, 15)
 

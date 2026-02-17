@@ -116,7 +116,7 @@ def exercise_swaption_into_irs(
     return create_irs_instrument(
         instrument_id=irs_instrument_id,
         fixed_rate=swaption_payout.strike.value,
-        float_index=underlying.float_leg.float_index.value,
+        float_index=underlying.float_leg.float_index,
         day_count=underlying.fixed_leg.day_count,
         payment_frequency=underlying.fixed_leg.payment_frequency,
         notional=swaption_payout.notional.value,

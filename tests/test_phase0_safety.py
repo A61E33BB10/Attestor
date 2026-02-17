@@ -25,7 +25,7 @@ from attestor.core.money import (
     PositiveDecimal,
 )
 from attestor.core.result import Err, Ok, unwrap
-from attestor.core.types import IdempotencyKey, PayerReceiver, UtcDatetime
+from attestor.core.types import IdempotencyKey, PayerReceiver, Period, UtcDatetime
 from attestor.gateway.types import (
     CanonicalOrder,
     OrderSide,
@@ -56,6 +56,14 @@ from attestor.ledger.collateral import CollateralAgreement, CollateralType
 from attestor.ledger.transactions import DistinctAccountPair, Move, Transaction
 from attestor.oracle.attestation import QuoteCondition, QuotedConfidence
 from attestor.oracle.calibration import YieldCurve, discount_factor, forward_rate
+from attestor.oracle.observable import FloatingRateIndex, FloatingRateIndexEnum
+
+_SOFR = FloatingRateIndex(
+    index=FloatingRateIndexEnum.SOFR, designated_maturity=Period(1, "D"),
+)
+_EURIBOR = FloatingRateIndex(
+    index=FloatingRateIndexEnum.EURIBOR, designated_maturity=Period(3, "M"),
+)
 
 # ---------------------------------------------------------------------------
 # P0-1: Seal constructor bypass — core types
@@ -364,7 +372,7 @@ class TestNegativeRateAndZeroStrike:
         _pr = PayerReceiver(payer="PARTY1", receiver="PARTY2")
         result = IRSwapPayoutSpec.create(
             fixed_rate=Decimal("-0.005"),
-            float_index="EURIBOR",
+            float_index=_EURIBOR,
             day_count=DayCountConvention.ACT_360,
             payment_frequency=PaymentFrequency.SEMI_ANNUAL,
             notional=Decimal("10000000"),
@@ -384,7 +392,7 @@ class TestNegativeRateAndZeroStrike:
             strike=Decimal("0"),
             underlying_swap=unwrap(IRSwapPayoutSpec.create(
                 fixed_rate=Decimal("0.035"),
-                float_index="SOFR",
+                float_index=_SOFR,
                 day_count=DayCountConvention.ACT_360,
                 payment_frequency=PaymentFrequency.QUARTERLY,
                 notional=Decimal("10000000"),
