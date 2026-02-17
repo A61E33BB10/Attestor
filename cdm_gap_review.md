@@ -447,6 +447,19 @@ Without this, Phase A's enum expansions will introduce silent missing-case bugs 
 
 **Estimated:** ~14 new types, ~50 new tests.
 
+**STATUS: COMPLETED**
+
+**Actual metrics:**
+- **New enums:** 5 (ClosedStateEnum, TransferStatusEnum, EventIntentEnum, CorporateActionTypeEnum, ActionEnum)
+- **New PI types:** 5 (QuantityChangePI, PartyChangePI, SplitPI, TermsChangePI, IndexTransitionPI)
+- **New trade types:** 3 (ClosedState, Trade, TradeState)
+- **Enriched types:** 1 (BusinessEvent + before/after/event_intent/action/event_ref)
+- **PrimitiveInstruction union:** 13 → 18 variants
+- **Tests added:** 47 (test_phase_d.py)
+- **Total test count:** 1,765
+- **Minsky review:** APPROVED (4 LOW advisories — SplitPI uniqueness FIXED, Infinity test ADDED)
+- **Formalis review:** APPROVED (M-1 SplitPI uniqueness — FIXED, M-2 BusinessEvent consistency — documented, M-3 history ordering — documented)
+
 **Test gate:** After Phase D, BusinessEvents carry before/after state snapshots. New PI types (QuantityChange, PartyChange, Split) have conservation law tests.
 
 ### Phase E: Collateral and Margin

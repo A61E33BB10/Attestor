@@ -3,6 +3,11 @@
 EQUITY_TRANSITIONS / DERIVATIVE_TRANSITIONS / FX_TRANSITIONS / IRS_TRANSITIONS /
 CDS_TRANSITIONS / SWAPTION_TRANSITIONS define valid state transitions.
 PrimitiveInstruction covers equities, options, futures, FX, IRS, CDS, and swaptions.
+
+Phase D additions: ClosedStateEnum, TransferStatusEnum, EventIntentEnum,
+CorporateActionTypeEnum, ActionEnum, QuantityChangePI, PartyChangePI,
+SplitPI, TermsChangePI, IndexTransitionPI, ClosedState, Trade, TradeState,
+enriched BusinessEvent.
 """
 
 from __future__ import annotations
@@ -10,15 +15,93 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from enum import Enum
 from typing import final
 
 from attestor.core.errors import IllegalTransitionError
 from attestor.core.money import Money, NonEmptyStr, PositiveDecimal
 from attestor.core.result import Err, Ok
-from attestor.core.types import UtcDatetime
+from attestor.core.types import FrozenMap, PayerReceiver, UtcDatetime
 from attestor.gateway.types import CanonicalOrder
 from attestor.instrument.derivative_types import CreditEventType, MarginType
 from attestor.instrument.types import PositionStatusEnum
+from attestor.oracle.observable import FloatingRateIndex
+
+# ---------------------------------------------------------------------------
+# Phase D: Enums
+# ---------------------------------------------------------------------------
+
+
+class ClosedStateEnum(Enum):
+    """Reason a trade was closed.
+
+    CDM: ClosedStateEnum (~6 of 6 values).
+    """
+
+    MATURED = "MATURED"
+    TERMINATED = "TERMINATED"
+    NOVATED = "NOVATED"
+    EXERCISED = "EXERCISED"
+    EXPIRED = "EXPIRED"
+    CANCELLED = "CANCELLED"
+
+
+class TransferStatusEnum(Enum):
+    """Settlement transfer lifecycle status.
+
+    CDM: TransferStatusEnum (~5 values).
+    """
+
+    PENDING = "PENDING"
+    INSTRUCTED = "INSTRUCTED"
+    SETTLED = "SETTLED"
+    NETTED = "NETTED"
+    DISPUTED = "DISPUTED"
+
+
+class EventIntentEnum(Enum):
+    """Business intent of a lifecycle event.
+
+    CDM: IntentEnum (~10 of 20 values). Covers the most common
+    post-trade events for vanilla derivatives.
+    """
+
+    ALLOCATION = "ALLOCATION"
+    CLEARING = "CLEARING"
+    COMPRESSION = "COMPRESSION"
+    CORPORATE_ACTION = "CORPORATE_ACTION"
+    EARLY_TERMINATION = "EARLY_TERMINATION"
+    EXERCISE = "EXERCISE"
+    INCREASE = "INCREASE"
+    INDEX_TRANSITION = "INDEX_TRANSITION"
+    NOVATION = "NOVATION"
+    PARTIAL_TERMINATION = "PARTIAL_TERMINATION"
+
+
+class CorporateActionTypeEnum(Enum):
+    """Corporate action classification.
+
+    CDM: CorporateActionTypeEnum (~6 of 19 values).
+    """
+
+    CASH_DIVIDEND = "CASH_DIVIDEND"
+    STOCK_DIVIDEND = "STOCK_DIVIDEND"
+    STOCK_SPLIT = "STOCK_SPLIT"
+    REVERSE_STOCK_SPLIT = "REVERSE_STOCK_SPLIT"
+    MERGER = "MERGER"
+    SPIN_OFF = "SPIN_OFF"
+
+
+class ActionEnum(Enum):
+    """Message action type for trade reporting.
+
+    CDM: ActionEnum.
+    """
+
+    NEW = "NEW"
+    CORRECT = "CORRECT"
+    CANCEL = "CANCEL"
+
 
 # ---------------------------------------------------------------------------
 # Transition table
@@ -231,19 +314,230 @@ class CollateralCallPI:
     collateral_type: NonEmptyStr  # "CASH" or instrument ID
 
 
+# ---------------------------------------------------------------------------
+# Phase D PrimitiveInstruction variants
+# ---------------------------------------------------------------------------
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class QuantityChangePI:
+    """Partial termination or notional decrease.
+
+    CDM: QuantityChangePrimitive = before + after quantities.
+    We model as a delta: negative = decrease, must be non-zero.
+    """
+
+    instrument_id: NonEmptyStr
+    quantity_change: Decimal
+    effective_date: date
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.quantity_change, Decimal)
+            or not self.quantity_change.is_finite()
+        ):
+            raise TypeError(
+                "QuantityChangePI.quantity_change must be finite Decimal, "
+                f"got {self.quantity_change!r}"
+            )
+        if self.quantity_change == 0:
+            raise TypeError("QuantityChangePI.quantity_change must be non-zero")
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class PartyChangePI:
+    """Novation: transfer of obligations from old party to new party.
+
+    CDM: PartyChangePrimitive = old_party + new_party.
+    Invariant: old_party != new_party.
+    """
+
+    instrument_id: NonEmptyStr
+    old_party: NonEmptyStr
+    new_party: NonEmptyStr
+    effective_date: date
+
+    def __post_init__(self) -> None:
+        if self.old_party == self.new_party:
+            raise TypeError(
+                "PartyChangePI: old_party must differ from new_party, "
+                f"both are {self.old_party!r}"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class SplitPI:
+    """Trade allocation: split into sub-trades.
+
+    CDM: SplitPrimitive = list of resulting trades.
+    Invariant: at least 2 resulting trade IDs (splitting into 1 is a no-op).
+    """
+
+    instrument_id: NonEmptyStr
+    split_into: tuple[NonEmptyStr, ...]
+    effective_date: date
+
+    def __post_init__(self) -> None:
+        if len(self.split_into) < 2:
+            raise TypeError(
+                "SplitPI.split_into must contain at least 2 trade IDs, "
+                f"got {len(self.split_into)}"
+            )
+        if len(set(self.split_into)) != len(self.split_into):
+            raise TypeError(
+                "SplitPI.split_into must contain distinct trade IDs"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class TermsChangePI:
+    """Amendment to trade terms.
+
+    CDM: TermsChangePrimitive = before + after terms.
+    We model as a map of changed field names to new values.
+    Invariant: at least one field must be changed.
+    """
+
+    instrument_id: NonEmptyStr
+    changed_fields: FrozenMap[str, str]
+    effective_date: date
+
+    def __post_init__(self) -> None:
+        if len(self.changed_fields) == 0:
+            raise TypeError(
+                "TermsChangePI.changed_fields must contain at least one entry"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class IndexTransitionPI:
+    """IBOR fallback transition.
+
+    CDM: IndexTransitionInstruction = old_index + new_index + spread_adjustment.
+    Invariant: old_index != new_index.
+    """
+
+    instrument_id: NonEmptyStr
+    old_index: FloatingRateIndex
+    new_index: FloatingRateIndex
+    spread_adjustment: Decimal
+    effective_date: date
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.spread_adjustment, Decimal)
+            or not self.spread_adjustment.is_finite()
+        ):
+            raise TypeError(
+                "IndexTransitionPI.spread_adjustment must be finite Decimal, "
+                f"got {self.spread_adjustment!r}"
+            )
+        if self.old_index == self.new_index:
+            raise TypeError(
+                "IndexTransitionPI: old_index must differ from new_index"
+            )
+
+
 PrimitiveInstruction = (
     ExecutePI | TransferPI | DividendPI
     | ExercisePI | AssignPI | ExpiryPI | MarginPI
     | FixingPI | NettingPI | MaturityPI
     | CreditEventPI | SwaptionExercisePI | CollateralCallPI
+    | QuantityChangePI | PartyChangePI | SplitPI
+    | TermsChangePI | IndexTransitionPI
 )
+
+
+# ---------------------------------------------------------------------------
+# Phase D: ClosedState, Trade, TradeState
+# ---------------------------------------------------------------------------
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class ClosedState:
+    """Reason and date a trade was closed.
+
+    CDM: ClosedState = state + activityDate.
+    """
+
+    state: ClosedStateEnum
+    effective_date: date
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class Trade:
+    """A trade with counterparty role assignments.
+
+    CDM: Trade = tradeIdentifier + tradeDate + party + partyRole + product.
+    Enriched from Instrument with explicit party roles and legal agreement.
+    """
+
+    trade_id: NonEmptyStr
+    trade_date: date
+    payer_receiver: PayerReceiver
+    product_id: NonEmptyStr
+    currency: NonEmptyStr
+    legal_agreement_id: NonEmptyStr | None = None
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class TradeState:
+    """Immutable snapshot of a trade's current state.
+
+    CDM: TradeState = trade + state + resetHistory + transferHistory.
+    State evolution: (TradeState, BusinessEvent) -> TradeState.
+    This is a snapshot, not a mutable container.
+    """
+
+    trade: Trade
+    status: PositionStatusEnum
+    closed_state: ClosedState | None = None
+    reset_history: tuple[UtcDatetime, ...] = ()
+    transfer_history: tuple[UtcDatetime, ...] = ()
+
+    def __post_init__(self) -> None:
+        # If closed, must have a closed_state
+        if self.status == PositionStatusEnum.CLOSED and self.closed_state is None:
+            raise TypeError(
+                "TradeState: closed_state is required when status is CLOSED"
+            )
+        # If not closed, closed_state must be None
+        if self.status != PositionStatusEnum.CLOSED and self.closed_state is not None:
+            raise TypeError(
+                "TradeState: closed_state must be None when status is not CLOSED, "
+                f"got status={self.status!r}"
+            )
+
+
+# ---------------------------------------------------------------------------
+# BusinessEvent (Phase D enrichment)
+# ---------------------------------------------------------------------------
 
 
 @final
 @dataclass(frozen=True, slots=True)
 class BusinessEvent:
-    """A business event wrapping a primitive instruction."""
+    """A business event wrapping a primitive instruction.
+
+    Phase D enrichment: optional before/after trade state snapshots,
+    event intent qualifier, action type, and event reference for
+    causation chains.
+    """
 
     instruction: PrimitiveInstruction
     timestamp: UtcDatetime
     attestation_id: str | None = None
+    # Phase D: state-centric enrichment
+    before: TradeState | None = None
+    after: TradeState | None = None
+    event_intent: EventIntentEnum | None = None
+    action: ActionEnum = ActionEnum.NEW
+    event_ref: NonEmptyStr | None = None

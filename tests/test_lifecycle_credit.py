@@ -344,10 +344,10 @@ class TestCollateralCallPI:
 
 
 class TestPrimitiveInstructionUnion:
-    def test_has_13_variants(self) -> None:
-        """PrimitiveInstruction union should have 13 variants after Phase 4."""
+    def test_has_18_variants(self) -> None:
+        """PrimitiveInstruction union should have 18 variants after Phase D."""
         args = get_args(PrimitiveInstruction)
-        assert len(args) == 13
+        assert len(args) == 18
 
     def test_new_variants_present(self) -> None:
         """CreditEventPI, SwaptionExercisePI, CollateralCallPI in union."""
