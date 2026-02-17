@@ -15,6 +15,26 @@ from typing import Any, ClassVar, Literal, final
 
 from attestor.core.result import Err, Ok
 
+# ---------------------------------------------------------------------------
+# Day count conventions (moved from fx_types.py for import ordering)
+# ---------------------------------------------------------------------------
+
+
+class DayCountConvention(Enum):
+    """Day count conventions for accrual period calculation.
+
+    ISDA 2006 Section 4.16.
+    """
+
+    ACT_360 = "ACT/360"
+    ACT_365 = "ACT/365"
+    THIRTY_360 = "30/360"
+    ACT_ACT_ISDA = "ACT/ACT.ISDA"
+    ACT_ACT_ICMA = "ACT/ACT.ICMA"
+    THIRTY_E_360 = "30E/360"
+    ACT_365L = "ACT/365L"
+    BUS_252 = "BUS/252"
+
 
 @final
 @dataclass(frozen=True, slots=True)
@@ -314,4 +334,90 @@ class PayerReceiver:
         if self.payer == self.receiver:
             raise TypeError(
                 f"PayerReceiver: payer must differ from receiver, both are {self.payer!r}"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Phase A: Schedule types (moved from instrument/types.py for import ordering)
+# ---------------------------------------------------------------------------
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class CalculationPeriodDates:
+    """Effective/termination dates with schedule generation parameters.
+
+    CDM: CalculationPeriodDates = effectiveDate + terminationDate + frequency
+         + rollConvention + firstPeriodStartDate + lastRegularPeriodEndDate + BDA.
+    """
+
+    effective_date: AdjustableDate
+    termination_date: AdjustableDate
+    frequency: Frequency
+    business_day_adjustments: BusinessDayAdjustments
+    first_period_start_date: date | None = None  # Stub at start
+    last_regular_period_end_date: date | None = None  # Stub at end
+
+    def __post_init__(self) -> None:
+        eff = self.effective_date.unadjusted_date
+        term = self.termination_date.unadjusted_date
+        if eff >= term:
+            raise TypeError(
+                f"CalculationPeriodDates: effective_date ({eff}) "
+                f"must be < termination_date ({term})"
+            )
+        fpsd = self.first_period_start_date
+        lrped = self.last_regular_period_end_date
+        # Stub start must be <= effective and < termination
+        if fpsd is not None:
+            if fpsd > eff:
+                raise TypeError(
+                    "CalculationPeriodDates: "
+                    "first_period_start_date must be <= effective_date"
+                )
+            if fpsd >= term:
+                raise TypeError(
+                    "CalculationPeriodDates: "
+                    "first_period_start_date must be < termination_date"
+                )
+        # Last regular end must be > effective and <= termination
+        if lrped is not None:
+            if lrped <= eff:
+                raise TypeError(
+                    "CalculationPeriodDates: "
+                    "last_regular_period_end_date must be > effective_date"
+                )
+            if lrped > term:
+                raise TypeError(
+                    "CalculationPeriodDates: "
+                    "last_regular_period_end_date must be <= termination_date"
+                )
+        # Cross-validate: stub start < last regular end
+        if fpsd is not None and lrped is not None and fpsd >= lrped:
+            raise TypeError(
+                "CalculationPeriodDates: first_period_start_date "
+                "must be < last_regular_period_end_date"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class PaymentDates:
+    """Payment schedule parameters for a payout leg.
+
+    CDM: PaymentDates = paymentFrequency + payRelativeTo + paymentDaysOffset + BDA.
+    """
+
+    payment_frequency: Frequency
+    pay_relative_to: Literal[
+        "CalculationPeriodStartDate", "CalculationPeriodEndDate",
+    ]
+    payment_day_offset: int  # Number of business days offset (can be 0)
+    business_day_adjustments: BusinessDayAdjustments
+
+    def __post_init__(self) -> None:
+        if self.payment_day_offset < 0:
+            raise TypeError(
+                f"PaymentDates: payment_day_offset must be >= 0, "
+                f"got {self.payment_day_offset}"
             )

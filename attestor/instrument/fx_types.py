@@ -14,24 +14,21 @@ from typing import final
 
 from attestor.core.money import CurrencyPair, NonEmptyStr, PositiveDecimal
 from attestor.core.result import Err, Ok
-from attestor.core.types import PayerReceiver
+from attestor.core.types import (
+    CalculationPeriodDates,
+    PayerReceiver,
+    PaymentDates,
+)
+from attestor.core.types import (
+    DayCountConvention as DayCountConvention,
+)
 from attestor.instrument.derivative_types import SettlementType
-from attestor.oracle.observable import FloatingRateIndex
-
-# ---------------------------------------------------------------------------
-# Enums
-# ---------------------------------------------------------------------------
-
-
-class DayCountConvention(Enum):
-    ACT_360 = "ACT/360"
-    ACT_365 = "ACT/365"
-    THIRTY_360 = "30/360"
-    ACT_ACT_ISDA = "ACT/ACT.ISDA"
-    ACT_ACT_ICMA = "ACT/ACT.ICMA"
-    THIRTY_E_360 = "30E/360"
-    ACT_365L = "ACT/365L"
-    BUS_252 = "BUS/252"
+from attestor.instrument.rate_spec import StubPeriod
+from attestor.oracle.observable import (
+    FloatingRateCalculationParameters,
+    FloatingRateIndex,
+    ResetDates,
+)
 
 
 class PaymentFrequency(Enum):
@@ -216,6 +213,9 @@ class FixedLeg:
 
     fixed_rate is Decimal (negative rates allowed for EUR/JPY/CHF).
     CDM: InterestRatePayout with fixedRateSpecification + payerReceiver.
+
+    Phase C enrichment: optional schedule fields. FixedLeg structurally
+    CANNOT have reset_dates — making this illegal state unrepresentable.
     """
 
     payer_receiver: PayerReceiver
@@ -224,6 +224,10 @@ class FixedLeg:
     payment_frequency: PaymentFrequency
     currency: NonEmptyStr
     notional: PositiveDecimal
+    # Phase C: optional schedule enrichment
+    calculation_period_dates: CalculationPeriodDates | None = None
+    payment_dates: PaymentDates | None = None
+    stub: StubPeriod | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.fixed_rate, Decimal) or not self.fixed_rate.is_finite():
@@ -236,6 +240,9 @@ class FloatLeg:
     """Floating leg of a vanilla IRS.
 
     CDM: InterestRatePayout with floatingRateSpecification + payerReceiver.
+
+    Phase C enrichment: optional schedule and reset fields. FloatLeg
+    CAN have reset_dates (unlike FixedLeg which structurally cannot).
     """
 
     payer_receiver: PayerReceiver
@@ -245,6 +252,12 @@ class FloatLeg:
     payment_frequency: PaymentFrequency
     currency: NonEmptyStr
     notional: PositiveDecimal
+    # Phase C: optional schedule/reset enrichment
+    calculation_period_dates: CalculationPeriodDates | None = None
+    payment_dates: PaymentDates | None = None
+    reset_dates: ResetDates | None = None
+    floating_rate_calc_params: FloatingRateCalculationParameters | None = None
+    stub: StubPeriod | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.spread, Decimal) or not self.spread.is_finite():

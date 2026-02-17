@@ -4,7 +4,24 @@ from attestor.instrument.credit_types import (
     CDSPayoutSpec as CDSPayoutSpec,
 )
 from attestor.instrument.credit_types import (
+    GeneralTerms as GeneralTerms,
+)
+from attestor.instrument.credit_types import (
+    ProtectionTerms as ProtectionTerms,
+)
+from attestor.instrument.credit_types import (
     SwaptionPayoutSpec as SwaptionPayoutSpec,
+)
+
+# Phase C: exercise terms, settlement terms, performance payout
+from attestor.instrument.derivative_types import (
+    AmericanExercise as AmericanExercise,
+)
+from attestor.instrument.derivative_types import (
+    BermudaExercise as BermudaExercise,
+)
+from attestor.instrument.derivative_types import (
+    CashSettlementTerms as CashSettlementTerms,
 )
 from attestor.instrument.derivative_types import (
     CDSDetail as CDSDetail,
@@ -14,6 +31,12 @@ from attestor.instrument.derivative_types import (
 )
 from attestor.instrument.derivative_types import (
     EquityDetail as EquityDetail,
+)
+from attestor.instrument.derivative_types import (
+    EuropeanExercise as EuropeanExercise,
+)
+from attestor.instrument.derivative_types import (
+    ExerciseTerms as ExerciseTerms,
 )
 from attestor.instrument.derivative_types import (
     FuturesDetail as FuturesDetail,
@@ -48,10 +71,19 @@ from attestor.instrument.derivative_types import (
     OptionType as OptionType,
 )
 from attestor.instrument.derivative_types import (
+    PerformancePayoutSpec as PerformancePayoutSpec,
+)
+from attestor.instrument.derivative_types import (
+    PhysicalSettlementTerms as PhysicalSettlementTerms,
+)
+from attestor.instrument.derivative_types import (
     ProtectionSide as ProtectionSide,
 )
 from attestor.instrument.derivative_types import (
     SeniorityLevel as SeniorityLevel,
+)
+from attestor.instrument.derivative_types import (
+    SettlementTerms as SettlementTerms,
 )
 from attestor.instrument.derivative_types import (
     SettlementType as SettlementType,
@@ -82,6 +114,23 @@ from attestor.instrument.fx_types import (
 )
 from attestor.instrument.fx_types import (
     SwapLegType as SwapLegType,
+)
+
+# Phase C: rate specifications
+from attestor.instrument.rate_spec import (
+    CompoundingMethodEnum as CompoundingMethodEnum,
+)
+from attestor.instrument.rate_spec import (
+    FixedRateSpecification as FixedRateSpecification,
+)
+from attestor.instrument.rate_spec import (
+    FloatingRateSpecification as FloatingRateSpecification,
+)
+from attestor.instrument.rate_spec import (
+    RateSpecification as RateSpecification,
+)
+from attestor.instrument.rate_spec import (
+    StubPeriod as StubPeriod,
 )
 from attestor.instrument.types import (
     EconomicTerms as EconomicTerms,

@@ -409,6 +409,17 @@ Without this, Phase A's enum expansions will introduce silent missing-case bugs 
 
 **Estimated:** ~15 new types, ~50 new tests.
 
+**STATUS: COMPLETED**
+
+**Actual metrics:**
+- **New types:** 15 (CompoundingMethodEnum, NegativeTreatmentEnum, StubPeriod, FixedRateSpecification, FloatingRateSpecification, RateSpecification, CashSettlementTerms, PhysicalSettlementTerms, SettlementTerms, AmericanExercise, EuropeanExercise, BermudaExercise, ExerciseTerms, PerformancePayoutSpec, GeneralTerms, ProtectionTerms)
+- **Enriched types:** 4 (FixedLeg, FloatLeg, CDSPayoutSpec, OptionPayoutSpec)
+- **Relocated types:** DayCountConvention → core/types.py; CalculationPeriodDates, PaymentDates → core/types.py (re-exported from original locations)
+- **Tests added:** 55 (test_phase_c.py)
+- **Total test count:** 1,718
+- **Minsky review:** APPROVED (H-1 PerformancePayoutSpec Payout union — FIXED, M-1 smart constructors — documented, M-2 option_style coherence — documented, M-3 __init__.py re-exports — FIXED)
+- **Formalis review:** APPROVED (M-1 step_schedule monotonicity — FIXED, M-2 PerformancePayoutSpec Payout union — FIXED, M-3 option_style coherence — documented)
+
 **Test gate:** After Phase C, IRS payouts have full rate specification and schedule parameterization. CDS payouts carry reference entity details and credit event specifications.
 
 ### Phase D: Event and Lifecycle Alignment

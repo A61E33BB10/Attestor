@@ -2,7 +2,7 @@
 
 Payout = EquityPayoutSpec | OptionPayoutSpec | FuturesPayoutSpec
        | FXSpotPayoutSpec | FXForwardPayoutSpec | NDFPayoutSpec | IRSwapPayoutSpec
-       | CDSPayoutSpec | SwaptionPayoutSpec.
+       | CDSPayoutSpec | SwaptionPayoutSpec | PerformancePayoutSpec.
 
 Phase A: CalculationPeriodDates, PaymentDates (PayerReceiver in core/types).
 """
@@ -13,17 +13,12 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 from enum import Enum
-from typing import Literal, final
+from typing import final
 
 from attestor.core.identifiers import LEI
 from attestor.core.money import NonEmptyStr
 from attestor.core.result import Err, Ok
-from attestor.core.types import (
-    AdjustableDate,
-    BusinessDayAdjustments,
-    Frequency,
-    PayerReceiver,
-)
+from attestor.core.types import PayerReceiver
 from attestor.instrument.credit_types import (
     CDSPayoutSpec,
     SwaptionPayoutSpec,
@@ -33,6 +28,7 @@ from attestor.instrument.derivative_types import (
     OptionPayoutSpec,
     OptionStyle,
     OptionType,
+    PerformancePayoutSpec,
     SettlementType,
     SwaptionType,
 )
@@ -120,7 +116,7 @@ class EquityPayoutSpec:
 type Payout = (
     EquityPayoutSpec | OptionPayoutSpec | FuturesPayoutSpec
     | FXSpotPayoutSpec | FXForwardPayoutSpec | NDFPayoutSpec | IRSwapPayoutSpec
-    | CDSPayoutSpec | SwaptionPayoutSpec
+    | CDSPayoutSpec | SwaptionPayoutSpec | PerformancePayoutSpec
 )
 
 
@@ -516,81 +512,9 @@ def create_swaption_instrument(
 # ---------------------------------------------------------------------------
 
 # CounterpartyRole and PayerReceiver imported from core/types.py above.
-
-
-@final
-@dataclass(frozen=True, slots=True)
-class CalculationPeriodDates:
-    """Effective/termination dates with schedule generation parameters.
-
-    CDM: CalculationPeriodDates = effectiveDate + terminationDate + frequency
-         + rollConvention + firstPeriodStartDate + lastRegularPeriodEndDate + BDA.
-    """
-
-    effective_date: AdjustableDate
-    termination_date: AdjustableDate
-    frequency: Frequency
-    business_day_adjustments: BusinessDayAdjustments
-    first_period_start_date: date | None = None  # Stub at start
-    last_regular_period_end_date: date | None = None  # Stub at end
-
-    def __post_init__(self) -> None:
-        eff = self.effective_date.unadjusted_date
-        term = self.termination_date.unadjusted_date
-        if eff >= term:
-            raise TypeError(
-                f"CalculationPeriodDates: effective_date ({eff}) "
-                f"must be < termination_date ({term})"
-            )
-        fpsd = self.first_period_start_date
-        lrped = self.last_regular_period_end_date
-        # Stub start must be <= effective and < termination
-        if fpsd is not None:
-            if fpsd > eff:
-                raise TypeError(
-                    "CalculationPeriodDates: "
-                    "first_period_start_date must be <= effective_date"
-                )
-            if fpsd >= term:
-                raise TypeError(
-                    "CalculationPeriodDates: "
-                    "first_period_start_date must be < termination_date"
-                )
-        # Last regular end must be > effective and <= termination
-        if lrped is not None:
-            if lrped <= eff:
-                raise TypeError(
-                    "CalculationPeriodDates: "
-                    "last_regular_period_end_date must be > effective_date"
-                )
-            if lrped > term:
-                raise TypeError(
-                    "CalculationPeriodDates: "
-                    "last_regular_period_end_date must be <= termination_date"
-                )
-        # Cross-validate: stub start < last regular end
-        if fpsd is not None and lrped is not None and fpsd >= lrped:
-            raise TypeError(
-                "CalculationPeriodDates: first_period_start_date "
-                "must be < last_regular_period_end_date"
-            )
-
-
-@final
-@dataclass(frozen=True, slots=True)
-class PaymentDates:
-    """Payment schedule parameters for a payout leg.
-
-    CDM: PaymentDates = paymentFrequency + payRelativeTo + paymentDaysOffset + BDA.
-    """
-
-    payment_frequency: Frequency
-    pay_relative_to: Literal["CalculationPeriodStartDate", "CalculationPeriodEndDate"]
-    payment_day_offset: int  # Number of business days offset (can be 0)
-    business_day_adjustments: BusinessDayAdjustments
-
-    def __post_init__(self) -> None:
-        if self.payment_day_offset < 0:
-            raise TypeError(
-                f"PaymentDates: payment_day_offset must be >= 0, got {self.payment_day_offset}"
-            )
+# CalculationPeriodDates and PaymentDates also in core/types.py;
+# re-exported here for backward compatibility.
+from attestor.core.types import (  # noqa: E402
+    CalculationPeriodDates as CalculationPeriodDates,
+)
+from attestor.core.types import PaymentDates as PaymentDates  # noqa: E402

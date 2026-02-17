@@ -82,7 +82,13 @@ class SwaptionType(Enum):
 @final
 @dataclass(frozen=True, slots=True)
 class OptionPayoutSpec:
-    """Vanilla option payout specification."""
+    """Vanilla option payout specification.
+
+    Note: exercise_terms, when present, provides richer exercise detail
+    than option_style. Bermuda exercise has no corresponding OptionStyle
+    member, so cross-validation is intentionally not enforced — exercise_terms
+    takes precedence over option_style for downstream logic.
+    """
 
     underlying_id: NonEmptyStr
     strike: NonNegativeDecimal  # zero-strike allowed for total return structures
@@ -93,6 +99,8 @@ class OptionPayoutSpec:
     currency: NonEmptyStr
     exchange: NonEmptyStr
     multiplier: PositiveDecimal  # typically 100
+    # Phase C enrichment
+    exercise_terms: AmericanExercise | EuropeanExercise | BermudaExercise | None = None
 
     @staticmethod
     def create(
@@ -509,3 +517,141 @@ type InstrumentDetail = (
     EquityDetail | OptionDetail | FuturesDetail | FXDetail | IRSwapDetail
     | CDSDetail | SwaptionDetail
 )
+
+
+# ---------------------------------------------------------------------------
+# Phase C: Performance payout
+# ---------------------------------------------------------------------------
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class PerformancePayoutSpec:
+    """Equity or total return swap payout (return on underlier).
+
+    CDM: PerformancePayout = returnTerms + underlier + observationTerms.
+    Simplified: underlier identifier + initial/final observation dates.
+    """
+
+    underlier_id: NonEmptyStr
+    initial_observation_date: date
+    final_observation_date: date
+    currency: NonEmptyStr
+    notional: PositiveDecimal
+
+    def __post_init__(self) -> None:
+        if self.initial_observation_date >= self.final_observation_date:
+            raise TypeError(
+                "PerformancePayoutSpec: initial_observation_date "
+                f"({self.initial_observation_date}) must be < "
+                f"final_observation_date ({self.final_observation_date})"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Phase C: Settlement and Exercise Terms
+# ---------------------------------------------------------------------------
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class CashSettlementTerms:
+    """Cash settlement method and valuation parameters.
+
+    CDM: CashSettlementTerms = cashSettlementMethod + valuationDate
+         + valuationTime + cashSettlementAmount.
+    """
+
+    settlement_method: NonEmptyStr  # e.g. "MidMarket", "ParYieldCurve"
+    valuation_date: date
+    currency: NonEmptyStr
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class PhysicalSettlementTerms:
+    """Physical delivery settlement parameters.
+
+    CDM: PhysicalSettlementTerms = deliverableObligations
+         + physicalSettlementPeriod.
+    """
+
+    delivery_period_days: int
+    settlement_currency: NonEmptyStr
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.delivery_period_days, int) or isinstance(
+            self.delivery_period_days, bool
+        ):
+            raise TypeError(
+                "PhysicalSettlementTerms.delivery_period_days must be int, "
+                f"got {type(self.delivery_period_days).__name__}"
+            )
+        if self.delivery_period_days <= 0:
+            raise TypeError(
+                "PhysicalSettlementTerms.delivery_period_days must be > 0, "
+                f"got {self.delivery_period_days}"
+            )
+
+
+type SettlementTerms = CashSettlementTerms | PhysicalSettlementTerms
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class AmericanExercise:
+    """American-style exercise: any date in [earliest, latest].
+
+    CDM: AmericanExercise = earliestExerciseDate + latestExerciseDate.
+    """
+
+    earliest_exercise_date: date
+    latest_exercise_date: date
+
+    def __post_init__(self) -> None:
+        if self.earliest_exercise_date > self.latest_exercise_date:
+            raise TypeError(
+                "AmericanExercise: earliest_exercise_date "
+                f"({self.earliest_exercise_date}) "
+                f"must be <= latest_exercise_date "
+                f"({self.latest_exercise_date})"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class EuropeanExercise:
+    """European-style exercise: single exercise date.
+
+    CDM: EuropeanExercise = expirationDate.
+    """
+
+    expiration_date: date
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class BermudaExercise:
+    """Bermuda-style exercise: specific discrete dates.
+
+    CDM: BermudaExercise = bermudaExerciseDates.
+    """
+
+    exercise_dates: tuple[date, ...]
+
+    def __post_init__(self) -> None:
+        if not self.exercise_dates:
+            raise TypeError(
+                "BermudaExercise.exercise_dates must be non-empty"
+            )
+        # Verify dates are in strictly ascending order
+        for i in range(1, len(self.exercise_dates)):
+            if self.exercise_dates[i] <= self.exercise_dates[i - 1]:
+                raise TypeError(
+                    "BermudaExercise.exercise_dates must be strictly "
+                    f"ascending, but date[{i}]={self.exercise_dates[i]} "
+                    f"<= date[{i - 1}]={self.exercise_dates[i - 1]}"
+                )
+
+
+type ExerciseTerms = AmericanExercise | EuropeanExercise | BermudaExercise

@@ -13,8 +13,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from typing import assert_never
 
-from attestor.core.types import BusinessDayConvention
-from attestor.instrument.fx_types import DayCountConvention
+from attestor.core.types import BusinessDayConvention, DayCountConvention
 
 # ---------------------------------------------------------------------------
 # Business day helpers (weekends only — holiday calendars deferred)

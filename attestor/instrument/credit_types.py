@@ -18,7 +18,12 @@ from typing import final
 from attestor.core.money import NonEmptyStr, NonNegativeDecimal, PositiveDecimal
 from attestor.core.result import Err, Ok
 from attestor.core.types import PayerReceiver
-from attestor.instrument.derivative_types import SettlementType, SwaptionType
+from attestor.instrument.derivative_types import (
+    CreditEventType,
+    SeniorityLevel,
+    SettlementType,
+    SwaptionType,
+)
 from attestor.instrument.fx_types import (
     DayCountConvention,
     IRSwapPayoutSpec,
@@ -52,6 +57,9 @@ class CDSPayoutSpec:
     payment_frequency: PaymentFrequency  # typically QUARTERLY
     day_count: DayCountConvention  # ACT_360 per ISDA
     recovery_rate: Decimal  # assumed recovery (typically 0.4)
+    # Phase C enrichment
+    general_terms: GeneralTerms | None = None
+    protection_terms: ProtectionTerms | None = None
 
     def __post_init__(self) -> None:
         if self.spread <= 0:
@@ -194,3 +202,41 @@ class SwaptionPayoutSpec:
             exercise_date=exercise_date, underlying_swap=underlying_swap,
             settlement_type=settlement_type, currency=cur, notional=n,
         ))
+
+
+# ---------------------------------------------------------------------------
+# Phase C: CDS enrichment types
+# ---------------------------------------------------------------------------
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class GeneralTerms:
+    """CDS general terms: reference entity and obligation details.
+
+    CDM: GeneralTerms = referenceInformation + indexReferenceInformation.
+    We model single-name CDS reference information.
+    """
+
+    reference_entity: NonEmptyStr
+    reference_obligation: NonEmptyStr | None  # e.g. ISIN of reference bond
+    seniority: SeniorityLevel
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class ProtectionTerms:
+    """CDS protection terms: covered credit events and obligations.
+
+    CDM: ProtectionTerms = creditEvents + obligations
+         + floatingAmountEvents.
+    """
+
+    credit_events: frozenset[CreditEventType]
+    obligations_category: NonEmptyStr  # e.g. "BorrowedMoney"
+
+    def __post_init__(self) -> None:
+        if not self.credit_events:
+            raise TypeError(
+                "ProtectionTerms.credit_events must be non-empty"
+            )
