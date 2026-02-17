@@ -13,6 +13,7 @@ import pytest
 
 from attestor.core.money import CurrencyPair
 from attestor.core.result import Err, Ok
+from attestor.core.types import PayerReceiver
 from attestor.instrument.derivative_types import (
     FXDetail,
     IRSwapDetail,
@@ -34,6 +35,8 @@ from attestor.instrument.types import (
     create_irs_instrument,
     create_ndf_instrument,
 )
+
+_PR = PayerReceiver(payer="PARTY1", receiver="PARTY2")
 
 # ---------------------------------------------------------------------------
 # CurrencyPair
@@ -215,6 +218,7 @@ class TestIRSwapPayoutSpec:
             currency="USD",
             start_date=date(2026, 3, 15),
             end_date=date(2031, 3, 15),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Ok)
         spec = result.value
@@ -232,6 +236,7 @@ class TestIRSwapPayoutSpec:
             currency="USD",
             start_date=date(2031, 3, 15),
             end_date=date(2026, 3, 15),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
         assert "start_date" in result.error
@@ -246,6 +251,7 @@ class TestIRSwapPayoutSpec:
             currency="USD",
             start_date=date(2026, 3, 15),
             end_date=date(2026, 3, 15),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
 
@@ -259,6 +265,7 @@ class TestIRSwapPayoutSpec:
             currency="EUR",
             start_date=date(2026, 3, 15),
             end_date=date(2031, 3, 15),
+            payer_receiver=_PR,
             spread=Decimal("0.0025"),
         )
         assert isinstance(result, Ok)
@@ -271,6 +278,7 @@ class TestIRSwapPayoutSpec:
             payment_frequency=PaymentFrequency.QUARTERLY,
             notional=Decimal("10000000"), currency="USD",
             start_date=date(2026, 3, 15), end_date=date(2031, 3, 15),
+            payer_receiver=_PR,
         )
         assert isinstance(r, Ok)
         with pytest.raises(AttributeError):
@@ -284,7 +292,7 @@ class TestIRSwapPayoutSpec:
 
 class TestEnums:
     def test_day_count_convention(self) -> None:
-        assert len(DayCountConvention) == 3
+        assert len(DayCountConvention) == 8
         assert DayCountConvention.ACT_360.value == "ACT/360"
 
     def test_payment_frequency(self) -> None:
@@ -481,6 +489,7 @@ class TestIRSInstrument:
             end_date=date(2031, 3, 15),
             parties=_make_parties(),
             trade_date=date(2026, 3, 15),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Ok)
         inst = result.value
@@ -500,6 +509,7 @@ class TestIRSInstrument:
             end_date=date(2031, 3, 15),
             parties=_make_parties(),
             trade_date=date(2026, 3, 15),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Ok)
         spec = result.value.product.economic_terms.payouts[0]

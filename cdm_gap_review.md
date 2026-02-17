@@ -309,9 +309,10 @@ The execution plan is reorganized based on the detailed Rosetta source compariso
 10. Do NOT introduce CDM's `metaType` / `key` / `reference` graph-reference system. Content-addressed identity (`content_hash()`) provides integrity verification, not just referential identity.
 11. Do NOT import CDM's `Qualify` functions as types. CDM uses `isProduct_*` and `isEvent_*` runtime qualification. Attestor's discriminated unions provide this at the type level.
 
-### Phase A: Date and Schedule Foundation
+### Phase A: Date and Schedule Foundation -- COMPLETED
 
 **Depends on:** Phase 0 (completed)
+**Status:** COMPLETED -- Minsky PASS, Formalis PASS (all findings addressed)
 **Resolves:** BASE-C1, BASE-C2, BASE-C3, BASE-H1 through BASE-H8
 
 **Delivers:**
@@ -345,6 +346,8 @@ The execution plan is reorganized based on the detailed Rosetta source compariso
 Without this, Phase A's enum expansions will introduce silent missing-case bugs at runtime.
 
 **Estimated:** ~15 new types (11 truly new + 2 moved from Phase B + 2 enum expansions), ~60 new tests, ~180 lines of new code.
+
+**Actual:** 15 types delivered, 86 new tests (tests/test_phase_a.py), 1,599 total tests passing. mypy --strict clean, ruff clean. 30/360 ISDA convention corrected per ISDA 2006 Section 4.16(f). All Minsky/Formalis findings addressed (RelativeDateOffset invariant, CalculationPeriodDates stub ordering, FloatLeg spread validation, day_count_fraction domain enforcement).
 
 **Test gate:** After Phase A, no IRS/CDS payout can be constructed without specifying who pays and who receives. Every date field that needs adjustment carries its adjustment rule. Schedule generation terminates for all valid inputs where `start <= end` and `freq > 0`.
 

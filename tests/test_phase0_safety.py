@@ -25,7 +25,7 @@ from attestor.core.money import (
     PositiveDecimal,
 )
 from attestor.core.result import Err, Ok, unwrap
-from attestor.core.types import IdempotencyKey, UtcDatetime
+from attestor.core.types import IdempotencyKey, PayerReceiver, UtcDatetime
 from attestor.gateway.types import (
     CanonicalOrder,
     OrderSide,
@@ -361,6 +361,7 @@ class TestNegativeRateAndZeroStrike:
         assert isinstance(result, Ok)
 
     def test_irs_negative_fixed_rate_ok(self) -> None:
+        _pr = PayerReceiver(payer="PARTY1", receiver="PARTY2")
         result = IRSwapPayoutSpec.create(
             fixed_rate=Decimal("-0.005"),
             float_index="EURIBOR",
@@ -370,11 +371,13 @@ class TestNegativeRateAndZeroStrike:
             currency="EUR",
             start_date=date(2025, 6, 15),
             end_date=date(2030, 6, 15),
+            payer_receiver=_pr,
         )
         assert isinstance(result, Ok)
         assert unwrap(result).fixed_leg.fixed_rate == Decimal("-0.005")
 
     def test_swaption_zero_strike_ok(self) -> None:
+        _pr = PayerReceiver(payer="PARTY1", receiver="PARTY2")
         result = SwaptionPayoutSpec.create(
             swaption_type=SwaptionType.PAYER,
             exercise_date=date(2025, 12, 19),
@@ -388,10 +391,12 @@ class TestNegativeRateAndZeroStrike:
                 currency="USD",
                 start_date=date(2026, 1, 15),
                 end_date=date(2031, 1, 15),
+                payer_receiver=_pr,
             )),
             settlement_type=SettlementType.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
+            payer_receiver=_pr,
         )
         assert isinstance(result, Ok)
         assert unwrap(result).strike.value == Decimal("0")

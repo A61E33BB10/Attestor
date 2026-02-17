@@ -1,11 +1,17 @@
-"""Core types: UtcDatetime, FrozenMap, BitemporalEnvelope, IdempotencyKey, EventTime."""
+"""Core types: UtcDatetime, FrozenMap, BitemporalEnvelope, IdempotencyKey, EventTime.
+
+Phase A additions: PeriodUnit, Period, Frequency, DatedValue, Schedule,
+                   AdjustableDate, RelativeDateOffset.
+"""
 
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from datetime import UTC, datetime
-from typing import Any, ClassVar, final
+from datetime import UTC, date, datetime
+from decimal import Decimal
+from enum import Enum
+from typing import Any, ClassVar, Literal, final
 
 from attestor.core.result import Err, Ok
 
@@ -134,3 +140,178 @@ class EventTime:
     """Temporal ordering wrapper using UtcDatetime."""
 
     value: UtcDatetime
+
+
+# ---------------------------------------------------------------------------
+# Phase A: Date and Schedule Foundation
+# ---------------------------------------------------------------------------
+
+type PeriodUnit = Literal["D", "W", "M", "Y"]
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class Period:
+    """A time period: multiplier x unit (e.g., 3M, 1Y, 5D).
+
+    CDM: Period = periodMultiplier + period.
+    """
+
+    multiplier: int
+    unit: PeriodUnit
+
+    def __post_init__(self) -> None:
+        if self.multiplier <= 0:
+            raise TypeError(f"Period.multiplier must be > 0, got {self.multiplier}")
+
+
+class RollConventionEnum(Enum):
+    """How to determine period end dates when generating schedules.
+
+    Subset of CDM's 30+ values. Covers the most common conventions.
+    """
+
+    EOM = "EOM"      # End of month
+    IMM = "IMM"      # 3rd Wednesday of month (IMM dates)
+    DOM_1 = "1"      # 1st of month
+    DOM_15 = "15"    # 15th of month
+    DOM_20 = "20"    # 20th of month
+    DOM_28 = "28"    # 28th of month
+    DOM_30 = "30"    # 30th of month
+    NONE = "NONE"    # No roll adjustment
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class Frequency:
+    """Coupled period + roll convention for schedule generation.
+
+    CDM: Frequency = period + rollConvention.
+    """
+
+    period: Period
+    roll_convention: RollConventionEnum
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class DatedValue:
+    """A single (date, value) pair for step schedules.
+
+    CDM: DatedValue = date + value.
+    """
+
+    date: date
+    value: Decimal
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.value, Decimal) or not self.value.is_finite():
+            raise TypeError(f"DatedValue.value must be finite Decimal, got {self.value!r}")
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class Schedule:
+    """A step schedule: ordered sequence of (date, value) pairs.
+
+    CDM: Schedule = initialValue + step[*].
+    Invariants:
+    - At least one entry (len >= 1)
+    - Strict date monotonicity: dates[i] < dates[i+1]
+    """
+
+    entries: tuple[DatedValue, ...]
+
+    def __post_init__(self) -> None:
+        if not self.entries:
+            raise TypeError("Schedule must contain at least one entry")
+        for i in range(len(self.entries) - 1):
+            if self.entries[i].date >= self.entries[i + 1].date:
+                raise TypeError(
+                    f"Schedule: dates must be strictly monotonic, "
+                    f"but entries[{i}].date={self.entries[i].date} >= "
+                    f"entries[{i + 1}].date={self.entries[i + 1].date}"
+                )
+
+
+type BusinessDayConvention = Literal[
+    "MOD_FOLLOWING", "FOLLOWING", "PRECEDING", "NONE",
+]
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class BusinessDayAdjustments:
+    """Convention + business centers for adjusting dates to good business days.
+
+    CDM: BusinessDayAdjustments = businessDayConvention + businessCenters.
+    """
+
+    convention: BusinessDayConvention
+    business_centers: frozenset[str]  # e.g. frozenset({"GBLO", "USNY"})
+
+    def __post_init__(self) -> None:
+        if self.convention != "NONE" and not self.business_centers:
+            raise TypeError(
+                "BusinessDayAdjustments: business_centers required "
+                f"when convention is {self.convention!r}"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class AdjustableDate:
+    """A date that carries its own adjustment rule.
+
+    CDM: AdjustableDate = unadjustedDate + dateAdjustments.
+    """
+
+    unadjusted_date: date
+    adjustments: BusinessDayAdjustments | None  # None = no adjustment needed
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class RelativeDateOffset:
+    """A date offset relative to some reference date.
+
+    CDM: RelativeDateOffset = period + dayType + businessDayConvention + businessCenters.
+    """
+
+    period: Period
+    day_type: Literal["Business", "Calendar"]
+    business_day_convention: BusinessDayConvention
+    business_centers: frozenset[str]
+
+    def __post_init__(self) -> None:
+        if self.business_day_convention != "NONE" and not self.business_centers:
+            raise TypeError(
+                "RelativeDateOffset: business_centers required "
+                f"when business_day_convention is {self.business_day_convention!r}"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Phase A: Counterparty direction
+# ---------------------------------------------------------------------------
+
+type CounterpartyRole = Literal["PARTY1", "PARTY2"]
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class PayerReceiver:
+    """Who pays and who receives for a given payout.
+
+    CDM: PayerReceiver = payer + receiver (CounterpartyRoleEnum).
+    Invariant: payer != receiver (a party cannot pay itself).
+    """
+
+    payer: CounterpartyRole
+    receiver: CounterpartyRole
+
+    def __post_init__(self) -> None:
+        if self.payer == self.receiver:
+            raise TypeError(
+                f"PayerReceiver: payer must differ from receiver, both are {self.payer!r}"
+            )

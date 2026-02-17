@@ -3,6 +3,8 @@
 Payout = EquityPayoutSpec | OptionPayoutSpec | FuturesPayoutSpec
        | FXSpotPayoutSpec | FXForwardPayoutSpec | NDFPayoutSpec | IRSwapPayoutSpec
        | CDSPayoutSpec | SwaptionPayoutSpec.
+
+Phase A: CalculationPeriodDates, PaymentDates (PayerReceiver in core/types).
 """
 
 from __future__ import annotations
@@ -11,11 +13,17 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 from enum import Enum
-from typing import final
+from typing import Literal, final
 
 from attestor.core.identifiers import LEI
 from attestor.core.money import NonEmptyStr
 from attestor.core.result import Err, Ok
+from attestor.core.types import (
+    AdjustableDate,
+    BusinessDayAdjustments,
+    Frequency,
+    PayerReceiver,
+)
 from attestor.instrument.credit_types import (
     CDSPayoutSpec,
     SwaptionPayoutSpec,
@@ -386,6 +394,7 @@ def create_irs_instrument(
     end_date: date,
     parties: tuple[Party, ...],
     trade_date: date,
+    payer_receiver: PayerReceiver,
     spread: Decimal = Decimal("0"),
 ) -> Ok[Instrument] | Err[str]:
     """Create a vanilla IRS Instrument."""
@@ -393,7 +402,8 @@ def create_irs_instrument(
         fixed_rate=fixed_rate, float_index=float_index,
         day_count=day_count, payment_frequency=payment_frequency,
         notional=notional, currency=currency,
-        start_date=start_date, end_date=end_date, spread=spread,
+        start_date=start_date, end_date=end_date,
+        payer_receiver=payer_receiver, spread=spread,
     ):
         case Err(e):
             return Err(e)
@@ -432,6 +442,7 @@ def create_cds_instrument(
     recovery_rate: Decimal,
     parties: tuple[Party, ...],
     trade_date: date,
+    payer_receiver: PayerReceiver,
 ) -> Ok[Instrument] | Err[str]:
     """Create a CDS Instrument from basic parameters."""
     match CDSPayoutSpec.create(
@@ -439,6 +450,7 @@ def create_cds_instrument(
         currency=currency, effective_date=effective_date,
         maturity_date=maturity_date, payment_frequency=payment_frequency,
         day_count=day_count, recovery_rate=recovery_rate,
+        payer_receiver=payer_receiver,
     ):
         case Err(e):
             return Err(e)
@@ -470,12 +482,14 @@ def create_swaption_instrument(
     notional: Decimal,
     parties: tuple[Party, ...],
     trade_date: date,
+    payer_receiver: PayerReceiver,
 ) -> Ok[Instrument] | Err[str]:
     """Create a swaption Instrument from basic parameters."""
     match SwaptionPayoutSpec.create(
         swaption_type=swaption_type, strike=strike,
         exercise_date=exercise_date, underlying_swap=underlying_swap,
         settlement_type=settlement_type, currency=currency, notional=notional,
+        payer_receiver=payer_receiver,
     ):
         case Err(e):
             return Err(e)
@@ -494,3 +508,88 @@ def create_swaption_instrument(
         instrument_id=iid, product=product, parties=parties,
         trade_date=trade_date, status=PositionStatusEnum.PROPOSED,
     ))
+
+
+# ---------------------------------------------------------------------------
+# Phase A: Counterparty direction and schedule types
+# ---------------------------------------------------------------------------
+
+# CounterpartyRole and PayerReceiver imported from core/types.py above.
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class CalculationPeriodDates:
+    """Effective/termination dates with schedule generation parameters.
+
+    CDM: CalculationPeriodDates = effectiveDate + terminationDate + frequency
+         + rollConvention + firstPeriodStartDate + lastRegularPeriodEndDate + BDA.
+    """
+
+    effective_date: AdjustableDate
+    termination_date: AdjustableDate
+    frequency: Frequency
+    business_day_adjustments: BusinessDayAdjustments
+    first_period_start_date: date | None = None  # Stub at start
+    last_regular_period_end_date: date | None = None  # Stub at end
+
+    def __post_init__(self) -> None:
+        eff = self.effective_date.unadjusted_date
+        term = self.termination_date.unadjusted_date
+        if eff >= term:
+            raise TypeError(
+                f"CalculationPeriodDates: effective_date ({eff}) "
+                f"must be < termination_date ({term})"
+            )
+        fpsd = self.first_period_start_date
+        lrped = self.last_regular_period_end_date
+        # Stub start must be <= effective and < termination
+        if fpsd is not None:
+            if fpsd > eff:
+                raise TypeError(
+                    "CalculationPeriodDates: "
+                    "first_period_start_date must be <= effective_date"
+                )
+            if fpsd >= term:
+                raise TypeError(
+                    "CalculationPeriodDates: "
+                    "first_period_start_date must be < termination_date"
+                )
+        # Last regular end must be > effective and <= termination
+        if lrped is not None:
+            if lrped <= eff:
+                raise TypeError(
+                    "CalculationPeriodDates: "
+                    "last_regular_period_end_date must be > effective_date"
+                )
+            if lrped > term:
+                raise TypeError(
+                    "CalculationPeriodDates: "
+                    "last_regular_period_end_date must be <= termination_date"
+                )
+        # Cross-validate: stub start < last regular end
+        if fpsd is not None and lrped is not None and fpsd >= lrped:
+            raise TypeError(
+                "CalculationPeriodDates: first_period_start_date "
+                "must be < last_regular_period_end_date"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class PaymentDates:
+    """Payment schedule parameters for a payout leg.
+
+    CDM: PaymentDates = paymentFrequency + payRelativeTo + paymentDaysOffset + BDA.
+    """
+
+    payment_frequency: Frequency
+    pay_relative_to: Literal["CalculationPeriodStartDate", "CalculationPeriodEndDate"]
+    payment_day_offset: int  # Number of business days offset (can be 0)
+    business_day_adjustments: BusinessDayAdjustments
+
+    def __post_init__(self) -> None:
+        if self.payment_day_offset < 0:
+            raise TypeError(
+                f"PaymentDates: payment_day_offset must be >= 0, got {self.payment_day_offset}"
+            )

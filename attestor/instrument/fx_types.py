@@ -14,6 +14,7 @@ from typing import final
 
 from attestor.core.money import CurrencyPair, NonEmptyStr, PositiveDecimal
 from attestor.core.result import Err, Ok
+from attestor.core.types import PayerReceiver
 from attestor.instrument.derivative_types import SettlementType
 
 # ---------------------------------------------------------------------------
@@ -25,6 +26,11 @@ class DayCountConvention(Enum):
     ACT_360 = "ACT/360"
     ACT_365 = "ACT/365"
     THIRTY_360 = "30/360"
+    ACT_ACT_ISDA = "ACT/ACT.ISDA"
+    ACT_ACT_ICMA = "ACT/ACT.ICMA"
+    THIRTY_E_360 = "30E/360"
+    ACT_365L = "ACT/365L"
+    BUS_252 = "BUS/252"
 
 
 class PaymentFrequency(Enum):
@@ -208,8 +214,10 @@ class FixedLeg:
     """Fixed leg of a vanilla IRS.
 
     fixed_rate is Decimal (negative rates allowed for EUR/JPY/CHF).
+    CDM: InterestRatePayout with fixedRateSpecification + payerReceiver.
     """
 
+    payer_receiver: PayerReceiver
     fixed_rate: Decimal
     day_count: DayCountConvention
     payment_frequency: PaymentFrequency
@@ -224,8 +232,12 @@ class FixedLeg:
 @final
 @dataclass(frozen=True, slots=True)
 class FloatLeg:
-    """Floating leg of a vanilla IRS."""
+    """Floating leg of a vanilla IRS.
 
+    CDM: InterestRatePayout with floatingRateSpecification + payerReceiver.
+    """
+
+    payer_receiver: PayerReceiver
     float_index: NonEmptyStr
     spread: Decimal  # basis point spread over index (can be 0 or negative)
     day_count: DayCountConvention
@@ -233,11 +245,22 @@ class FloatLeg:
     currency: NonEmptyStr
     notional: PositiveDecimal
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.spread, Decimal) or not self.spread.is_finite():
+            raise TypeError(
+                f"FloatLeg.spread must be finite Decimal, got {self.spread!r}"
+            )
+
 
 @final
 @dataclass(frozen=True, slots=True)
 class IRSwapPayoutSpec:
-    """Vanilla IRS (fixed-float) payout specification."""
+    """Vanilla IRS (fixed-float) payout specification.
+
+    Invariants:
+    - start_date < end_date
+    - fixed_leg payer == float_leg receiver (swap directions must be inverse)
+    """
 
     fixed_leg: FixedLeg
     float_leg: FloatLeg
@@ -251,6 +274,18 @@ class IRSwapPayoutSpec:
                 f"IRSwapPayoutSpec: start_date ({self.start_date}) "
                 f"must be < end_date ({self.end_date})"
             )
+        # Swap direction invariant: legs must be inverse.
+        # We check fixed.payer == float.receiver; the converse
+        # (fixed.receiver == float.payer) follows because
+        # |CounterpartyRole| = 2 and PayerReceiver enforces payer != receiver.
+        fp = self.fixed_leg.payer_receiver
+        flp = self.float_leg.payer_receiver
+        if fp.payer != flp.receiver:
+            raise TypeError(
+                "IRSwapPayoutSpec: fixed_leg payer must equal float_leg receiver "
+                f"(got fixed payer={fp.payer!r}, "
+                f"float receiver={flp.receiver!r})"
+            )
 
     @staticmethod
     def create(
@@ -262,9 +297,13 @@ class IRSwapPayoutSpec:
         currency: str,
         start_date: date,
         end_date: date,
+        payer_receiver: PayerReceiver,
         spread: Decimal = Decimal("0"),
     ) -> Ok[IRSwapPayoutSpec] | Err[str]:
-        """Create IRS payout. Both legs share currency, notional, day count, frequency."""
+        """Create IRS payout. Both legs share currency, notional, day count, frequency.
+
+        payer_receiver: who pays fixed. Float leg gets the inverse direction.
+        """
         if start_date >= end_date:
             return Err(
                 f"IRSwapPayoutSpec: start_date ({start_date}) "
@@ -287,13 +326,18 @@ class IRSwapPayoutSpec:
                 return Err(f"IRSwapPayoutSpec.currency: {e}")
             case Ok(cur):
                 pass
+        float_pr = PayerReceiver(
+            payer=payer_receiver.receiver, receiver=payer_receiver.payer,
+        )
         fixed = FixedLeg(
-            fixed_rate=fixed_rate, day_count=day_count,
-            payment_frequency=payment_frequency, currency=cur, notional=n,
+            payer_receiver=payer_receiver, fixed_rate=fixed_rate,
+            day_count=day_count, payment_frequency=payment_frequency,
+            currency=cur, notional=n,
         )
         floating = FloatLeg(
-            float_index=fi, spread=spread, day_count=day_count,
-            payment_frequency=payment_frequency, currency=cur, notional=n,
+            payer_receiver=float_pr, float_index=fi, spread=spread,
+            day_count=day_count, payment_frequency=payment_frequency,
+            currency=cur, notional=n,
         )
         return Ok(IRSwapPayoutSpec(
             fixed_leg=fixed, float_leg=floating,

@@ -12,7 +12,7 @@ from decimal import Decimal
 
 from attestor.core.money import NonEmptyStr
 from attestor.core.result import Ok, unwrap
-from attestor.core.types import UtcDatetime
+from attestor.core.types import PayerReceiver, UtcDatetime
 from attestor.gateway.parser import parse_cds_order, parse_swaption_order
 from attestor.instrument.credit_types import CDSPayoutSpec, SwaptionPayoutSpec
 from attestor.instrument.derivative_types import (
@@ -86,6 +86,7 @@ _TS = datetime(2025, 6, 15, 10, 0, 0, tzinfo=UTC)
 _TS_UTC = UtcDatetime(value=_TS)
 _LEI_A = "529900HNOAA1KXQJUQ27"
 _LEI_B = "969500UEQ9HE3W646P42"
+_PR = PayerReceiver(payer="PARTY1", receiver="PARTY2")
 
 
 def _make_engine(*account_specs: tuple[str, AccountType]) -> LedgerEngine:
@@ -163,6 +164,7 @@ class TestFullCDSLifecycle:
             recovery_rate=Decimal("0.40"),
             parties=parties,
             trade_date=date(2025, 6, 15),
+            payer_receiver=_PR,
         ))
         assert isinstance(instrument, Instrument)
         assert instrument.status is PositionStatusEnum.PROPOSED
@@ -371,6 +373,7 @@ class TestFullSwaptionPhysicalLifecycle:
             currency="USD",
             start_date=date(2030, 6, 15),
             end_date=date(2040, 6, 15),
+            payer_receiver=_PR,
         ))
         swaption_instr = unwrap(create_swaption_instrument(
             instrument_id="SWPTN-PAYER-5Y10Y",
@@ -383,6 +386,7 @@ class TestFullSwaptionPhysicalLifecycle:
             notional=Decimal("10000000"),
             parties=parties,
             trade_date=date(2025, 6, 15),
+            payer_receiver=_PR,
         ))
         assert isinstance(swaption_instr, Instrument)
         assert swaption_instr.status is PositionStatusEnum.PROPOSED
@@ -429,6 +433,7 @@ class TestFullSwaptionPhysicalLifecycle:
             settlement_type=SettlementType.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
+            payer_receiver=_PR,
         ))
         irs_instrument = unwrap(exercise_swaption_into_irs(
             swaption_payout=swaption_payout,
@@ -1269,6 +1274,7 @@ class TestCDSInstrumentCreation:
             payment_frequency=PaymentFrequency.QUARTERLY,
             day_count=DayCountConvention.ACT_360,
             recovery_rate=Decimal("0.40"),
+            payer_receiver=_PR,
         ))
         assert payout.reference_entity.value == "MegaCorp"
         assert payout.notional.value == Decimal("5000000")
@@ -1289,6 +1295,7 @@ class TestCDSInstrumentCreation:
             recovery_rate=Decimal("0.40"),
             parties=parties,
             trade_date=date(2025, 6, 15),
+            payer_receiver=_PR,
         ))
         assert instr.status is PositionStatusEnum.PROPOSED
         assert instr.instrument_id.value == "CDS-TEST"

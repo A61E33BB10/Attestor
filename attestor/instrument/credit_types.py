@@ -17,6 +17,7 @@ from typing import final
 
 from attestor.core.money import NonEmptyStr, NonNegativeDecimal, PositiveDecimal
 from attestor.core.result import Err, Ok
+from attestor.core.types import PayerReceiver
 from attestor.instrument.derivative_types import SettlementType, SwaptionType
 from attestor.instrument.fx_types import (
     DayCountConvention,
@@ -36,8 +37,12 @@ class CDSPayoutSpec:
 
     Represents a single-name CDS with contractual spread, recovery rate,
     and standard ISDA conventions (ACT/360, quarterly premium payments).
+
+    CDM: CreditDefaultPayout + payerReceiver.
+    payer = protection buyer (pays premium), receiver = protection seller.
     """
 
+    payer_receiver: PayerReceiver
     reference_entity: NonEmptyStr
     notional: PositiveDecimal
     spread: Decimal  # contractual spread as decimal (0.01 = 100bps)
@@ -72,16 +77,11 @@ class CDSPayoutSpec:
         payment_frequency: PaymentFrequency,
         day_count: DayCountConvention,
         recovery_rate: Decimal,
+        payer_receiver: PayerReceiver,
     ) -> Ok[CDSPayoutSpec] | Err[str]:
         """Create a CDS payout spec with full validation.
 
-        Validates:
-        - reference_entity is non-empty
-        - notional is positive
-        - spread > 0
-        - currency is non-empty
-        - effective_date < maturity_date
-        - 0 <= recovery_rate < 1
+        payer_receiver: payer = protection buyer, receiver = protection seller.
         """
         match NonEmptyStr.parse(reference_entity):
             case Err(e):
@@ -112,6 +112,7 @@ class CDSPayoutSpec:
                 f"CDSPayoutSpec.recovery_rate must be in [0, 1), got {recovery_rate}"
             )
         return Ok(CDSPayoutSpec(
+            payer_receiver=payer_receiver,
             reference_entity=ref, notional=n, spread=spread,
             currency=cur, effective_date=effective_date,
             maturity_date=maturity_date, payment_frequency=payment_frequency,
@@ -131,8 +132,12 @@ class SwaptionPayoutSpec:
 
     Represents the right (but not obligation) to enter an IRS at a given
     strike rate on the exercise date.
+
+    CDM: OptionPayout + payerReceiver.
+    payer = option buyer, receiver = option seller (writer).
     """
 
+    payer_receiver: PayerReceiver
     swaption_type: SwaptionType
     strike: NonNegativeDecimal  # fixed rate K (zero-strike allowed for total return)
     exercise_date: date
@@ -157,14 +162,11 @@ class SwaptionPayoutSpec:
         settlement_type: SettlementType,
         currency: str,
         notional: Decimal,
+        payer_receiver: PayerReceiver,
     ) -> Ok[SwaptionPayoutSpec] | Err[str]:
         """Create a swaption payout spec with full validation.
 
-        Validates:
-        - strike is non-negative
-        - exercise_date <= underlying_swap.start_date
-        - currency is non-empty
-        - notional is positive
+        payer_receiver: payer = option buyer, receiver = option seller.
         """
         match NonNegativeDecimal.parse(strike):
             case Err(e):
@@ -187,6 +189,7 @@ class SwaptionPayoutSpec:
             case Ok(n):
                 pass
         return Ok(SwaptionPayoutSpec(
+            payer_receiver=payer_receiver,
             swaption_type=swaption_type, strike=s,
             exercise_date=exercise_date, underlying_swap=underlying_swap,
             settlement_type=settlement_type, currency=cur, notional=n,

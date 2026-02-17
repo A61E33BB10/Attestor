@@ -13,6 +13,7 @@ from decimal import Decimal
 import pytest
 
 from attestor.core.result import Err, Ok, unwrap
+from attestor.core.types import PayerReceiver
 from attestor.instrument.credit_types import (
     CDSPayoutSpec,
     SwaptionPayoutSpec,
@@ -55,6 +56,7 @@ from attestor.instrument.types import (
 # ---------------------------------------------------------------------------
 
 _LEI = "529900HNOAA1KXQJUQ27"
+_PR = PayerReceiver(payer="PARTY1", receiver="PARTY2")
 
 
 def _make_parties() -> tuple[Party, ...]:
@@ -73,6 +75,7 @@ def _make_underlying_swap() -> IRSwapPayoutSpec:
         currency="USD",
         start_date=date(2027, 6, 15),
         end_date=date(2032, 6, 15),
+        payer_receiver=_PR,
     )
     return unwrap(result)
 
@@ -117,6 +120,7 @@ class TestCDSPayoutSpec:
             payment_frequency=PaymentFrequency.QUARTERLY,
             day_count=DayCountConvention.ACT_360,
             recovery_rate=Decimal("0.4"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Ok)
         spec = unwrap(result)
@@ -138,6 +142,7 @@ class TestCDSPayoutSpec:
             payment_frequency=PaymentFrequency.QUARTERLY,
             day_count=DayCountConvention.ACT_360,
             recovery_rate=Decimal("0.4"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
         assert "reference_entity" in result.error
@@ -153,6 +158,7 @@ class TestCDSPayoutSpec:
             payment_frequency=PaymentFrequency.QUARTERLY,
             day_count=DayCountConvention.ACT_360,
             recovery_rate=Decimal("0.4"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
         assert "notional" in result.error
@@ -168,6 +174,7 @@ class TestCDSPayoutSpec:
             payment_frequency=PaymentFrequency.QUARTERLY,
             day_count=DayCountConvention.ACT_360,
             recovery_rate=Decimal("0.4"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
         assert "spread" in result.error
@@ -183,6 +190,7 @@ class TestCDSPayoutSpec:
             payment_frequency=PaymentFrequency.QUARTERLY,
             day_count=DayCountConvention.ACT_360,
             recovery_rate=Decimal("0.4"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
         assert "spread" in result.error
@@ -198,6 +206,7 @@ class TestCDSPayoutSpec:
             payment_frequency=PaymentFrequency.QUARTERLY,
             day_count=DayCountConvention.ACT_360,
             recovery_rate=Decimal("0.4"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
         assert "effective_date" in result.error
@@ -213,6 +222,7 @@ class TestCDSPayoutSpec:
             payment_frequency=PaymentFrequency.QUARTERLY,
             day_count=DayCountConvention.ACT_360,
             recovery_rate=Decimal("0.4"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
         assert "effective_date" in result.error
@@ -228,6 +238,7 @@ class TestCDSPayoutSpec:
             payment_frequency=PaymentFrequency.QUARTERLY,
             day_count=DayCountConvention.ACT_360,
             recovery_rate=Decimal("1"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
         assert "recovery_rate" in result.error
@@ -243,6 +254,7 @@ class TestCDSPayoutSpec:
             payment_frequency=PaymentFrequency.QUARTERLY,
             day_count=DayCountConvention.ACT_360,
             recovery_rate=Decimal("-0.1"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
         assert "recovery_rate" in result.error
@@ -258,6 +270,7 @@ class TestCDSPayoutSpec:
             payment_frequency=PaymentFrequency.QUARTERLY,
             day_count=DayCountConvention.ACT_360,
             recovery_rate=Decimal("0"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Ok)
         assert result.value.recovery_rate == Decimal("0")
@@ -273,6 +286,7 @@ class TestCDSPayoutSpec:
             payment_frequency=PaymentFrequency.QUARTERLY,
             day_count=DayCountConvention.ACT_360,
             recovery_rate=Decimal("0.4"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
         assert "currency" in result.error
@@ -288,6 +302,7 @@ class TestCDSPayoutSpec:
             payment_frequency=PaymentFrequency.QUARTERLY,
             day_count=DayCountConvention.ACT_360,
             recovery_rate=Decimal("0.4"),
+            payer_receiver=_PR,
         ))
         with pytest.raises(dataclasses.FrozenInstanceError):
             spec.spread = Decimal("0.02")  # type: ignore[misc]
@@ -309,6 +324,7 @@ class TestSwaptionPayoutSpec:
             settlement_type=SettlementType.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Ok)
         spec = unwrap(result)
@@ -327,6 +343,7 @@ class TestSwaptionPayoutSpec:
             settlement_type=SettlementType.CASH,
             currency="USD",
             notional=Decimal("5000000"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Ok)
 
@@ -340,6 +357,7 @@ class TestSwaptionPayoutSpec:
             settlement_type=SettlementType.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
         assert "exercise_date" in result.error
@@ -355,6 +373,7 @@ class TestSwaptionPayoutSpec:
             settlement_type=SettlementType.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Ok)
         assert result.value.strike.value == Decimal("0")
@@ -369,6 +388,7 @@ class TestSwaptionPayoutSpec:
             settlement_type=SettlementType.PHYSICAL,
             currency="USD",
             notional=Decimal("0"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
         assert "notional" in result.error
@@ -383,6 +403,7 @@ class TestSwaptionPayoutSpec:
             settlement_type=SettlementType.PHYSICAL,
             currency="",
             notional=Decimal("10000000"),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
         assert "currency" in result.error
@@ -397,6 +418,7 @@ class TestSwaptionPayoutSpec:
             settlement_type=SettlementType.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
+            payer_receiver=_PR,
         ))
         with pytest.raises(dataclasses.FrozenInstanceError):
             spec.swaption_type = SwaptionType.RECEIVER  # type: ignore[misc]
@@ -653,6 +675,7 @@ class TestCreateCDSInstrument:
             recovery_rate=Decimal("0.4"),
             parties=_make_parties(),
             trade_date=date(2026, 3, 15),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Ok)
         inst = unwrap(result)
@@ -675,6 +698,7 @@ class TestCreateCDSInstrument:
             recovery_rate=Decimal("0.4"),
             parties=_make_parties(),
             trade_date=date(2026, 3, 15),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
 
@@ -692,6 +716,7 @@ class TestCreateCDSInstrument:
             recovery_rate=Decimal("0.4"),
             parties=_make_parties(),
             trade_date=date(2026, 3, 15),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
 
@@ -710,6 +735,7 @@ class TestCreateSwaptionInstrument:
             notional=Decimal("10000000"),
             parties=_make_parties(),
             trade_date=date(2026, 3, 15),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Ok)
         inst = unwrap(result)
@@ -730,6 +756,7 @@ class TestCreateSwaptionInstrument:
             notional=Decimal("10000000"),
             parties=_make_parties(),
             trade_date=date(2026, 3, 15),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
 
@@ -746,6 +773,7 @@ class TestCreateSwaptionInstrument:
             notional=Decimal("10000000"),
             parties=_make_parties(),
             trade_date=date(2026, 3, 15),
+            payer_receiver=_PR,
         )
         assert isinstance(result, Err)
 

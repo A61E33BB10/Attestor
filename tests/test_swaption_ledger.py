@@ -10,7 +10,7 @@ from hypothesis import strategies as st
 
 from attestor.core.money import NonEmptyStr
 from attestor.core.result import Err, Ok, unwrap
-from attestor.core.types import UtcDatetime
+from attestor.core.types import PayerReceiver, UtcDatetime
 from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType
 from attestor.instrument.credit_types import SwaptionPayoutSpec
 from attestor.instrument.derivative_types import (
@@ -37,6 +37,7 @@ from attestor.ledger.transactions import Account, AccountType, ExecuteResult
 _TS = UtcDatetime(value=datetime(2025, 7, 1, 10, 0, 0, tzinfo=UTC))
 _LEI_A = "529900HNOAA1KXQJUQ27"
 _LEI_B = "529900ODI3JL1O4COU11"
+_PR = PayerReceiver(payer="PARTY1", receiver="PARTY2")
 
 
 def _make_swaption_detail(
@@ -63,6 +64,7 @@ def _make_underlying_swap() -> IRSwapPayoutSpec:
         currency="USD",
         start_date=date(2026, 1, 15),
         end_date=date(2031, 1, 15),
+        payer_receiver=_PR,
     ))
 
 
@@ -78,6 +80,7 @@ def _make_swaption_payout(
         settlement_type=settlement_type,
         currency="USD",
         notional=Decimal("10000000"),
+        payer_receiver=_PR,
     ))
 
 

@@ -125,6 +125,7 @@ def exercise_swaption_into_irs(
         end_date=underlying.end_date,
         parties=parties,
         trade_date=exercise_date,
+        payer_receiver=underlying.fixed_leg.payer_receiver,
         spread=underlying.float_leg.spread,
     )
 
