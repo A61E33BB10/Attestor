@@ -11,6 +11,9 @@ from attestor.instrument.asset import (
     AssetIdTypeEnum as AssetIdTypeEnum,
 )
 from attestor.instrument.asset import (
+    DepositaryReceiptTypeEnum as DepositaryReceiptTypeEnum,
+)
+from attestor.instrument.asset import (
     EquityClassification as EquityClassification,
 )
 from attestor.instrument.asset import (

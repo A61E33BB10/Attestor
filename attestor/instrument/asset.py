@@ -1,11 +1,20 @@
-"""CDM asset taxonomy — Security with identifiers and classification.
+"""CDM asset taxonomy -- Security with identifiers and classification.
 
-CDM: Asset = Cash | Commodity | DigitalAsset | Instrument,
-     Instrument = Security | Loan | ListedDerivative.
+Aligned with ISDA CDM Rosetta (base-staticdata-asset-common-*):
+  Asset = Cash | Commodity | DigitalAsset | Instrument
+  Instrument = Security | Loan | ListedDerivative
+  InstrumentBase extends AssetBase: instrumentType
+  Security extends InstrumentBase: equityType, fundType, debtType
 
-This module implements Security with AssetIdentifier, equity/fund classification,
-and exchange listing. The ``Asset`` type alias will widen to
-``Security | Cash | Commodity`` when those types are added.
+This module implements Security with AssetIdentifier, equity/fund
+classification, and exchange listing.  The ``Asset`` type alias will
+widen to ``Security | Cash | Commodity`` when those types are added.
+
+Attestor models ``instrumentType`` as a derived property of the
+``SecurityClassification`` sum type (``EquityClassification |
+FundClassification``), which makes illegal states structurally
+unrepresentable -- an intentional type-safety improvement over
+Rosetta's runtime-checked conditional sub-types.
 
 Factory functions ``create_equity_security`` and ``create_fund_security``
 provide ergonomic constructors for the most common cases.
@@ -15,36 +24,49 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import final
+from typing import assert_never, final
 
 from attestor.core.identifiers import ISIN
 from attestor.core.money import NonEmptyStr, validate_currency
 from attestor.core.result import Err, Ok
 
 # ---------------------------------------------------------------------------
-# Enums
+# Enums  (CDM Rosetta: base-staticdata-asset-common-enum.rosetta)
 # ---------------------------------------------------------------------------
 
 
 class AssetIdTypeEnum(Enum):
     """Identifier scheme for a security.
 
-    CDM: AssetIdTypeEnum + ProductIdTypeEnum (merged).
+    CDM: ProductIdTypeEnum + AssetIdTypeEnum (merged, 18 members).
     """
 
-    ISIN = "ISIN"
-    CUSIP = "CUSIP"
-    SEDOL = "SEDOL"
-    FIGI = "FIGI"
-    RIC = "RIC"
+    # ProductIdTypeEnum members
     BBGID = "BBGID"
+    BBGTICKER = "BBGTICKER"
+    CUSIP = "CUSIP"
+    FIGI = "FIGI"
+    ISDACRP = "ISDACRP"
+    ISIN = "ISIN"
+    NAME = "NAME"
+    REDID = "REDID"
+    RIC = "RIC"
     OTHER = "OTHER"
+    SICOVAM = "SICOVAM"
+    SEDOL = "SEDOL"
+    UPI = "UPI"
+    VALOREN = "VALOREN"
+    WERTPAPIER = "WERTPAPIER"
+    # AssetIdTypeEnum extensions
+    CURRENCY_CODE = "CURRENCY_CODE"
+    EXCHANGE_CODE = "EXCHANGE_CODE"
+    CLEARING_CODE = "CLEARING_CODE"
 
 
 class EquityTypeEnum(Enum):
     """Equity sub-classification.
 
-    CDM: EquityTypeEnum (exact).
+    CDM: EquityTypeEnum (exact 4 members).
     """
 
     ORDINARY = "ORDINARY"
@@ -53,28 +75,44 @@ class EquityTypeEnum(Enum):
     CONVERTIBLE_PREFERENCE = "CONVERTIBLE_PREFERENCE"
 
 
+class DepositaryReceiptTypeEnum(Enum):
+    """Depositary receipt sub-classification.
+
+    CDM: DepositaryReceiptTypeEnum (exact 4 members).
+    Only valid when EquityTypeEnum is DEPOSITARY_RECEIPT.
+    """
+
+    ADR = "ADR"
+    GDR = "GDR"
+    IDR = "IDR"
+    EDR = "EDR"
+
+
 class InstrumentTypeEnum(Enum):
     """Broad instrument classification.
 
-    CDM: InstrumentTypeEnum (subset).
+    CDM: InstrumentTypeEnum (exact 7 members).
     """
 
-    EQUITY = "EQUITY"
     DEBT = "DEBT"
+    EQUITY = "EQUITY"
     FUND = "FUND"
+    WARRANT = "WARRANT"
+    CERTIFICATE = "CERTIFICATE"
+    LETTER_OF_CREDIT = "LETTER_OF_CREDIT"
     LISTED_DERIVATIVE = "LISTED_DERIVATIVE"
 
 
 class FundProductTypeEnum(Enum):
     """Fund sub-classification.
 
-    CDM: FundProductTypeEnum.
+    CDM: FundProductTypeEnum (exact 4 members).
     """
 
-    ETF = "ETF"
-    MUTUAL_FUND = "MUTUAL_FUND"
-    HEDGE_FUND = "HEDGE_FUND"
     MONEY_MARKET_FUND = "MONEY_MARKET_FUND"
+    EXCHANGE_TRADED_FUND = "EXCHANGE_TRADED_FUND"
+    MUTUAL_FUND = "MUTUAL_FUND"
+    OTHER_FUND = "OTHER_FUND"
 
 
 # ---------------------------------------------------------------------------
@@ -117,7 +155,7 @@ def _validate_exchange_mic(code: str) -> Ok[NonEmptyStr] | Err[str]:
 
 
 # ---------------------------------------------------------------------------
-# Dataclasses
+# Dataclasses  (CDM Rosetta: base-staticdata-asset-common-type.rosetta)
 # ---------------------------------------------------------------------------
 
 
@@ -125,6 +163,8 @@ def _validate_exchange_mic(code: str) -> Ok[NonEmptyStr] | Err[str]:
 @dataclass(frozen=True, slots=True)
 class AssetIdentifier:
     """A single identifier for a security (e.g. ISIN, CUSIP).
+
+    CDM: AssetIdentifier with identifier (string) + identifierType.
 
     Validation:
     - ISIN is cross-validated via ``ISIN.parse()`` (Luhn check).
@@ -191,11 +231,23 @@ class AssetIdentifier:
 class EquityType:
     """Equity classification wrapper.
 
-    CDM adds DepositaryReceiptTypeEnum as a refinement; this thin wrapper
-    accommodates future extension.
+    CDM: EquityType with equityType (EquityTypeEnum) and
+    depositaryReceipt (DepositaryReceiptTypeEnum).
+    Condition: depositaryReceipt only when equityType == DEPOSITARY_RECEIPT.
     """
 
     equity_type: EquityTypeEnum
+    depositary_receipt: DepositaryReceiptTypeEnum | None = None
+
+    def __post_init__(self) -> None:
+        if (
+            self.depositary_receipt is not None
+            and self.equity_type != EquityTypeEnum.DEPOSITARY_RECEIPT
+        ):
+            raise TypeError(
+                "EquityType: depositary_receipt is only valid when "
+                "equity_type is DEPOSITARY_RECEIPT"
+            )
 
 
 @final
@@ -203,7 +255,7 @@ class EquityType:
 class EquityClassification:
     """Classification for equity securities.
 
-    CDM: narrows InstrumentTypeEnum.EQUITY with an EquityType sub-classification.
+    CDM: narrows InstrumentTypeEnum.EQUITY with EquityType sub-classification.
     """
 
     equity_type: EquityType
@@ -214,7 +266,7 @@ class EquityClassification:
 class FundClassification:
     """Classification for fund securities.
 
-    CDM: narrows InstrumentTypeEnum.FUND with a FundProductTypeEnum sub-classification.
+    CDM: narrows InstrumentTypeEnum.FUND with FundProductTypeEnum.
     """
 
     fund_type: FundProductTypeEnum
@@ -228,30 +280,35 @@ type SecurityClassification = EquityClassification | FundClassification
 class Security:
     """A security in the CDM asset taxonomy.
 
+    CDM: Security extends InstrumentBase extends AssetBase.
+
     Invariants:
-    - ``identifiers`` must be non-empty.
-    - ``classification`` determines the instrument type (sum type — no invalid states).
-    - ``is_exchange_listed`` is derived from ``exchange is not None``.
+    - ``identifiers`` must be non-empty with unique identifier types.
+    - ``classification`` determines the instrument type (sum type).
+    - ``is_exchange_listed`` is a field (CDM: AssetBase.isExchangeListed).
+    - CDM condition: if exchange exists then is_exchange_listed must be True.
     """
 
     identifiers: tuple[AssetIdentifier, ...]
     classification: SecurityClassification
+    is_exchange_listed: bool
     exchange: NonEmptyStr | None
     currency: NonEmptyStr
 
     @property
-    def is_exchange_listed(self) -> bool:
-        """Derive listing status from exchange field."""
-        return self.exchange is not None
-
-    @property
     def instrument_type(self) -> InstrumentTypeEnum:
-        """Derive instrument type from classification."""
+        """Derive instrument type from classification.
+
+        CDM: instrumentType is a field on InstrumentBase.  Attestor derives
+        it from the SecurityClassification sum type for type safety.
+        """
         match self.classification:
             case EquityClassification():
                 return InstrumentTypeEnum.EQUITY
             case FundClassification():
                 return InstrumentTypeEnum.FUND
+            case _ as unreachable:  # pragma: no cover
+                assert_never(unreachable)
 
     def __post_init__(self) -> None:
         if not self.identifiers:
@@ -259,6 +316,11 @@ class Security:
         id_types = [aid.identifier_type for aid in self.identifiers]
         if len(id_types) != len(set(id_types)):
             raise TypeError("Security: duplicate identifier types")
+        if self.exchange is not None and not self.is_exchange_listed:
+            raise TypeError(
+                "Security: exchange is set but is_exchange_listed is False "
+                "(CDM condition: if exchange exists then isExchangeListed)"
+            )
 
     @staticmethod
     def create(
@@ -267,6 +329,7 @@ class Security:
         currency: str,
         *,
         exchange: str | None = None,
+        is_exchange_listed: bool | None = None,
     ) -> Ok[Security] | Err[str]:
         if not identifiers:
             return Err("Security.identifiers must be non-empty")
@@ -285,9 +348,18 @@ class Security:
                     return Err(f"Security.exchange: {e}")
                 case Ok(ex_val):
                     ex = ex_val
+        # CDM: derive is_exchange_listed from exchange when not explicit
+        listed = ex is not None if is_exchange_listed is None else is_exchange_listed
+        # CDM condition: if exchange exists then isExchangeListed
+        if ex is not None and not listed:
+            return Err(
+                "Security: exchange is set but is_exchange_listed is False "
+                "(CDM condition: if exchange exists then isExchangeListed)"
+            )
         return Ok(Security(
             identifiers=identifiers,
             classification=classification,
+            is_exchange_listed=listed,
             exchange=ex,
             currency=cur,
         ))
@@ -298,6 +370,36 @@ class Security:
 # ---------------------------------------------------------------------------
 
 type Asset = Security  # Widen to Security | Cash | Commodity later
+
+
+# ---------------------------------------------------------------------------
+# Shared identifier parsing helper
+# ---------------------------------------------------------------------------
+
+
+def _parse_identifiers(
+    isin: str | None,
+    cusip: str | None,
+    extra_identifiers: tuple[AssetIdentifier, ...],
+) -> Ok[tuple[AssetIdentifier, ...]] | Err[str]:
+    """Parse ISIN and/or CUSIP into AssetIdentifiers, merged with extras."""
+    ids: list[AssetIdentifier] = []
+    if isin is not None:
+        match AssetIdentifier.create(isin, AssetIdTypeEnum.ISIN):
+            case Err(e):
+                return Err(e)
+            case Ok(aid):
+                ids.append(aid)
+    if cusip is not None:
+        match AssetIdentifier.create(cusip, AssetIdTypeEnum.CUSIP):
+            case Err(e):
+                return Err(e)
+            case Ok(aid):
+                ids.append(aid)
+    ids.extend(extra_identifiers)
+    if not ids:
+        return Err("at least one identifier (isin or cusip) required")
+    return Ok(tuple(ids))
 
 
 # ---------------------------------------------------------------------------
@@ -313,28 +415,29 @@ def create_equity_security(
     exchange: str = "XNAS",
     currency: str = "USD",
     extra_identifiers: tuple[AssetIdentifier, ...] = (),
+    depositary_receipt: DepositaryReceiptTypeEnum | None = None,
 ) -> Ok[Security] | Err[str]:
     """Create an equity Security with ISIN and/or CUSIP identifiers."""
-    ids: list[AssetIdentifier] = []
-    if isin is not None:
-        match AssetIdentifier.create(isin, AssetIdTypeEnum.ISIN):
-            case Err(e):
-                return Err(e)
-            case Ok(aid):
-                ids.append(aid)
-    if cusip is not None:
-        match AssetIdentifier.create(cusip, AssetIdTypeEnum.CUSIP):
-            case Err(e):
-                return Err(e)
-            case Ok(aid):
-                ids.append(aid)
-    ids.extend(extra_identifiers)
-    if not ids:
-        return Err("create_equity_security: at least one identifier (isin or cusip) required")
+    if (
+        depositary_receipt is not None
+        and equity_type != EquityTypeEnum.DEPOSITARY_RECEIPT
+    ):
+        return Err(
+            "create_equity_security: depositary_receipt is only valid "
+            "when equity_type is DEPOSITARY_RECEIPT"
+        )
+    match _parse_identifiers(isin, cusip, extra_identifiers):
+        case Err(e):
+            return Err(f"create_equity_security: {e}")
+        case Ok(ids):
+            pass
     return Security.create(
-        identifiers=tuple(ids),
+        identifiers=ids,
         classification=EquityClassification(
-            equity_type=EquityType(equity_type=equity_type),
+            equity_type=EquityType(
+                equity_type=equity_type,
+                depositary_receipt=depositary_receipt,
+            ),
         ),
         currency=currency,
         exchange=exchange,
@@ -345,30 +448,19 @@ def create_fund_security(
     *,
     isin: str | None = None,
     cusip: str | None = None,
-    fund_type: FundProductTypeEnum = FundProductTypeEnum.ETF,
+    fund_type: FundProductTypeEnum = FundProductTypeEnum.EXCHANGE_TRADED_FUND,
     exchange: str = "XNAS",
     currency: str = "USD",
     extra_identifiers: tuple[AssetIdentifier, ...] = (),
 ) -> Ok[Security] | Err[str]:
     """Create a fund Security with ISIN and/or CUSIP identifiers."""
-    ids: list[AssetIdentifier] = []
-    if isin is not None:
-        match AssetIdentifier.create(isin, AssetIdTypeEnum.ISIN):
-            case Err(e):
-                return Err(e)
-            case Ok(aid):
-                ids.append(aid)
-    if cusip is not None:
-        match AssetIdentifier.create(cusip, AssetIdTypeEnum.CUSIP):
-            case Err(e):
-                return Err(e)
-            case Ok(aid):
-                ids.append(aid)
-    ids.extend(extra_identifiers)
-    if not ids:
-        return Err("create_fund_security: at least one identifier (isin or cusip) required")
+    match _parse_identifiers(isin, cusip, extra_identifiers):
+        case Err(e):
+            return Err(f"create_fund_security: {e}")
+        case Ok(ids):
+            pass
     return Security.create(
-        identifiers=tuple(ids),
+        identifiers=ids,
         classification=FundClassification(fund_type=fund_type),
         currency=currency,
         exchange=exchange,

@@ -1,4 +1,4 @@
-"""Tests for attestor.instrument.asset — CDM asset taxonomy."""
+"""Tests for attestor.instrument.asset -- CDM asset taxonomy."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from attestor.instrument.asset import (
     Asset,
     AssetIdentifier,
     AssetIdTypeEnum,
+    DepositaryReceiptTypeEnum,
     EquityClassification,
     EquityType,
     EquityTypeEnum,
@@ -26,11 +27,16 @@ from attestor.instrument.asset import (
 
 class TestAssetIdTypeEnum:
     def test_member_count(self) -> None:
-        assert len(AssetIdTypeEnum) == 7
+        assert len(AssetIdTypeEnum) == 18
 
     def test_members(self) -> None:
         names = {m.name for m in AssetIdTypeEnum}
-        assert names == {"ISIN", "CUSIP", "SEDOL", "FIGI", "RIC", "BBGID", "OTHER"}
+        assert names == {
+            "BBGID", "BBGTICKER", "CUSIP", "FIGI", "ISDACRP", "ISIN",
+            "NAME", "REDID", "RIC", "OTHER", "SICOVAM", "SEDOL",
+            "UPI", "VALOREN", "WERTPAPIER",
+            "CURRENCY_CODE", "EXCHANGE_CODE", "CLEARING_CODE",
+        }
 
 
 class TestEquityTypeEnum:
@@ -45,14 +51,37 @@ class TestEquityTypeEnum:
         }
 
 
+class TestDepositaryReceiptTypeEnum:
+    def test_member_count(self) -> None:
+        assert len(DepositaryReceiptTypeEnum) == 4
+
+    def test_members(self) -> None:
+        names = {m.name for m in DepositaryReceiptTypeEnum}
+        assert names == {"ADR", "GDR", "IDR", "EDR"}
+
+
 class TestInstrumentTypeEnum:
     def test_member_count(self) -> None:
-        assert len(InstrumentTypeEnum) == 4
+        assert len(InstrumentTypeEnum) == 7
+
+    def test_members(self) -> None:
+        names = {m.name for m in InstrumentTypeEnum}
+        assert names == {
+            "DEBT", "EQUITY", "FUND", "WARRANT",
+            "CERTIFICATE", "LETTER_OF_CREDIT", "LISTED_DERIVATIVE",
+        }
 
 
 class TestFundProductTypeEnum:
     def test_member_count(self) -> None:
         assert len(FundProductTypeEnum) == 4
+
+    def test_members(self) -> None:
+        names = {m.name for m in FundProductTypeEnum}
+        assert names == {
+            "MONEY_MARKET_FUND", "EXCHANGE_TRADED_FUND",
+            "MUTUAL_FUND", "OTHER_FUND",
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -136,6 +165,7 @@ class TestEquityType:
     def test_construction(self) -> None:
         et = EquityType(equity_type=EquityTypeEnum.ORDINARY)
         assert et.equity_type == EquityTypeEnum.ORDINARY
+        assert et.depositary_receipt is None
 
     def test_frozen(self) -> None:
         et = EquityType(equity_type=EquityTypeEnum.ORDINARY)
@@ -144,6 +174,29 @@ class TestEquityType:
             assert False, "should be frozen"  # noqa: B011
         except AttributeError:
             pass
+
+    def test_depositary_receipt_valid(self) -> None:
+        """CDM: depositaryReceipt valid when equityType == DEPOSITARY_RECEIPT."""
+        et = EquityType(
+            equity_type=EquityTypeEnum.DEPOSITARY_RECEIPT,
+            depositary_receipt=DepositaryReceiptTypeEnum.ADR,
+        )
+        assert et.depositary_receipt == DepositaryReceiptTypeEnum.ADR
+
+    def test_depositary_receipt_invalid_combination(self) -> None:
+        """CDM condition: depositaryReceipt absent when equityType != DEPOSITARY_RECEIPT."""
+        import pytest
+
+        with pytest.raises(TypeError, match="depositary_receipt"):
+            EquityType(
+                equity_type=EquityTypeEnum.ORDINARY,
+                depositary_receipt=DepositaryReceiptTypeEnum.GDR,
+            )
+
+    def test_depositary_receipt_without_subtype(self) -> None:
+        """DEPOSITARY_RECEIPT equity_type without specific DR type is valid."""
+        et = EquityType(equity_type=EquityTypeEnum.DEPOSITARY_RECEIPT)
+        assert et.depositary_receipt is None
 
 
 # ---------------------------------------------------------------------------
@@ -194,14 +247,16 @@ class TestSecurity:
     def test_valid_fund(self) -> None:
         result = Security.create(
             identifiers=_nvda_ids()[:1],
-            classification=FundClassification(fund_type=FundProductTypeEnum.ETF),
+            classification=FundClassification(
+                fund_type=FundProductTypeEnum.EXCHANGE_TRADED_FUND,
+            ),
             currency="USD",
             exchange="XNAS",
         )
         assert isinstance(result, Ok)
         sec = result.value
         assert isinstance(sec.classification, FundClassification)
-        assert sec.classification.fund_type == FundProductTypeEnum.ETF
+        assert sec.classification.fund_type == FundProductTypeEnum.EXCHANGE_TRADED_FUND
 
     def test_empty_identifiers_rejected(self) -> None:
         result = Security.create(
@@ -215,14 +270,11 @@ class TestSecurity:
         assert "identifiers" in result.error
 
     def test_classification_required_by_type_system(self) -> None:
-        """classification is not Optional — omitting it is a type error.
+        """classification is not Optional -- omitting it is a type error.
 
         Illegal states (no classification, or mismatched instrument_type)
         are now structurally unrepresentable.
         """
-        # Cannot call Security.create without classification — it's a
-        # required positional arg, so no runtime test needed.
-        # We verify the instrument_type property derives correctly instead.
         equity = unwrap(Security.create(
             identifiers=_nvda_ids(),
             classification=EquityClassification(
@@ -234,7 +286,9 @@ class TestSecurity:
 
         fund = unwrap(Security.create(
             identifiers=_nvda_ids()[:1],
-            classification=FundClassification(fund_type=FundProductTypeEnum.ETF),
+            classification=FundClassification(
+                fund_type=FundProductTypeEnum.EXCHANGE_TRADED_FUND,
+            ),
             currency="USD",
         ))
         assert fund.instrument_type == InstrumentTypeEnum.FUND
@@ -272,6 +326,33 @@ class TestSecurity:
             currency="USD",
         ))
         assert unlisted.is_exchange_listed is False
+
+    def test_is_exchange_listed_explicit_true_without_exchange(self) -> None:
+        """CDM allows isExchangeListed=True without specifying exchange."""
+        sec = unwrap(Security.create(
+            identifiers=_nvda_ids(),
+            classification=EquityClassification(
+                equity_type=EquityType(equity_type=EquityTypeEnum.ORDINARY),
+            ),
+            currency="USD",
+            is_exchange_listed=True,
+        ))
+        assert sec.is_exchange_listed is True
+        assert sec.exchange is None
+
+    def test_is_exchange_listed_false_with_exchange_rejected(self) -> None:
+        """CDM condition: if exchange exists then isExchangeListed must be True."""
+        result = Security.create(
+            identifiers=_nvda_ids(),
+            classification=EquityClassification(
+                equity_type=EquityType(equity_type=EquityTypeEnum.ORDINARY),
+            ),
+            currency="USD",
+            exchange="XNAS",
+            is_exchange_listed=False,
+        )
+        assert isinstance(result, Err)
+        assert "exchange" in result.error
 
     def test_frozen(self) -> None:
         sec = unwrap(Security.create(
@@ -419,6 +500,30 @@ class TestCreateEquitySecurity:
         assert isinstance(result, Ok)
         assert len(result.value.identifiers) == 2
 
+    def test_depositary_receipt(self) -> None:
+        """ADR equity via factory with depositary receipt sub-type."""
+        result = create_equity_security(
+            isin="US67066G1040",
+            equity_type=EquityTypeEnum.DEPOSITARY_RECEIPT,
+            depositary_receipt=DepositaryReceiptTypeEnum.ADR,
+        )
+        assert isinstance(result, Ok)
+        sec = result.value
+        assert isinstance(sec.classification, EquityClassification)
+        et = sec.classification.equity_type
+        assert et.equity_type == EquityTypeEnum.DEPOSITARY_RECEIPT
+        assert et.depositary_receipt == DepositaryReceiptTypeEnum.ADR
+
+    def test_depositary_receipt_invalid_combination_returns_err(self) -> None:
+        """Factory returns Err (not TypeError) for invalid DR combination."""
+        result = create_equity_security(
+            isin="US67066G1040",
+            equity_type=EquityTypeEnum.ORDINARY,
+            depositary_receipt=DepositaryReceiptTypeEnum.ADR,
+        )
+        assert isinstance(result, Err)
+        assert "depositary_receipt" in result.error
+
 
 # ---------------------------------------------------------------------------
 # create_fund_security
@@ -429,14 +534,14 @@ class TestCreateFundSecurity:
     def test_spy_etf(self) -> None:
         result = create_fund_security(
             isin="US78462F1030", cusip="78462F103",
-            fund_type=FundProductTypeEnum.ETF,
+            fund_type=FundProductTypeEnum.EXCHANGE_TRADED_FUND,
             exchange="XNAS", currency="USD",
         )
         assert isinstance(result, Ok)
         sec = result.value
         assert sec.instrument_type == InstrumentTypeEnum.FUND
         assert isinstance(sec.classification, FundClassification)
-        assert sec.classification.fund_type == FundProductTypeEnum.ETF
+        assert sec.classification.fund_type == FundProductTypeEnum.EXCHANGE_TRADED_FUND
 
     def test_no_ids_rejected(self) -> None:
         result = create_fund_security()
