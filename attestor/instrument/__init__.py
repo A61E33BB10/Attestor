@@ -1,5 +1,45 @@
 """attestor.instrument -- Pillar II: instrument model and lifecycle."""
 
+# CDM asset taxonomy
+from attestor.instrument.asset import (
+    Asset as Asset,
+)
+from attestor.instrument.asset import (
+    AssetIdentifier as AssetIdentifier,
+)
+from attestor.instrument.asset import (
+    AssetIdTypeEnum as AssetIdTypeEnum,
+)
+from attestor.instrument.asset import (
+    EquityClassification as EquityClassification,
+)
+from attestor.instrument.asset import (
+    EquityType as EquityType,
+)
+from attestor.instrument.asset import (
+    EquityTypeEnum as EquityTypeEnum,
+)
+from attestor.instrument.asset import (
+    FundClassification as FundClassification,
+)
+from attestor.instrument.asset import (
+    FundProductTypeEnum as FundProductTypeEnum,
+)
+from attestor.instrument.asset import (
+    InstrumentTypeEnum as InstrumentTypeEnum,
+)
+from attestor.instrument.asset import (
+    Security as Security,
+)
+from attestor.instrument.asset import (
+    SecurityClassification as SecurityClassification,
+)
+from attestor.instrument.asset import (
+    create_equity_security as create_equity_security,
+)
+from attestor.instrument.asset import (
+    create_fund_security as create_fund_security,
+)
 from attestor.instrument.credit_types import (
     CDSPayoutSpec as CDSPayoutSpec,
 )
