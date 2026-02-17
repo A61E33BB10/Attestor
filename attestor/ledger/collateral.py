@@ -2,17 +2,22 @@
 
 All functions produce Transaction objects that the LedgerEngine executes.
 Conservation: sigma(collateral_unit) unchanged after every transaction.
+
+Phase E additions: AssetClassEnum, Haircut, CollateralValuationTreatment,
+ConcentrationLimit, StandardizedSchedule, MarginCallResponseEnum,
+MarginCallIssuance, MarginCallResponse.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 from enum import Enum
 from typing import final
 
 from attestor.core.errors import ValidationError
-from attestor.core.money import NonEmptyStr
+from attestor.core.money import Money, NonEmptyStr, PositiveDecimal
 from attestor.core.result import Err, Ok
 from attestor.core.types import UtcDatetime
 from attestor.ledger._validation import create_move, create_tx, parse_positive
@@ -30,6 +35,257 @@ class CollateralType(Enum):
     GOVERNMENT_BOND = "GOVERNMENT_BOND"
     CORPORATE_BOND = "CORPORATE_BOND"
     EQUITY = "EQUITY"
+
+
+# ---------------------------------------------------------------------------
+# Phase E: Enums
+# ---------------------------------------------------------------------------
+
+
+class AssetClassEnum(Enum):
+    """BCBS/IOSCO standardized schedule asset classes.
+
+    CDM: StandardizedScheduleAssetClassEnum (5 of 5 values).
+    """
+
+    INTEREST_RATES = "INTEREST_RATES"
+    CREDIT = "CREDIT"
+    FX = "FX"
+    EQUITY = "EQUITY"
+    COMMODITY = "COMMODITY"
+
+
+class MarginCallResponseEnum(Enum):
+    """Response type for a margin call.
+
+    CDM: conceptual (AGREE vs DISPUTE covers standard workflow).
+    """
+
+    AGREE = "AGREE"
+    DISPUTE = "DISPUTE"
+
+
+# ---------------------------------------------------------------------------
+# Phase E: Haircut and valuation types
+# ---------------------------------------------------------------------------
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class Haircut:
+    """Collateral valuation haircut.
+
+    CDM: haircutPercentage in CollateralValuationTreatment.
+    Invariant: value in [0, 1) — 0 means no haircut, 0.50 means 50% haircut.
+    A value of 1.0 (100%) would mean worthless collateral, which is excluded.
+    """
+
+    value: Decimal
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.value, Decimal)
+            or not self.value.is_finite()
+        ):
+            raise TypeError(
+                f"Haircut.value must be finite Decimal, got {self.value!r}"
+            )
+        if self.value < 0 or self.value >= 1:
+            raise TypeError(
+                "Haircut.value must be in [0, 1), "
+                f"got {self.value}"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class CollateralValuationTreatment:
+    """Haircuts and adjustments for collateral valuation.
+
+    CDM: CollateralValuationTreatment = haircutPercentage +
+    marginPercentage + fxHaircutPercentage.
+    """
+
+    haircut: Haircut
+    margin_percentage: Decimal | None = None
+    fx_haircut: Haircut | None = None
+
+    def __post_init__(self) -> None:
+        if self.margin_percentage is not None:
+            if (
+                not isinstance(self.margin_percentage, Decimal)
+                or not self.margin_percentage.is_finite()
+            ):
+                raise TypeError(
+                    "CollateralValuationTreatment.margin_percentage "
+                    "must be finite Decimal, "
+                    f"got {self.margin_percentage!r}"
+                )
+            if self.margin_percentage < 0:
+                raise TypeError(
+                    "CollateralValuationTreatment.margin_percentage "
+                    f"must be >= 0, got {self.margin_percentage}"
+                )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class ConcentrationLimit:
+    """Maximum concentration of a single collateral type in a portfolio.
+
+    CDM: ConcentrationLimit conceptual (eligibility criteria).
+    Invariant: limit_fraction in (0, 1].
+    """
+
+    collateral_type: CollateralType
+    limit_fraction: Decimal
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.limit_fraction, Decimal)
+            or not self.limit_fraction.is_finite()
+        ):
+            raise TypeError(
+                "ConcentrationLimit.limit_fraction must be finite "
+                f"Decimal, got {self.limit_fraction!r}"
+            )
+        if self.limit_fraction <= 0 or self.limit_fraction > 1:
+            raise TypeError(
+                "ConcentrationLimit.limit_fraction must be in (0, 1], "
+                f"got {self.limit_fraction}"
+            )
+
+
+# ---------------------------------------------------------------------------
+# Phase E: Standardized Schedule (UMR initial margin)
+# ---------------------------------------------------------------------------
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class StandardizedSchedule:
+    """BCBS/IOSCO standardized schedule for initial margin calculation.
+
+    CDM: StandardizedSchedule = assetClass + productClass + notional +
+    notionalCurrency + durationInYears.
+    Invariant: duration_in_years > 0 when present.
+    """
+
+    asset_class: AssetClassEnum
+    product_class: NonEmptyStr
+    notional: PositiveDecimal
+    currency: NonEmptyStr
+    duration_in_years: Decimal | None = None
+
+    def __post_init__(self) -> None:
+        if self.duration_in_years is not None:
+            if (
+                not isinstance(self.duration_in_years, Decimal)
+                or not self.duration_in_years.is_finite()
+            ):
+                raise TypeError(
+                    "StandardizedSchedule.duration_in_years must be "
+                    f"finite Decimal, got {self.duration_in_years!r}"
+                )
+            if self.duration_in_years <= 0:
+                raise TypeError(
+                    "StandardizedSchedule.duration_in_years must be "
+                    f"> 0, got {self.duration_in_years}"
+                )
+
+
+# ---------------------------------------------------------------------------
+# Phase E: Margin call workflow types
+# ---------------------------------------------------------------------------
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class MarginCallIssuance:
+    """Structured margin call demand.
+
+    CDM: conceptual MarginCallInstruction.
+    Represents a formal request for collateral delivery.
+    Invariant: call_amount must be positive.
+    """
+
+    agreement_id: NonEmptyStr
+    call_amount: Money
+    call_date: date
+    demanding_party: NonEmptyStr
+    collateral_type: CollateralType | None = None
+
+    def __post_init__(self) -> None:
+        if self.call_amount.amount <= 0:
+            raise TypeError(
+                "MarginCallIssuance: call_amount must be positive, "
+                f"got {self.call_amount.amount}"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class MarginCallResponse:
+    """Response to a margin call.
+
+    CDM: conceptual MarginCallResponse.
+    Invariants:
+    - agreed_amount currency must match issuance.call_amount currency
+    - agreed_amount must be non-negative
+    - response_date >= issuance.call_date
+    - AGREE: agreed_amount == issuance.call_amount
+    - DISPUTE: agreed_amount < issuance.call_amount
+    """
+
+    issuance: MarginCallIssuance
+    response: MarginCallResponseEnum
+    agreed_amount: Money
+    response_date: date
+
+    def __post_init__(self) -> None:
+        if (
+            self.agreed_amount.currency
+            != self.issuance.call_amount.currency
+        ):
+            raise TypeError(
+                "MarginCallResponse: agreed_amount currency must "
+                "match issuance.call_amount currency; "
+                f"got {self.agreed_amount.currency.value} vs "
+                f"{self.issuance.call_amount.currency.value}"
+            )
+        if self.agreed_amount.amount < 0:
+            raise TypeError(
+                "MarginCallResponse: agreed_amount must be "
+                f"non-negative, got {self.agreed_amount.amount}"
+            )
+        if self.response_date < self.issuance.call_date:
+            raise TypeError(
+                "MarginCallResponse: response_date must be >= "
+                "issuance.call_date; "
+                f"got {self.response_date} < {self.issuance.call_date}"
+            )
+        if (
+            self.response == MarginCallResponseEnum.AGREE
+            and self.agreed_amount != self.issuance.call_amount
+        ):
+            raise TypeError(
+                "MarginCallResponse: when response is AGREE, "
+                "agreed_amount must equal issuance.call_amount; "
+                f"got {self.agreed_amount} vs "
+                f"{self.issuance.call_amount}"
+            )
+        if (
+            self.response == MarginCallResponseEnum.DISPUTE
+            and self.agreed_amount.amount
+            >= self.issuance.call_amount.amount
+        ):
+            raise TypeError(
+                "MarginCallResponse: when response is DISPUTE, "
+                "agreed_amount must be less than "
+                "issuance.call_amount; "
+                f"got {self.agreed_amount.amount} >= "
+                f"{self.issuance.call_amount.amount}"
+            )
 
 
 # ---------------------------------------------------------------------------

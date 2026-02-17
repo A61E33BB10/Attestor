@@ -479,6 +479,18 @@ Without this, Phase A's enum expansions will introduce silent missing-case bugs 
 
 **Estimated:** ~8 new types, ~24 new tests.
 
+**STATUS: COMPLETED**
+
+**Actual metrics:**
+- **New enums:** 2 (AssetClassEnum, MarginCallResponseEnum)
+- **New types:** 6 (Haircut, CollateralValuationTreatment, ConcentrationLimit, StandardizedSchedule, MarginCallIssuance, MarginCallResponse)
+- **Tests added:** 47 (test_phase_e.py)
+- **Total test count:** 1,812
+- **Minsky review:** Initially REJECTED (3 HIGH: call_amount positivity, currency mismatch, negative agreed_amount; 2 MEDIUM: temporal ordering, dispute bounds) — all HIGH and MEDIUM findings FIXED. Re-exports added to ledger/__init__.py.
+- **Formalis review:** APPROVED (4 MEDIUM: same core issues + pre-existing PositiveDecimal Infinity; 2 LOW: margin_percentage bound, NaN test coverage) — MEDIUM-1/2/3 FIXED, NaN test ADDED.
+
+**Test gate:** After Phase E, margin calls enforce call_amount > 0. Margin call responses enforce currency consistency, non-negative agreed amounts, temporal causality (response >= call date), and AGREE/DISPUTE branch completeness. Haircut values are bounded to [0, 1). Standardized schedule has validated asset class enum.
+
 ### Phase F: Regulatory Reporting Enrichment
 
 **Depends on:** Phase D

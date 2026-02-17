@@ -10,9 +10,23 @@ from attestor.ledger.cds import create_cds_premium_transaction as create_cds_pre
 from attestor.ledger.cds import create_cds_trade_transaction as create_cds_trade_transaction
 from attestor.ledger.cds import generate_cds_premium_schedule as generate_cds_premium_schedule
 
+# Phase E: Collateral and Margin
+from attestor.ledger.collateral import AssetClassEnum as AssetClassEnum
+
 # Phase 4: Collateral
 from attestor.ledger.collateral import CollateralAgreement as CollateralAgreement
 from attestor.ledger.collateral import CollateralType as CollateralType
+from attestor.ledger.collateral import (
+    CollateralValuationTreatment as CollateralValuationTreatment,
+)
+from attestor.ledger.collateral import ConcentrationLimit as ConcentrationLimit
+from attestor.ledger.collateral import Haircut as Haircut
+from attestor.ledger.collateral import MarginCallIssuance as MarginCallIssuance
+from attestor.ledger.collateral import MarginCallResponse as MarginCallResponse
+from attestor.ledger.collateral import (
+    MarginCallResponseEnum as MarginCallResponseEnum,
+)
+from attestor.ledger.collateral import StandardizedSchedule as StandardizedSchedule
 from attestor.ledger.collateral import (
     create_collateral_return_transaction as create_collateral_return_transaction,
 )
