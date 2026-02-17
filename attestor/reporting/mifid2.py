@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from enum import Enum
 from typing import assert_never, final
 
 from attestor.core.identifiers import LEI
@@ -33,6 +34,18 @@ from attestor.oracle.attestation import (
     FirmConfidence,
     create_attestation,
 )
+
+
+class TradingCapacityEnum(Enum):
+    """MiFID II trading capacity indicator.
+
+    CDM: TradingCapacityEnum (~3 values).
+    RTS 25 Field 29: capacity in which the firm traded.
+    """
+
+    DEAL = "DEAL"  # Dealing on own account
+    MTCH = "MTCH"  # Matched principal trading
+    AOTC = "AOTC"  # Any other trading capacity
 
 
 @final
@@ -139,6 +152,13 @@ class MiFIDIIReport:
     venue: NonEmptyStr
     report_timestamp: UtcDatetime
     attestation_refs: tuple[str, ...]
+    # Phase F: regulatory reporting enrichment
+    cfi_code: NonEmptyStr | None = None
+    trading_capacity: TradingCapacityEnum | None = None
+    investment_decision_person: NonEmptyStr | None = None
+    executing_person: NonEmptyStr | None = None
+    risk_reducing_transaction: bool | None = None
+    securities_financing_indicator: bool | None = None
 
 
 def project_mifid2_report(

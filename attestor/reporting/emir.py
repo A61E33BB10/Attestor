@@ -58,6 +58,8 @@ class EMIRTradeReport:
     report_timestamp: UtcDatetime
     instrument_fields: InstrumentReportFields
     attestation_refs: tuple[str, ...]
+    # Phase F: regulatory reporting enrichment
+    risk_reducing_transaction: bool | None = None
 
 
 def project_emir_report(

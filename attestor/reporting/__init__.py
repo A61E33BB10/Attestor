@@ -11,4 +11,5 @@ from attestor.reporting.mifid2 import FXReportFields as FXReportFields
 from attestor.reporting.mifid2 import IRSwapReportFields as IRSwapReportFields
 from attestor.reporting.mifid2 import MiFIDIIReport as MiFIDIIReport
 from attestor.reporting.mifid2 import SwaptionReportFields as SwaptionReportFields
+from attestor.reporting.mifid2 import TradingCapacityEnum as TradingCapacityEnum
 from attestor.reporting.mifid2 import project_mifid2_report as project_mifid2_report

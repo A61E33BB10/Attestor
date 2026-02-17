@@ -91,6 +91,8 @@ class TestCreditEnums:
     def test_credit_event_type_values(self) -> None:
         assert {e.value for e in CreditEventType} == {
             "BANKRUPTCY", "FAILURE_TO_PAY", "RESTRUCTURING",
+            "OBLIGATION_DEFAULT", "GOVERNMENTAL_INTERVENTION",
+            "REPUDIATION_MORATORIUM",
         }
 
     def test_seniority_level_values(self) -> None:

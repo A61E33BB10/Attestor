@@ -45,11 +45,19 @@ class MarginType(Enum):
 
 
 class CreditEventType(Enum):
-    """ISDA credit event triggers for CDS contracts."""
+    """ISDA credit event triggers for CDS contracts.
+
+    CDM: CreditEventTypeEnum (~6 of 12 values).
+    Phase F: expanded with OBLIGATION_DEFAULT, GOVERNMENTAL_INTERVENTION,
+    REPUDIATION_MORATORIUM.
+    """
 
     BANKRUPTCY = "BANKRUPTCY"
     FAILURE_TO_PAY = "FAILURE_TO_PAY"
     RESTRUCTURING = "RESTRUCTURING"
+    OBLIGATION_DEFAULT = "OBLIGATION_DEFAULT"
+    GOVERNMENTAL_INTERVENTION = "GOVERNMENTAL_INTERVENTION"
+    REPUDIATION_MORATORIUM = "REPUDIATION_MORATORIUM"
 
 
 class SeniorityLevel(Enum):
@@ -72,6 +80,18 @@ class SwaptionType(Enum):
 
     PAYER = "PAYER"
     RECEIVER = "RECEIVER"
+
+
+class RestructuringEnum(Enum):
+    """ISDA restructuring clause type for CDS contracts.
+
+    CDM: RestructuringEnum (3 of 3 CDM values; excludes ISDA XR/No Restructuring).
+    Controls deliverable obligation limitations after a restructuring credit event.
+    """
+
+    MOD_R = "MOD_R"          # Modified Restructuring (2003 Definitions)
+    MOD_MOD_R = "MOD_MOD_R"  # Modified Modified Restructuring (2014)
+    FULL_R = "FULL_R"        # Full (Old) Restructuring
 
 
 # ---------------------------------------------------------------------------

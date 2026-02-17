@@ -509,6 +509,13 @@ Without this, Phase A's enum expansions will introduce silent missing-case bugs 
 
 **Estimated:** ~4 new types/enums, ~12 new tests. Mostly field additions to existing types.
 
+**Status: COMPLETED**
+
+- **Minsky review:** PASS — no illegal states, all new fields are `| None = None` (backward-compatible), CreditEventType expansion safe (iteration-based consumption), RestructuringEnum standalone (available for future CDS enrichment).
+- **Formalis review:** APPROVED — no CRITICAL or HIGH findings. 5 MEDIUM (docstring precision corrections applied, projection functions leave new fields as None by design, RestructuringEnum intentionally unwired pending future CDS enrichment, content hash stability unaffected since full test suite passes).
+
+**Test gate:** After Phase F, 1,840 tests pass, mypy --strict clean, ruff clean. MiFIDIIReport has 6 new optional regulatory fields. EMIRTradeReport has risk_reducing_transaction. CreditEventType expanded to 6 ISDA credit events. RestructuringEnum and TradingCapacityEnum added. All re-exports in place.
+
 ### File Allocation Plan
 
 The file hard cap is 57 (currently 55, +2 new files permitted).
@@ -536,7 +543,7 @@ The file hard cap is 57 (currently 55, +2 new files permitted).
 | C | ~1,685 | ~196 | ~188 | ~12,450 | PLANNED |
 | D | ~1,735 | ~210 | ~196 | ~12,700 | PLANNED |
 | E | ~1,759 | ~218 | ~199 | ~12,850 | PLANNED |
-| F | ~1,771 | ~222 | ~198 | ~12,950 | PLANNED |
+| F | 1,840 | ~222 | ~198 | ~12,950 | COMPLETED |
 
 "After Consolidation" column applies the type budget strategies (Literal unions for small enums, enrichment instead of new types, etc.). Every phase boundary triggers a type count audit. **No phase ships above 200 types.**
 

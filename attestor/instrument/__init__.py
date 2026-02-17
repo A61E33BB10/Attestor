@@ -80,6 +80,9 @@ from attestor.instrument.derivative_types import (
     ProtectionSide as ProtectionSide,
 )
 from attestor.instrument.derivative_types import (
+    RestructuringEnum as RestructuringEnum,
+)
+from attestor.instrument.derivative_types import (
     SeniorityLevel as SeniorityLevel,
 )
 from attestor.instrument.derivative_types import (
