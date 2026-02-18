@@ -215,10 +215,96 @@ from attestor.instrument.lifecycle import (
     AffirmationStatusEnum as AffirmationStatusEnum,
 )
 from attestor.instrument.lifecycle import (
+    AssetTransferTypeEnum as AssetTransferTypeEnum,
+)
+from attestor.instrument.lifecycle import (
+    CallTypeEnum as CallTypeEnum,
+)
+from attestor.instrument.lifecycle import (
+    CollateralStatusEnum as CollateralStatusEnum,
+)
+from attestor.instrument.lifecycle import (
     ConfirmationStatusEnum as ConfirmationStatusEnum,
 )
 from attestor.instrument.lifecycle import (
+    CorporateAction as CorporateAction,
+)
+from attestor.instrument.lifecycle import (
+    CreditEvent as CreditEvent,
+)
+from attestor.instrument.lifecycle import (
     ExecutionTypeEnum as ExecutionTypeEnum,
+)
+from attestor.instrument.lifecycle import (
+    HaircutIndicatorEnum as HaircutIndicatorEnum,
+)
+from attestor.instrument.lifecycle import (
+    InstructionFunctionEnum as InstructionFunctionEnum,
+)
+from attestor.instrument.lifecycle import (
+    MarginCallActionEnum as MarginCallActionEnum,
+)
+from attestor.instrument.lifecycle import (
+    MarginCallResponseTypeEnum as MarginCallResponseTypeEnum,
+)
+from attestor.instrument.lifecycle import (
+    ObservationEvent as ObservationEvent,
+)
+from attestor.instrument.lifecycle import (
+    PerformanceTransferTypeEnum as PerformanceTransferTypeEnum,
+)
+from attestor.instrument.lifecycle import (
+    PositionEventIntentEnum as PositionEventIntentEnum,
+)
+from attestor.instrument.lifecycle import (
+    PriceTimingEnum as PriceTimingEnum,
+)
+from attestor.instrument.lifecycle import (
+    RecordAmountTypeEnum as RecordAmountTypeEnum,
+)
+from attestor.instrument.lifecycle import (
+    RegIMRoleEnum as RegIMRoleEnum,
+)
+from attestor.instrument.lifecycle import (
+    RegMarginTypeEnum as RegMarginTypeEnum,
+)
+from attestor.instrument.lifecycle import (
+    Reset as Reset,
+)
+from attestor.instrument.lifecycle import (
+    Valuation as Valuation,
+)
+from attestor.instrument.lifecycle import (
+    ValuationScopeEnum as ValuationScopeEnum,
+)
+from attestor.instrument.lifecycle import (
+    ValuationSourceEnum as ValuationSourceEnum,
+)
+from attestor.instrument.lifecycle import (
+    ValuationTypeEnum as ValuationTypeEnum,
+)
+
+# NS7c: CDM qualification functions
+from attestor.instrument.qualification import (
+    AssetClassEnum as AssetClassEnum,
+)
+from attestor.instrument.qualification import (
+    is_credit_default_swap as is_credit_default_swap,
+)
+from attestor.instrument.qualification import (
+    is_equity_product as is_equity_product,
+)
+from attestor.instrument.qualification import (
+    is_fx_product as is_fx_product,
+)
+from attestor.instrument.qualification import (
+    is_interest_rate_swap as is_interest_rate_swap,
+)
+from attestor.instrument.qualification import (
+    is_swaption as is_swaption,
+)
+from attestor.instrument.qualification import (
+    qualify_asset_class as qualify_asset_class,
 )
 
 # Phase C: rate specifications

@@ -136,8 +136,8 @@ class TestFullCDSLifecycle:
             "timestamp": "2025-06-15T10:00:00+00:00",
             "reference_entity": "ACME Corp",
             "spread_bps": "100",
-            "seniority": "SENIOR_UNSECURED",
-            "protection_side": "BUYER",
+            "seniority": "SeniorUnsecured",
+            "protection_side": "Buyer",
             "start_date": "2025-06-20",
             "maturity_date": "2030-06-20",
         }
@@ -284,8 +284,8 @@ class TestFullCDSLifecycle:
         assert isinstance(mifid_fields, CDSReportFields)
         assert mifid_fields.reference_entity == "ACME Corp"
         assert mifid_fields.spread_bps == Decimal("100")
-        assert mifid_fields.seniority == "SENIOR_UNSECURED"
-        assert mifid_fields.protection_side == "BUYER"
+        assert mifid_fields.seniority == "SeniorUnsecured"
+        assert mifid_fields.protection_side == "Buyer"
 
         dodd_att = unwrap(project_dodd_frank_report(order, "ATT-CDS-001"))
         df_report = dodd_att.value
@@ -347,7 +347,7 @@ class TestFullSwaptionPhysicalLifecycle:
             "venue": "OTC",
             "trade_date": "2025-06-15",
             "timestamp": "2025-06-15T10:00:00+00:00",
-            "swaption_type": "PAYER",
+            "swaption_type": "Payer",
             "expiry_date": "2030-06-15",
             "underlying_fixed_rate": "0.035",
             "underlying_float_index": "SOFR",
@@ -421,7 +421,7 @@ class TestFullSwaptionPhysicalLifecycle:
 
         # Position opened
         contract_unit = (
-            f"SWAPTION-{SwaptionType.PAYER.value}-{date(2030, 6, 15).isoformat()}"
+            f"SWAPTION-{SwaptionType.PAYER.name}-{date(2030, 6, 15).isoformat()}"
         )
         assert engine.total_supply(contract_unit) == Decimal(0)
 
@@ -481,7 +481,7 @@ class TestFullSwaptionPhysicalLifecycle:
         mifid_att = unwrap(project_mifid2_report(order, "ATT-SWPTN-001"))
         mifid_fields = mifid_att.value.instrument_fields
         assert isinstance(mifid_fields, SwaptionReportFields)
-        assert mifid_fields.swaption_type == "PAYER"
+        assert mifid_fields.swaption_type == "Payer"
         assert mifid_fields.underlying_fixed_rate == Decimal("0.035")
         assert mifid_fields.underlying_tenor_months == 120
         assert mifid_fields.settlement_type == "Physical"
@@ -528,7 +528,7 @@ class TestFullSwaptionCashLifecycle:
             "venue": "OTC",
             "trade_date": "2025-06-15",
             "timestamp": "2025-06-15T10:00:00+00:00",
-            "swaption_type": "RECEIVER",
+            "swaption_type": "Receiver",
             "expiry_date": "2028-06-15",
             "underlying_fixed_rate": "0.04",
             "underlying_float_index": "SOFR",
@@ -558,7 +558,7 @@ class TestFullSwaptionCashLifecycle:
         assert engine.total_supply("USD") == Decimal(0)
 
         contract_unit = (
-            f"SWAPTION-{SwaptionType.RECEIVER.value}-{date(2028, 6, 15).isoformat()}"
+            f"SWAPTION-{SwaptionType.RECEIVER.name}-{date(2028, 6, 15).isoformat()}"
         )
 
         # Cash settlement: writer pays holder settlement amount
@@ -1069,9 +1069,9 @@ class TestImportSmoke:
             SwaptionType,
         )
         assert CreditEventTypeEnum.BANKRUPTCY.value == "Bankruptcy"
-        assert ProtectionSide.BUYER.value == "BUYER"
-        assert SeniorityLevel.SENIOR_UNSECURED.value == "SENIOR_UNSECURED"
-        assert SwaptionType.PAYER.value == "PAYER"
+        assert ProtectionSide.BUYER.value == "Buyer"
+        assert SeniorityLevel.SENIOR_UNSECURED.value == "SeniorUnsecured"
+        assert SwaptionType.PAYER.value == "Payer"
 
 
 # ---------------------------------------------------------------------------
@@ -1152,7 +1152,7 @@ class TestSwaptionExpiry:
             "venue": "OTC",
             "trade_date": "2025-06-15",
             "timestamp": "2025-06-15T10:00:00+00:00",
-            "swaption_type": "PAYER",
+            "swaption_type": "Payer",
             "expiry_date": "2026-06-15",
             "underlying_fixed_rate": "0.04",
             "underlying_float_index": "EURIBOR",
@@ -1180,7 +1180,7 @@ class TestSwaptionExpiry:
         unwrap(engine.execute(premium_tx))
 
         contract_unit = (
-            f"SWAPTION-{SwaptionType.PAYER.value}-{date(2026, 6, 15).isoformat()}"
+            f"SWAPTION-{SwaptionType.PAYER.name}-{date(2026, 6, 15).isoformat()}"
         )
         assert engine.total_supply(contract_unit) == Decimal(0)
 
@@ -1361,8 +1361,8 @@ class TestDoddFrankNotional:
             "timestamp": "2025-06-15T10:00:00+00:00",
             "reference_entity": "ACME Corp",
             "spread_bps": "100",
-            "seniority": "SENIOR_UNSECURED",
-            "protection_side": "BUYER",
+            "seniority": "SeniorUnsecured",
+            "protection_side": "Buyer",
             "start_date": "2025-06-20",
             "maturity_date": "2030-06-20",
         }
@@ -1385,7 +1385,7 @@ class TestDoddFrankNotional:
             "venue": "OTC",
             "trade_date": "2025-06-15",
             "timestamp": "2025-06-15T10:00:00+00:00",
-            "swaption_type": "PAYER",
+            "swaption_type": "Payer",
             "expiry_date": "2030-06-15",
             "underlying_fixed_rate": "0.035",
             "underlying_float_index": "SOFR",
@@ -1526,8 +1526,8 @@ class TestNegativePathLifecycle:
             "timestamp": "2025-06-15T10:00:00+00:00",
             "reference_entity": "ACME Corp",
             "spread_bps": "100",
-            "seniority": "SENIOR_UNSECURED",
-            "protection_side": "BUYER",
+            "seniority": "SeniorUnsecured",
+            "protection_side": "Buyer",
             "start_date": "2025-06-20",
             "maturity_date": "2030-06-20",
         }

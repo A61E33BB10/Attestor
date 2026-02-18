@@ -187,8 +187,8 @@ class UnscheduledTransferEnum(Enum):
 class MarginType(Enum):
     """Variation or initial margin."""
 
-    VARIATION = "VARIATION"
-    INITIAL = "INITIAL"
+    VARIATION = "Variation"
+    INITIAL = "Initial"
 
 
 class CreditEventTypeEnum(Enum):
@@ -215,23 +215,23 @@ class CreditEventTypeEnum(Enum):
 class SeniorityLevel(Enum):
     """Debt seniority for CDS reference obligation."""
 
-    SENIOR_UNSECURED = "SENIOR_UNSECURED"
-    SUBORDINATED = "SUBORDINATED"
-    SENIOR_SECURED = "SENIOR_SECURED"
+    SENIOR_UNSECURED = "SeniorUnsecured"
+    SUBORDINATED = "Subordinated"
+    SENIOR_SECURED = "SeniorSecured"
 
 
 class ProtectionSide(Enum):
     """CDS protection buyer or seller."""
 
-    BUYER = "BUYER"
-    SELLER = "SELLER"
+    BUYER = "Buyer"
+    SELLER = "Seller"
 
 
 class SwaptionType(Enum):
     """Payer or receiver swaption."""
 
-    PAYER = "PAYER"
-    RECEIVER = "RECEIVER"
+    PAYER = "Payer"
+    RECEIVER = "Receiver"
 
 
 class RestructuringEnum(Enum):
@@ -241,9 +241,9 @@ class RestructuringEnum(Enum):
     Controls deliverable obligation limitations after a restructuring credit event.
     """
 
-    MOD_R = "MOD_R"          # Modified Restructuring (2003 Definitions)
-    MOD_MOD_R = "MOD_MOD_R"  # Modified Modified Restructuring (2014)
-    FULL_R = "FULL_R"        # Full (Old) Restructuring
+    MOD_R = "ModR"          # Modified Restructuring (2003 Definitions)
+    MOD_MOD_R = "ModModR"   # Modified Modified Restructuring (2014)
+    FULL_R = "FullR"        # Full (Old) Restructuring
 
 
 # ---------------------------------------------------------------------------
@@ -256,9 +256,8 @@ class RestructuringEnum(Enum):
 class OptionPayoutSpec:
     """Vanilla option payout specification.
 
-    Note: exercise_terms, when present, provides richer exercise detail
-    than option_style. exercise_terms takes precedence over option_style
-    for downstream logic.
+    Note: both option_style and exercise_terms may specify exercise style;
+    exercise_terms takes precedence over option_style for downstream logic.
     """
 
     underlying_id: NonEmptyStr

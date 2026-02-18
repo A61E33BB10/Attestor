@@ -37,17 +37,17 @@ class TestRestructuringEnum:
 
     def test_member_values(self) -> None:
         assert {e.value for e in RestructuringEnum} == {
-            "MOD_R", "MOD_MOD_R", "FULL_R",
+            "ModR", "ModModR", "FullR",
         }
 
     def test_mod_r(self) -> None:
-        assert RestructuringEnum.MOD_R.value == "MOD_R"
+        assert RestructuringEnum.MOD_R.value == "ModR"
 
     def test_mod_mod_r(self) -> None:
-        assert RestructuringEnum.MOD_MOD_R.value == "MOD_MOD_R"
+        assert RestructuringEnum.MOD_MOD_R.value == "ModModR"
 
     def test_full_r(self) -> None:
-        assert RestructuringEnum.FULL_R.value == "FULL_R"
+        assert RestructuringEnum.FULL_R.value == "FullR"
 
 
 # ---------------------------------------------------------------------------
@@ -247,7 +247,7 @@ class TestEMIRTradeReportPhaseF:
 class TestPhaseFReExports:
     def test_restructuring_enum_from_instrument(self) -> None:
         from attestor.instrument import RestructuringEnum
-        assert RestructuringEnum.MOD_R.value == "MOD_R"
+        assert RestructuringEnum.MOD_R.value == "ModR"
 
     def test_trading_capacity_from_reporting(self) -> None:
         from attestor.reporting import TradingCapacityEnum

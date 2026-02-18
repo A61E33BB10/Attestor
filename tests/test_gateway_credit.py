@@ -49,8 +49,8 @@ class TestParseCDSOrder:
         raw = _with(
             reference_entity="ACME Corp",
             spread_bps="100",
-            seniority="SENIOR_UNSECURED",
-            protection_side="BUYER",
+            seniority="SeniorUnsecured",
+            protection_side="Buyer",
             start_date="2025-06-17",
             maturity_date="2030-06-17",
         )
@@ -62,8 +62,8 @@ class TestParseCDSOrder:
     def test_missing_reference_entity_err(self) -> None:
         raw = _with(
             spread_bps="100",
-            seniority="SENIOR_UNSECURED",
-            protection_side="BUYER",
+            seniority="SeniorUnsecured",
+            protection_side="Buyer",
             start_date="2025-06-17",
             maturity_date="2030-06-17",
         )
@@ -75,7 +75,7 @@ class TestParseCDSOrder:
             reference_entity="ACME Corp",
             spread_bps="100",
             seniority="MEZZANINE",
-            protection_side="BUYER",
+            protection_side="Buyer",
             start_date="2025-06-17",
             maturity_date="2030-06-17",
         )
@@ -86,8 +86,8 @@ class TestParseCDSOrder:
         raw = _with(
             reference_entity="ACME Corp",
             spread_bps="100",
-            seniority="SENIOR_UNSECURED",
-            protection_side="BUYER",
+            seniority="SeniorUnsecured",
+            protection_side="Buyer",
             start_date="2030-06-17",
             maturity_date="2025-06-17",
         )
@@ -98,8 +98,8 @@ class TestParseCDSOrder:
         raw = _with(
             reference_entity="ACME Corp",
             spread_bps="-50",
-            seniority="SENIOR_UNSECURED",
-            protection_side="BUYER",
+            seniority="SeniorUnsecured",
+            protection_side="Buyer",
             start_date="2025-06-17",
             maturity_date="2030-06-17",
         )
@@ -110,8 +110,8 @@ class TestParseCDSOrder:
         raw = _with(
             reference_entity="ACME Corp",
             spread_bps="100",
-            seniority="SUBORDINATED",
-            protection_side="SELLER",
+            seniority="Subordinated",
+            protection_side="Seller",
             start_date="2025-06-17",
             maturity_date="2030-06-17",
         )
@@ -124,8 +124,8 @@ class TestParseCDSOrder:
         raw = _with(
             reference_entity="ACME Corp",
             spread_bps="100",
-            seniority="SENIOR_UNSECURED",
-            protection_side="BUYER",
+            seniority="SeniorUnsecured",
+            protection_side="Buyer",
             start_date="2025-06-17",
             maturity_date="2030-06-17",
         )
@@ -143,7 +143,7 @@ class TestParseCDSOrder:
 class TestParseSwaptionOrder:
     def test_valid_produces_canonical_order(self) -> None:
         raw = _with(
-            swaption_type="PAYER",
+            swaption_type="Payer",
             expiry_date="2026-06-15",
             underlying_fixed_rate="0.035",
             underlying_float_index="SOFR",
@@ -169,7 +169,7 @@ class TestParseSwaptionOrder:
 
     def test_negative_underlying_fixed_rate_ok(self) -> None:
         raw = _with(
-            swaption_type="PAYER",
+            swaption_type="Payer",
             expiry_date="2026-06-15",
             underlying_fixed_rate="-0.01",
             underlying_float_index="SOFR",
@@ -182,7 +182,7 @@ class TestParseSwaptionOrder:
 
     def test_zero_tenor_months_err(self) -> None:
         raw = _with(
-            swaption_type="PAYER",
+            swaption_type="Payer",
             expiry_date="2026-06-15",
             underlying_fixed_rate="0.035",
             underlying_float_index="SOFR",
@@ -194,7 +194,7 @@ class TestParseSwaptionOrder:
 
     def test_instrument_detail_is_swaption_detail(self) -> None:
         raw = _with(
-            swaption_type="RECEIVER",
+            swaption_type="Receiver",
             expiry_date="2026-06-15",
             underlying_fixed_rate="0.035",
             underlying_float_index="SOFR",
@@ -208,7 +208,7 @@ class TestParseSwaptionOrder:
 
     def test_settlement_date_defaults_to_t_plus_1(self) -> None:
         raw = _with(
-            swaption_type="PAYER",
+            swaption_type="Payer",
             expiry_date="2026-06-15",
             underlying_fixed_rate="0.035",
             underlying_float_index="SOFR",
@@ -232,8 +232,8 @@ class TestIdempotency:
         raw = _with(
             reference_entity="ACME Corp",
             spread_bps="100",
-            seniority="SENIOR_UNSECURED",
-            protection_side="BUYER",
+            seniority="SeniorUnsecured",
+            protection_side="Buyer",
             start_date="2025-06-17",
             maturity_date="2030-06-17",
         )
@@ -247,7 +247,7 @@ class TestIdempotency:
 
     def test_swaption_idempotent(self) -> None:
         raw = _with(
-            swaption_type="PAYER",
+            swaption_type="Payer",
             expiry_date="2026-06-15",
             underlying_fixed_rate="0.035",
             underlying_float_index="SOFR",
@@ -290,8 +290,8 @@ class TestFieldValueIntegration:
         raw = _with(
             reference_entity="ACME Corp",
             spread_bps="100",
-            seniority="SENIOR_UNSECURED",
-            protection_side="BUYER",
+            seniority="SeniorUnsecured",
+            protection_side="Buyer",
             start_date="2025-06-17",
             maturity_date="2030-06-17",
         )
@@ -308,7 +308,7 @@ class TestFieldValueIntegration:
 
     def test_swaption_fields_match_raw(self) -> None:
         raw = _with(
-            swaption_type="RECEIVER",
+            swaption_type="Receiver",
             expiry_date="2026-06-15",
             underlying_fixed_rate="0.035",
             underlying_float_index="SOFR",

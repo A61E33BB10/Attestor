@@ -882,8 +882,8 @@ def parse_cds_order(
     """Parse raw CDS order into CanonicalOrder with CDSDetail.
 
     Required fields: reference_entity, spread_bps, start_date, maturity_date,
-    seniority (SENIOR_UNSECURED|SUBORDINATED|SENIOR_SECURED),
-    protection_side (BUYER|SELLER).  Settlement default: T+1.
+    seniority (SeniorUnsecured|Subordinated|SeniorSecured),
+    protection_side (Buyer|Seller).  Settlement default: T+1.
     """
     violations: list[FieldViolation] = []
 
@@ -974,7 +974,7 @@ def parse_swaption_order(
 ) -> Ok[CanonicalOrder] | Err[ValidationError]:
     """Parse raw swaption order into CanonicalOrder with SwaptionDetail.
 
-    Required fields: swaption_type (PAYER|RECEIVER), expiry_date, underlying_fixed_rate,
+    Required fields: swaption_type (Payer|Receiver), expiry_date, underlying_fixed_rate,
     underlying_float_index, underlying_tenor_months, settlement_type.
     Settlement default: T+1.
     """

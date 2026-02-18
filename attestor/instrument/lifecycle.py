@@ -8,6 +8,10 @@ Phase D additions: ClosedStateEnum, TransferStatusEnum, EventIntentEnum,
 CorporateActionTypeEnum, ActionEnum, QuantityChangePI, PartyChangePI,
 SplitPI, TermsChangePI, IndexTransitionPI, ClosedState, Trade, TradeState,
 enriched BusinessEvent.
+
+NS7c additions: 16 CDM event-common enums (valuation, position-event,
+margin/collateral, performance-transfer, etc.) and 5 deep types
+(CreditEvent, CorporateAction, ObservationEvent, Valuation, Reset).
 """
 
 from __future__ import annotations
@@ -159,6 +163,197 @@ class AffirmationStatusEnum(Enum):
 
     AFFIRMED = "Affirmed"
     UNAFFIRMED = "Unaffirmed"
+
+
+# ---------------------------------------------------------------------------
+# NS7c: Valuation enums
+# ---------------------------------------------------------------------------
+
+
+class ValuationTypeEnum(Enum):
+    """Method used for valuation.
+
+    CDM: ValuationTypeEnum (2 values).
+    """
+
+    MARK_TO_MARKET = "MarkToMarket"
+    MARK_TO_MODEL = "MarkToModel"
+
+
+class ValuationSourceEnum(Enum):
+    """Source of valuation.
+
+    CDM: ValuationSourceEnum (1 value).
+    """
+
+    CENTRAL_COUNTERPARTY = "CentralCounterparty"
+
+
+class ValuationScopeEnum(Enum):
+    """Scope of the valuation.
+
+    CDM: ValuationScopeEnum (2 values).
+    """
+
+    COLLATERAL = "Collateral"
+    TRADE = "Trade"
+
+
+class PriceTimingEnum(Enum):
+    """When a price was sourced during a business day.
+
+    CDM: PriceTimingEnum (2 values).
+    """
+
+    CLOSING_PRICE = "ClosingPrice"
+    OPENING_PRICE = "OpeningPrice"
+
+
+# ---------------------------------------------------------------------------
+# NS7c: Position / instruction / transfer enums
+# ---------------------------------------------------------------------------
+
+
+class PositionEventIntentEnum(Enum):
+    """Intent associated with a position-level event.
+
+    CDM: PositionEventIntentEnum (7 values).
+    """
+
+    POSITION_CREATION = "PositionCreation"
+    CORPORATE_ACTION_ADJUSTMENT = "CorporateActionAdjustment"
+    DECREASE = "Decrease"
+    INCREASE = "Increase"
+    TRANSFER = "Transfer"
+    OPTION_EXERCISE = "OptionExercise"
+    VALUATION = "Valuation"
+
+
+class RecordAmountTypeEnum(Enum):
+    """Account level for billing summary.
+
+    CDM: RecordAmountTypeEnum (3 values).
+    """
+
+    ACCOUNT_TOTAL = "AccountTotal"
+    GRAND_TOTAL = "GrandTotal"
+    PARENT_TOTAL = "ParentTotal"
+
+
+class InstructionFunctionEnum(Enum):
+    """BusinessEvent function associated with input instructions.
+
+    CDM: InstructionFunctionEnum (5 values).
+    """
+
+    EXECUTION = "Execution"
+    CONTRACT_FORMATION = "ContractFormation"
+    QUANTITY_CHANGE = "QuantityChange"
+    RENEGOTIATION = "Renegotiation"
+    COMPRESSION = "Compression"
+
+
+class PerformanceTransferTypeEnum(Enum):
+    """Origin of a performance transfer.
+
+    CDM: PerformanceTransferTypeEnum (7 values).
+    """
+
+    COMMODITY = "Commodity"
+    CORRELATION = "Correlation"
+    DIVIDEND = "Dividend"
+    EQUITY = "Equity"
+    INTEREST = "Interest"
+    VOLATILITY = "Volatility"
+    VARIANCE = "Variance"
+
+
+class AssetTransferTypeEnum(Enum):
+    """Qualification of asset transfer type.
+
+    CDM: AssetTransferTypeEnum (1 value).
+    """
+
+    FREE_OF_PAYMENT = "FreeOfPayment"
+
+
+# ---------------------------------------------------------------------------
+# NS7c: Margin / collateral enums
+# ---------------------------------------------------------------------------
+
+
+class CallTypeEnum(Enum):
+    """Intended status of margin call message.
+
+    CDM: CallTypeEnum (3 values).
+    """
+
+    MARGIN_CALL = "MarginCall"
+    NOTIFICATION = "Notification"
+    EXPECTED_CALL = "ExpectedCall"
+
+
+class MarginCallActionEnum(Enum):
+    """Collateral action instruction.
+
+    CDM: MarginCallActionEnum (2 values).
+    """
+
+    DELIVERY = "Delivery"
+    RETURN = "Return"
+
+
+class CollateralStatusEnum(Enum):
+    """Settlement status of collateral.
+
+    CDM: CollateralStatusEnum (3 values).
+    """
+
+    FULL_AMOUNT = "FullAmount"
+    SETTLED_AMOUNT = "SettledAmount"
+    IN_TRANSIT_AMOUNT = "InTransitAmount"
+
+
+class MarginCallResponseTypeEnum(Enum):
+    """Response type to a margin call.
+
+    CDM: MarginCallResponseTypeEnum (3 values).
+    """
+
+    AGREE_IN_FULL = "AgreeinFull"
+    PARTIALLY_AGREE = "PartiallyAgree"
+    DISPUTE = "Dispute"
+
+
+class RegMarginTypeEnum(Enum):
+    """Margin type in relation to regulatory obligation.
+
+    CDM: RegMarginTypeEnum (3 values).
+    """
+
+    VM = "VM"
+    REG_IM = "RegIM"
+    NON_REG_IM = "NonRegIM"
+
+
+class RegIMRoleEnum(Enum):
+    """Party role in regulatory initial margin call.
+
+    CDM: RegIMRoleEnum (2 values).
+    """
+
+    PLEDGOR = "Pledgor"
+    SECURED = "Secured"
+
+
+class HaircutIndicatorEnum(Enum):
+    """Whether asset valuation includes haircut.
+
+    CDM: HaircutIndicatorEnum (2 values).
+    """
+
+    PRE_HAIRCUT = "PreHaircut"
+    POST_HAIRCUT = "PostHaircut"
 
 
 # ---------------------------------------------------------------------------
@@ -639,4 +834,129 @@ class BusinessEvent:
             raise TypeError(
                 "BusinessEvent: corporate_action_intent requires "
                 "event_intent=CORPORATE_ACTION_ADJUSTMENT"
+            )
+
+
+# ---------------------------------------------------------------------------
+# NS7c: Deep event-common types
+# ---------------------------------------------------------------------------
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class CreditEvent:
+    """Relevant data for a credit event.
+
+    CDM: CreditEvent — creditEventType + determination date + auction
+    + recovery + referenceInformation.
+    """
+
+    credit_event_type: CreditEventTypeEnum
+    event_determination_date: date
+    reference_entity: NonEmptyStr
+    auction_date: date | None = None
+    recovery_percent: Decimal | None = None
+
+    def __post_init__(self) -> None:
+        if self.recovery_percent is not None and not (
+            Decimal("0") <= self.recovery_percent <= Decimal("1")
+        ):
+            raise TypeError(
+                "CreditEvent: recovery_percent must be in [0, 1], "
+                f"got {self.recovery_percent}"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class CorporateAction:
+    """Relevant data for a corporate action.
+
+    CDM: CorporateAction — type + ex/pay/record/announcement dates
+    + underlier.  CDM condition: bespoke_event_description required
+    when type is BESPOKE_EVENT.
+    """
+
+    corporate_action_type: CorporateActionTypeEnum
+    ex_date: date
+    pay_date: date
+    underlier: NonEmptyStr
+    record_date: date | None = None
+    announcement_date: date | None = None
+    bespoke_event_description: NonEmptyStr | None = None
+
+    def __post_init__(self) -> None:
+        if (
+            self.corporate_action_type == CorporateActionTypeEnum.BESPOKE_EVENT
+            and self.bespoke_event_description is None
+        ):
+            raise TypeError(
+                "CorporateAction: bespoke_event_description required "
+                "when corporate_action_type is BESPOKE_EVENT"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class ObservationEvent:
+    """An observation event — credit event or corporate action.
+
+    CDM: ObservationEvent with one-of condition.
+    """
+
+    credit_event: CreditEvent | None = None
+    corporate_action: CorporateAction | None = None
+
+    def __post_init__(self) -> None:
+        has_credit = self.credit_event is not None
+        has_corp = self.corporate_action is not None
+        if has_credit == has_corp:
+            raise TypeError(
+                "ObservationEvent: exactly one of credit_event or "
+                "corporate_action must be set"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class Valuation:
+    """Value of an investment, asset, or security.
+
+    CDM: Valuation — amount + timestamp + method/source + scope.
+    CDM condition: required choice method, source (exactly one).
+    """
+
+    amount: Money
+    timestamp: UtcDatetime
+    scope: ValuationScopeEnum
+    method: ValuationTypeEnum | None = None
+    source: ValuationSourceEnum | None = None
+    delta: Decimal | None = None
+    valuation_timing: PriceTimingEnum | None = None
+
+    def __post_init__(self) -> None:
+        has_method = self.method is not None
+        has_source = self.source is not None
+        if has_method == has_source:
+            raise TypeError(
+                "Valuation: exactly one of method or source must be set"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class Reset:
+    """Reset/fixing value produced in cashflow calculations.
+
+    CDM: Reset — resetValue (price) + resetDate + rateRecordDate.
+    """
+
+    reset_value: Decimal
+    reset_date: date
+    rate_record_date: date | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.reset_value, Decimal) or not self.reset_value.is_finite():
+            raise TypeError(
+                f"Reset: reset_value must be finite Decimal, got {self.reset_value!r}"
             )

@@ -525,9 +525,9 @@ class TestGatewayMatchExhaustiveness:
     def test_cds_detail_accepted(self) -> None:
         detail = unwrap(CDSDetail.create(
             reference_entity="ACME Corp",
-            seniority="SENIOR_UNSECURED",
+            seniority="SeniorUnsecured",
             spread_bps=Decimal("100"),
-            protection_side="BUYER",
+            protection_side="Buyer",
             start_date=date(2025, 6, 15),
             maturity_date=date(2030, 6, 15),
         ))
@@ -536,7 +536,7 @@ class TestGatewayMatchExhaustiveness:
 
     def test_swaption_detail_accepted(self) -> None:
         detail = unwrap(SwaptionDetail.create(
-            swaption_type="PAYER",
+            swaption_type="Payer",
             expiry_date=date(2026, 6, 15),
             underlying_fixed_rate=Decimal("0.035"),
             underlying_float_index="SOFR",

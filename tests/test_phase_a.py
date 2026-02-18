@@ -807,7 +807,7 @@ class TestPayerReceiverOnCredit:
         assert isinstance(underlying, Ok)
 
         result = SwaptionPayoutSpec.create(
-            swaption_type="PAYER",
+            swaption_type="Payer",
             strike=Decimal("0.03"),
             exercise_date=date(2024, 1, 10),
             underlying_swap=underlying.value,

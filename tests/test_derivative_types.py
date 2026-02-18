@@ -56,7 +56,7 @@ class TestEnums:
         assert len(SettlementTypeEnum) == 4
 
     def test_margin_type_values(self) -> None:
-        assert {e.value for e in MarginType} == {"VARIATION", "INITIAL"}
+        assert {e.value for e in MarginType} == {"Variation", "Initial"}
 
 
 # ---------------------------------------------------------------------------

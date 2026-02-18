@@ -61,7 +61,7 @@ def create_swaption_premium_transaction(
         premium = order.price * order.quantity.value
 
     contract_unit = (
-        f"SWAPTION-{detail.swaption_type.value}-{detail.expiry_date.isoformat()}"
+        f"SWAPTION-{detail.swaption_type.name}-{detail.expiry_date.isoformat()}"
     )
 
     match PositiveDecimal.parse(premium):

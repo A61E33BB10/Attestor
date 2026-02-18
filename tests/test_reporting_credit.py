@@ -46,8 +46,8 @@ def _cds_order() -> CanonicalOrder:
         **_BASE,
         "reference_entity": "ACME Corp",
         "spread_bps": "100",
-        "seniority": "SENIOR_UNSECURED",
-        "protection_side": "BUYER",
+        "seniority": "SeniorUnsecured",
+        "protection_side": "Buyer",
         "start_date": "2025-06-17",
         "maturity_date": "2030-06-17",
     }
@@ -58,7 +58,7 @@ def _swaption_order() -> CanonicalOrder:
     raw = {
         **_BASE,
         "instrument_id": "SWN-USD-5Y",
-        "swaption_type": "PAYER",
+        "swaption_type": "Payer",
         "expiry_date": "2026-06-15",
         "underlying_fixed_rate": "0.035",
         "underlying_float_index": "SOFR",
@@ -121,8 +121,8 @@ class TestMiFIDIICDS:
         assert isinstance(fields, CDSReportFields)
         assert fields.reference_entity == "ACME Corp"
         assert fields.spread_bps == Decimal("100")
-        assert fields.seniority == "SENIOR_UNSECURED"
-        assert fields.protection_side == "BUYER"
+        assert fields.seniority == "SeniorUnsecured"
+        assert fields.protection_side == "Buyer"
 
 
 # ---------------------------------------------------------------------------
@@ -159,7 +159,7 @@ class TestMiFIDIISwaption:
         att = unwrap(project_mifid2_report(_swaption_order(), "ATT-SWN-003"))
         fields = att.value.instrument_fields
         assert isinstance(fields, SwaptionReportFields)
-        assert fields.swaption_type == "PAYER"
+        assert fields.swaption_type == "Payer"
         assert fields.expiry_date == date(2026, 6, 15)
         assert fields.underlying_fixed_rate == Decimal("0.035")
         assert fields.underlying_tenor_months == 60
@@ -292,8 +292,8 @@ class TestEMIRCredit:
         assert isinstance(report.instrument_fields, CDSReportFields)
         assert report.instrument_fields.reference_entity == "ACME Corp"
         assert report.instrument_fields.spread_bps == Decimal("100")
-        assert report.instrument_fields.seniority == "SENIOR_UNSECURED"
-        assert report.instrument_fields.protection_side == "BUYER"
+        assert report.instrument_fields.seniority == "SeniorUnsecured"
+        assert report.instrument_fields.protection_side == "Buyer"
 
     def test_emir_swaption_instrument_fields(self) -> None:
         """EMIR swaption report has SwaptionReportFields with correct values."""
@@ -301,7 +301,7 @@ class TestEMIRCredit:
 
         report = unwrap(project_emir_report(_swaption_order(), "ATT-EMIR-004")).value
         assert isinstance(report.instrument_fields, SwaptionReportFields)
-        assert report.instrument_fields.swaption_type == "PAYER"
+        assert report.instrument_fields.swaption_type == "Payer"
         assert report.instrument_fields.expiry_date == date(2026, 6, 15)
         assert report.instrument_fields.underlying_fixed_rate == Decimal("0.035")
         assert report.instrument_fields.underlying_tenor_months == 60
@@ -346,8 +346,8 @@ class TestFrozenInvariants:
         fields = CDSReportFields(
             reference_entity="ACME",
             spread_bps=Decimal("100"),
-            seniority="SENIOR_UNSECURED",
-            protection_side="BUYER",
+            seniority="SeniorUnsecured",
+            protection_side="Buyer",
         )
         assert dataclasses.is_dataclass(fields)
         try:
@@ -362,7 +362,7 @@ class TestFrozenInvariants:
         from datetime import date
 
         fields = SwaptionReportFields(
-            swaption_type="PAYER",
+            swaption_type="Payer",
             expiry_date=date(2026, 6, 15),
             underlying_fixed_rate=Decimal("0.035"),
             underlying_tenor_months=60,

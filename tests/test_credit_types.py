@@ -101,14 +101,14 @@ class TestCreditEnums:
 
     def test_seniority_level_values(self) -> None:
         assert {e.value for e in SeniorityLevel} == {
-            "SENIOR_UNSECURED", "SUBORDINATED", "SENIOR_SECURED",
+            "SeniorUnsecured", "Subordinated", "SeniorSecured",
         }
 
     def test_protection_side_values(self) -> None:
-        assert {e.value for e in ProtectionSide} == {"BUYER", "SELLER"}
+        assert {e.value for e in ProtectionSide} == {"Buyer", "Seller"}
 
     def test_swaption_type_values(self) -> None:
-        assert {e.value for e in SwaptionType} == {"PAYER", "RECEIVER"}
+        assert {e.value for e in SwaptionType} == {"Payer", "Receiver"}
 
 
 # ---------------------------------------------------------------------------

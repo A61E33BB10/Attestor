@@ -1363,8 +1363,8 @@ class TestCSC3ReportProjectionIdempotent:
             "timestamp": "2025-06-15T10:00:00+00:00",
             "reference_entity": "ACME Corp",
             "spread_bps": "100",
-            "seniority": "SENIOR_UNSECURED",
-            "protection_side": "BUYER",
+            "seniority": "SeniorUnsecured",
+            "protection_side": "Buyer",
             "start_date": "2025-06-20",
             "maturity_date": "2030-06-20",
         }
