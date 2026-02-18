@@ -521,11 +521,13 @@ PrimitiveInstruction = (
 class ClosedState:
     """Reason and date a trade was closed.
 
-    CDM: ClosedState = state + activityDate.
+    CDM: ClosedState = state + activityDate + effectiveDate + lastPaymentDate.
     """
 
     state: ClosedStateEnum
-    effective_date: date
+    activity_date: date
+    effective_date: date | None = None
+    last_payment_date: date | None = None
 
 
 @final
@@ -533,8 +535,8 @@ class ClosedState:
 class Trade:
     """A trade with counterparty role assignments.
 
-    CDM: Trade = tradeIdentifier + tradeDate + party + partyRole + product.
-    Enriched from Instrument with explicit party roles and legal agreement.
+    CDM: Trade = tradeIdentifier + tradeDate + party + partyRole + product
+    + executionDetails + contractDetails + clearedDate.
     """
 
     trade_id: NonEmptyStr
@@ -543,6 +545,25 @@ class Trade:
     product_id: NonEmptyStr
     currency: NonEmptyStr
     legal_agreement_id: NonEmptyStr | None = None
+    # NS7b: CDM executionDetails fields
+    execution_type: ExecutionTypeEnum | None = None
+    execution_venue: NonEmptyStr | None = None
+    cleared_date: date | None = None
+
+    def __post_init__(self) -> None:
+        # CDM: execution_venue is nested inside ExecutionDetails with execution_type
+        if self.execution_venue is not None and self.execution_type is None:
+            raise TypeError(
+                "Trade: execution_venue requires execution_type"
+            )
+        # CDM condition ExecutionVenue: Electronic requires venue
+        if (
+            self.execution_type == ExecutionTypeEnum.ELECTRONIC
+            and self.execution_venue is None
+        ):
+            raise TypeError(
+                "Trade: ELECTRONIC execution_type requires execution_venue"
+            )
 
 
 @final
@@ -560,6 +581,9 @@ class TradeState:
     closed_state: ClosedState | None = None
     reset_history: tuple[UtcDatetime, ...] = ()
     transfer_history: tuple[UtcDatetime, ...] = ()
+    # NS7b: CDM observationHistory + valuationHistory
+    observation_history: tuple[UtcDatetime, ...] = ()
+    valuation_history: tuple[UtcDatetime, ...] = ()
 
     def __post_init__(self) -> None:
         # If closed, must have a closed_state
@@ -585,17 +609,34 @@ class TradeState:
 class BusinessEvent:
     """A business event wrapping a primitive instruction.
 
-    Phase D enrichment: optional before/after trade state snapshots,
-    event intent qualifier, action type, and event reference for
-    causation chains.
+    CDM: BusinessEvent extends EventInstruction.
+    EventInstruction = instruction + before + intent + eventDate
+    + effectiveDate + corporateActionIntent.
+    BusinessEvent adds eventQualifier + after (0..*).
     """
 
     instruction: PrimitiveInstruction
     timestamp: UtcDatetime
     attestation_id: str | None = None
-    # Phase D: state-centric enrichment
     before: TradeState | None = None
-    after: TradeState | None = None
+    after: tuple[TradeState, ...] = ()
     event_intent: EventIntentEnum | None = None
     action: ActionEnum = ActionEnum.NEW
     event_ref: NonEmptyStr | None = None
+    # NS7b: CDM EventInstruction + BusinessEvent fields
+    event_date: date | None = None
+    effective_date: date | None = None
+    event_qualifier: NonEmptyStr | None = None
+    corporate_action_intent: CorporateActionTypeEnum | None = None
+
+    def __post_init__(self) -> None:
+        # CDM condition CorporateAction: if corporateActionIntent exists
+        # then intent = EventIntentEnum -> CorporateActionAdjustment
+        if (
+            self.corporate_action_intent is not None
+            and self.event_intent != EventIntentEnum.CORPORATE_ACTION_ADJUSTMENT
+        ):
+            raise TypeError(
+                "BusinessEvent: corporate_action_intent requires "
+                "event_intent=CORPORATE_ACTION_ADJUSTMENT"
+            )

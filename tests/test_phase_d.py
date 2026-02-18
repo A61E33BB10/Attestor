@@ -380,14 +380,14 @@ class TestClosedState:
     def test_valid(self) -> None:
         cs = ClosedState(
             state=ClosedStateEnum.MATURED,
-            effective_date=date(2030, 1, 15),
+            activity_date=date(2030, 1, 15),
         )
         assert cs.state == ClosedStateEnum.MATURED
 
     def test_frozen(self) -> None:
         cs = ClosedState(
             state=ClosedStateEnum.MATURED,
-            effective_date=date(2030, 1, 15),
+            activity_date=date(2030, 1, 15),
         )
         with pytest.raises(AttributeError):
             cs.state = ClosedStateEnum.TERMINATED  # type: ignore[misc]
@@ -460,7 +460,7 @@ class TestTradeState:
     def test_valid_closed(self) -> None:
         cs = ClosedState(
             state=ClosedStateEnum.MATURED,
-            effective_date=date(2030, 1, 15),
+            activity_date=date(2030, 1, 15),
         )
         ts = TradeState(
             trade=self._make_trade(),
@@ -480,7 +480,7 @@ class TestTradeState:
     def test_open_with_closed_state_rejected(self) -> None:
         cs = ClosedState(
             state=ClosedStateEnum.TERMINATED,
-            effective_date=date(2025, 6, 15),
+            activity_date=date(2025, 6, 15),
         )
         with pytest.raises(TypeError, match="closed_state must be None"):
             TradeState(
@@ -530,7 +530,7 @@ class TestBusinessEventEnrichment:
         if status == PositionStatusEnum.CLOSED:
             cs = ClosedState(
                 state=ClosedStateEnum.MATURED,
-                effective_date=date(2030, 1, 15),
+                activity_date=date(2030, 1, 15),
             )
         return TradeState(trade=trade, status=status, closed_state=cs)
 
@@ -546,7 +546,7 @@ class TestBusinessEventEnrichment:
             timestamp=UtcDatetime.now(),
         )
         assert ev.before is None
-        assert ev.after is None
+        assert ev.after == ()
         assert ev.event_intent is None
         assert ev.action == ActionEnum.NEW
         assert ev.event_ref is None
@@ -563,13 +563,13 @@ class TestBusinessEventEnrichment:
             instruction=pi,
             timestamp=UtcDatetime.now(),
             before=before,
-            after=after,
+            after=(after,),
             event_intent=EventIntentEnum.DECREASE,
             action=ActionEnum.NEW,
             event_ref=_nes("TX-12345"),
         )
         assert ev.before is not None
-        assert ev.after is not None
+        assert len(ev.after) == 1
         assert ev.event_intent == EventIntentEnum.DECREASE
         assert ev.event_ref is not None
 
@@ -622,7 +622,7 @@ class TestTradeStateConservation:
             currency=_USD,
         )
         for reason in ClosedStateEnum:
-            cs = ClosedState(state=reason, effective_date=date(2030, 1, 15))
+            cs = ClosedState(state=reason, activity_date=date(2030, 1, 15))
             ts = TradeState(
                 trade=trade,
                 status=PositionStatusEnum.CLOSED,
@@ -641,7 +641,7 @@ class TestTradeStateConservation:
         )
         cs = ClosedState(
             state=ClosedStateEnum.MATURED,
-            effective_date=date(2030, 1, 15),
+            activity_date=date(2030, 1, 15),
         )
         for status in PositionStatusEnum:
             if status == PositionStatusEnum.CLOSED:
