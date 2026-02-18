@@ -73,22 +73,50 @@ from attestor.oracle.ingest import MarketDataPoint as MarketDataPoint
 from attestor.oracle.ingest import ingest_equity_fill as ingest_equity_fill
 from attestor.oracle.ingest import ingest_equity_quote as ingest_equity_quote
 
-# Phase B: Observable and Index Taxonomy
+# Phase B / NS4: Observable and Index Taxonomy (CDM observable-asset)
 from attestor.oracle.observable import CalculationMethodEnum as CalculationMethodEnum
 from attestor.oracle.observable import CreditIndex as CreditIndex
+from attestor.oracle.observable import (
+    CreditRatingAgencyEnum as CreditRatingAgencyEnum,
+)
+from attestor.oracle.observable import (
+    CreditRatingCreditWatchEnum as CreditRatingCreditWatchEnum,
+)
+from attestor.oracle.observable import (
+    CreditRatingOutlookEnum as CreditRatingOutlookEnum,
+)
 from attestor.oracle.observable import EquityIndex as EquityIndex
+from attestor.oracle.observable import EquityIndexEnum as EquityIndexEnum
+from attestor.oracle.observable import FeeTypeEnum as FeeTypeEnum
 from attestor.oracle.observable import (
     FloatingRateCalculationParameters as FloatingRateCalculationParameters,
 )
 from attestor.oracle.observable import FloatingRateIndex as FloatingRateIndex
 from attestor.oracle.observable import FloatingRateIndexEnum as FloatingRateIndexEnum
-from attestor.oracle.observable import FXRateIndex as FXRateIndex
+from attestor.oracle.observable import (
+    ForeignExchangeRateIndex as ForeignExchangeRateIndex,
+)
+from attestor.oracle.observable import InflationIndex as InflationIndex
+from attestor.oracle.observable import (
+    InflationRateIndexEnum as InflationRateIndexEnum,
+)
+from attestor.oracle.observable import InformationProviderEnum as InformationProviderEnum
+from attestor.oracle.observable import InformationSource as InformationSource
 from attestor.oracle.observable import ObservationIdentifier as ObservationIdentifier
+from attestor.oracle.observable import OtherIndex as OtherIndex
+from attestor.oracle.observable import PremiumTypeEnum as PremiumTypeEnum
 from attestor.oracle.observable import Price as Price
+from attestor.oracle.observable import PriceComposite as PriceComposite
 from attestor.oracle.observable import PriceExpressionEnum as PriceExpressionEnum
+from attestor.oracle.observable import PriceOperandEnum as PriceOperandEnum
 from attestor.oracle.observable import PriceQuantity as PriceQuantity
+from attestor.oracle.observable import PriceSubTypeEnum as PriceSubTypeEnum
 from attestor.oracle.observable import PriceTypeEnum as PriceTypeEnum
+from attestor.oracle.observable import QuotationStyleEnum as QuotationStyleEnum
+from attestor.oracle.observable import QuoteBasisEnum as QuoteBasisEnum
+from attestor.oracle.observable import QuotedCurrencyPair as QuotedCurrencyPair
 from attestor.oracle.observable import ResetDates as ResetDates
+from attestor.oracle.observable import ValuationMethodEnum as ValuationMethodEnum
 
 # Phase 4: Vol surface
 from attestor.oracle.vol_surface import SVIParameters as SVIParameters

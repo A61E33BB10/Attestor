@@ -76,6 +76,9 @@ from attestor.core.quantity import (
     AnyQuantity as AnyQuantity,
 )
 from attestor.core.quantity import (
+    ArithmeticOperationEnum as ArithmeticOperationEnum,
+)
+from attestor.core.quantity import (
     FinancialUnitEnum as FinancialUnitEnum,
 )
 from attestor.core.quantity import (

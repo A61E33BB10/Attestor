@@ -40,14 +40,18 @@ from attestor.oracle.observable import (
     FloatingRateCalculationParameters,
     FloatingRateIndex,
     FloatingRateIndexEnum,
-    FXRateIndex,
+    ForeignExchangeRateIndex,
     Index,
+    InformationProviderEnum,
+    InformationSource,
     Observable,
     ObservationIdentifier,
     Price,
     PriceExpressionEnum,
     PriceQuantity,
     PriceTypeEnum,
+    QuoteBasisEnum,
+    QuotedCurrencyPair,
     ResetDates,
 )
 
@@ -83,6 +87,18 @@ _BBG = NonEmptyStr.parse("Bloomberg")
 assert not isinstance(_BBG, Exception)
 _BBG = _BBG.value
 
+
+_EUR = NonEmptyStr.parse("EUR")
+assert not isinstance(_EUR, Exception)
+_EUR = _EUR.value
+
+_EURUSD_PAIR = QuotedCurrencyPair(
+    currency1=_EUR, currency2=_USD,
+    quote_basis=QuoteBasisEnum.CURRENCY1_PER_CURRENCY2,
+)
+_WMR_SOURCE = InformationSource(
+    source_provider=InformationProviderEnum.REUTERS,
+)
 
 _SHARE_UNIT = UnitType.of_financial(FinancialUnitEnum.SHARE)
 _CCY_UNIT = UnitType(currency=NonEmptyStr(value="USD"))
@@ -207,32 +223,28 @@ class TestCreditIndex:
         with pytest.raises(AttributeError):
             ci.index_series = 43  # type: ignore[misc]
 
-    def test_series_zero_rejected(self) -> None:
-        with pytest.raises(TypeError, match="index_series must be > 0"):
-            CreditIndex(
-                index_name=_CDX, index_series=0, index_annex_version=1,
-            )
+    def test_series_zero_allowed(self) -> None:
+        """CDM cardinality: index_series >= 0."""
+        ci = CreditIndex(index_name=_CDX, index_series=0)
+        assert ci.index_series == 0
 
     def test_series_negative_rejected(self) -> None:
-        with pytest.raises(TypeError, match="index_series must be > 0"):
+        with pytest.raises(TypeError, match="index_series must be >= 0"):
             CreditIndex(
-                index_name=_CDX, index_series=-1, index_annex_version=1,
+                index_name=_CDX, index_series=-1,
             )
 
-    def test_annex_version_zero_rejected(self) -> None:
-        with pytest.raises(
-            TypeError, match="index_annex_version must be > 0",
-        ):
-            CreditIndex(
-                index_name=_CDX, index_series=42, index_annex_version=0,
-            )
+    def test_annex_version_zero_allowed(self) -> None:
+        """CDM cardinality: index_annex_version >= 0."""
+        ci = CreditIndex(index_name=_CDX, index_annex_version=0)
+        assert ci.index_annex_version == 0
 
     def test_annex_version_negative_rejected(self) -> None:
         with pytest.raises(
-            TypeError, match="index_annex_version must be > 0",
+            TypeError, match="index_annex_version must be >= 0",
         ):
             CreditIndex(
-                index_name=_CDX, index_series=42, index_annex_version=-5,
+                index_name=_CDX, index_annex_version=-5,
             )
 
     def test_series_bool_rejected(self) -> None:
@@ -279,20 +291,26 @@ class TestEquityIndex:
 
 
 # ---------------------------------------------------------------------------
-# FXRateIndex
+# ForeignExchangeRateIndex
 # ---------------------------------------------------------------------------
 
 
-class TestFXRateIndex:
+class TestForeignExchangeRateIndex:
     def test_valid(self) -> None:
-        fxi = FXRateIndex(fixing_source=_WMR, currency=_USD)
-        assert fxi.fixing_source == _WMR
-        assert fxi.currency == _USD
+        fxi = ForeignExchangeRateIndex(
+            quoted_currency_pair=_EURUSD_PAIR,
+            primary_source=_WMR_SOURCE,
+        )
+        assert fxi.quoted_currency_pair == _EURUSD_PAIR
+        assert fxi.primary_source == _WMR_SOURCE
 
     def test_frozen(self) -> None:
-        fxi = FXRateIndex(fixing_source=_WMR, currency=_USD)
+        fxi = ForeignExchangeRateIndex(
+            quoted_currency_pair=_EURUSD_PAIR,
+            primary_source=_WMR_SOURCE,
+        )
         with pytest.raises(AttributeError):
-            fxi.currency = _CDX  # type: ignore[misc]
+            fxi.primary_source = _WMR_SOURCE  # type: ignore[misc]
 
 
 # ---------------------------------------------------------------------------
@@ -301,7 +319,8 @@ class TestFXRateIndex:
 
 
 class TestIndexUnion:
-    """Index = FloatingRateIndex | CreditIndex | EquityIndex | FXRateIndex.
+    """Index = FloatingRateIndex | InflationIndex | CreditIndex
+             | EquityIndex | ForeignExchangeRateIndex | OtherIndex.
 
     Python `type` aliases aren't introspectable via get_args at runtime.
     We verify the union's __value__ attribute (TypeAliasType) and test that
@@ -327,8 +346,11 @@ class TestIndexUnion:
         assert isinstance(idx, EquityIndex)
 
     def test_fxrate_is_valid_index(self) -> None:
-        idx: Index = FXRateIndex(fixing_source=_WMR, currency=_USD)
-        assert isinstance(idx, FXRateIndex)
+        idx: Index = ForeignExchangeRateIndex(
+            quoted_currency_pair=_EURUSD_PAIR,
+            primary_source=_WMR_SOURCE,
+        )
+        assert isinstance(idx, ForeignExchangeRateIndex)
 
 
 class TestObservableUnion:
@@ -350,12 +372,12 @@ class TestObservableUnion:
 
 class TestPriceTypeEnum:
     def test_count(self) -> None:
-        assert len(PriceTypeEnum) == 5
+        assert len(PriceTypeEnum) == 8
 
     def test_members(self) -> None:
         expected = {
-            "INTEREST_RATE", "EXCHANGE_RATE", "ASSET_PRICE",
-            "CASH_PRICE", "NET_PRICE",
+            "ASSET_PRICE", "CASH_PRICE", "CORRELATION", "DIVIDEND",
+            "EXCHANGE_RATE", "INTEREST_RATE", "VARIANCE", "VOLATILITY",
         }
         actual = {e.name for e in PriceTypeEnum}
         assert actual == expected
@@ -368,10 +390,13 @@ class TestPriceTypeEnum:
 
 class TestPriceExpressionEnum:
     def test_count(self) -> None:
-        assert len(PriceExpressionEnum) == 3
+        assert len(PriceExpressionEnum) == 4
 
     def test_members(self) -> None:
-        expected = {"ABSOLUTE", "PERCENTAGE_OF_NOTIONAL", "PER_UNIT"}
+        expected = {
+            "ABSOLUTE_TERMS", "PERCENTAGE_OF_NOTIONAL",
+            "PAR_VALUE_FRACTION", "PER_OPTION",
+        }
         actual = {e.name for e in PriceExpressionEnum}
         assert actual == expected
 
@@ -387,19 +412,19 @@ class TestPrice:
             value=Decimal("1.2345"),
             currency=_USD,
             price_type=PriceTypeEnum.EXCHANGE_RATE,
-            price_expression=PriceExpressionEnum.ABSOLUTE,
+            price_expression=PriceExpressionEnum.ABSOLUTE_TERMS,
         )
         assert p.value == Decimal("1.2345")
         assert p.currency == _USD
         assert p.price_type == PriceTypeEnum.EXCHANGE_RATE
-        assert p.price_expression == PriceExpressionEnum.ABSOLUTE
+        assert p.price_expression == PriceExpressionEnum.ABSOLUTE_TERMS
 
     def test_frozen(self) -> None:
         p = Price(
             value=Decimal("100"),
             currency=_USD,
             price_type=PriceTypeEnum.ASSET_PRICE,
-            price_expression=PriceExpressionEnum.PER_UNIT,
+            price_expression=PriceExpressionEnum.ABSOLUTE_TERMS,
         )
         with pytest.raises(AttributeError):
             p.value = Decimal("200")  # type: ignore[misc]
@@ -410,7 +435,7 @@ class TestPrice:
                 value=Decimal("NaN"),
                 currency=_USD,
                 price_type=PriceTypeEnum.ASSET_PRICE,
-                price_expression=PriceExpressionEnum.ABSOLUTE,
+                price_expression=PriceExpressionEnum.ABSOLUTE_TERMS,
             )
 
     def test_infinity_rejected(self) -> None:
@@ -419,7 +444,7 @@ class TestPrice:
                 value=Decimal("Infinity"),
                 currency=_USD,
                 price_type=PriceTypeEnum.INTEREST_RATE,
-                price_expression=PriceExpressionEnum.ABSOLUTE,
+                price_expression=PriceExpressionEnum.ABSOLUTE_TERMS,
             )
 
     def test_negative_price_allowed(self) -> None:
@@ -428,16 +453,27 @@ class TestPrice:
             value=Decimal("-0.005"),
             currency=_USD,
             price_type=PriceTypeEnum.INTEREST_RATE,
-            price_expression=PriceExpressionEnum.ABSOLUTE,
+            price_expression=PriceExpressionEnum.ABSOLUTE_TERMS,
         )
         assert p.value == Decimal("-0.005")
 
-    def test_zero_price_allowed(self) -> None:
+    def test_zero_cash_price_rejected(self) -> None:
+        """CDM PositiveCashPrice: CashPrice must have value > 0."""
+        with pytest.raises(TypeError, match="CashPrice must have value > 0"):
+            Price(
+                value=Decimal("0"),
+                currency=_USD,
+                price_type=PriceTypeEnum.CASH_PRICE,
+                price_expression=PriceExpressionEnum.ABSOLUTE_TERMS,
+            )
+
+    def test_zero_interest_rate_allowed(self) -> None:
+        """Zero interest rate is valid (no CDM positivity constraint)."""
         p = Price(
             value=Decimal("0"),
             currency=_USD,
-            price_type=PriceTypeEnum.CASH_PRICE,
-            price_expression=PriceExpressionEnum.ABSOLUTE,
+            price_type=PriceTypeEnum.INTEREST_RATE,
+            price_expression=PriceExpressionEnum.ABSOLUTE_TERMS,
         )
         assert p.value == Decimal("0")
 
@@ -453,12 +489,14 @@ class TestPriceQuantity:
             value=Decimal("0.05"),
             currency=_USD,
             price_type=PriceTypeEnum.INTEREST_RATE,
-            price_expression=PriceExpressionEnum.ABSOLUTE,
+            price_expression=PriceExpressionEnum.ABSOLUTE_TERMS,
         )
         pq = PriceQuantity(
-            price=price, quantity=_nnq("1000000", _CCY_UNIT), observable=_SOFR,
+            price=(price,),
+            quantity=(_nnq("1000000", _CCY_UNIT),),
+            observable=_SOFR,
         )
-        assert pq.price == price
+        assert pq.price == (price,)
         assert pq.observable == _SOFR
 
     def test_valid_with_asset_observable(self) -> None:
@@ -466,12 +504,14 @@ class TestPriceQuantity:
             value=Decimal("150.25"),
             currency=_USD,
             price_type=PriceTypeEnum.ASSET_PRICE,
-            price_expression=PriceExpressionEnum.PER_UNIT,
+            price_expression=PriceExpressionEnum.ABSOLUTE_TERMS,
         )
         ticker = NonEmptyStr.parse("AAPL")
         assert not isinstance(ticker, Exception)
         pq = PriceQuantity(
-            price=price, quantity=_nnq("100"), observable=ticker.value,
+            price=(price,),
+            quantity=(_nnq("100"),),
+            observable=ticker.value,
         )
         assert pq.observable == ticker.value
 
@@ -480,13 +520,15 @@ class TestPriceQuantity:
             value=Decimal("1.5"),
             currency=_USD,
             price_type=PriceTypeEnum.EXCHANGE_RATE,
-            price_expression=PriceExpressionEnum.ABSOLUTE,
+            price_expression=PriceExpressionEnum.ABSOLUTE_TERMS,
         )
         pq = PriceQuantity(
-            price=price, quantity=_nnq("500", _CCY_UNIT), observable=_SOFR,
+            price=(price,),
+            quantity=(_nnq("500", _CCY_UNIT),),
+            observable=_SOFR,
         )
         with pytest.raises(AttributeError):
-            pq.price = price  # type: ignore[misc]
+            pq.price = (price,)  # type: ignore[misc]
 
 
 # ---------------------------------------------------------------------------
@@ -532,10 +574,10 @@ class TestObservationIdentifier:
 
 class TestCalculationMethodEnum:
     def test_count(self) -> None:
-        assert len(CalculationMethodEnum) == 2
+        assert len(CalculationMethodEnum) == 3
 
     def test_members(self) -> None:
-        expected = {"COMPOUNDING", "AVERAGING"}
+        expected = {"COMPOUNDING", "AVERAGING", "COMPOUNDED_INDEX"}
         actual = {e.name for e in CalculationMethodEnum}
         assert actual == expected
 

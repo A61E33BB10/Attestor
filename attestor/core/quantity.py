@@ -57,6 +57,20 @@ class RoundingDirectionEnum(Enum):
     NEAREST = "Nearest"
 
 
+class ArithmeticOperationEnum(Enum):
+    """Arithmetic operator for price composition and other calculations.
+
+    CDM: ArithmeticOperationEnum (exact 6 members).
+    """
+
+    ADD = "Add"
+    SUBTRACT = "Subtract"
+    MULTIPLY = "Multiply"
+    DIVIDE = "Divide"
+    MAX = "Max"
+    MIN = "Min"
+
+
 # ---------------------------------------------------------------------------
 # UnitType  (CDM Rosetta: base-math-type.rosetta, one-of condition)
 # ---------------------------------------------------------------------------
