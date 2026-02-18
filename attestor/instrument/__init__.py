@@ -61,7 +61,19 @@ from attestor.instrument.derivative_types import (
     AmericanExercise as AmericanExercise,
 )
 from attestor.instrument.derivative_types import (
+    AssetPayoutTradeTypeEnum as AssetPayoutTradeTypeEnum,
+)
+from attestor.instrument.derivative_types import (
+    AveragingInOutEnum as AveragingInOutEnum,
+)
+from attestor.instrument.derivative_types import (
     BermudaExercise as BermudaExercise,
+)
+from attestor.instrument.derivative_types import (
+    CalculationAgent as CalculationAgent,
+)
+from attestor.instrument.derivative_types import (
+    CallingPartyEnum as CallingPartyEnum,
 )
 from attestor.instrument.derivative_types import (
     CashSettlementTerms as CashSettlementTerms,
@@ -79,7 +91,13 @@ from attestor.instrument.derivative_types import (
     EuropeanExercise as EuropeanExercise,
 )
 from attestor.instrument.derivative_types import (
+    ExerciseNoticeGiverEnum as ExerciseNoticeGiverEnum,
+)
+from attestor.instrument.derivative_types import (
     ExerciseTerms as ExerciseTerms,
+)
+from attestor.instrument.derivative_types import (
+    ExpirationTimeTypeEnum as ExpirationTimeTypeEnum,
 )
 from attestor.instrument.derivative_types import (
     FuturesDetail as FuturesDetail,
@@ -105,13 +123,13 @@ from attestor.instrument.derivative_types import (
     OptionDetail as OptionDetail,
 )
 from attestor.instrument.derivative_types import (
+    OptionExerciseStyleEnum as OptionExerciseStyleEnum,
+)
+from attestor.instrument.derivative_types import (
     OptionPayoutSpec as OptionPayoutSpec,
 )
 from attestor.instrument.derivative_types import (
-    OptionStyle as OptionStyle,
-)
-from attestor.instrument.derivative_types import (
-    OptionType as OptionType,
+    OptionTypeEnum as OptionTypeEnum,
 )
 from attestor.instrument.derivative_types import (
     PerformancePayoutSpec as PerformancePayoutSpec,
@@ -124,6 +142,9 @@ from attestor.instrument.derivative_types import (
 )
 from attestor.instrument.derivative_types import (
     RestructuringEnum as RestructuringEnum,
+)
+from attestor.instrument.derivative_types import (
+    ReturnTerms as ReturnTerms,
 )
 from attestor.instrument.derivative_types import (
     SeniorityLevel as SeniorityLevel,
@@ -139,6 +160,9 @@ from attestor.instrument.derivative_types import (
 )
 from attestor.instrument.derivative_types import (
     SwaptionType as SwaptionType,
+)
+from attestor.instrument.derivative_types import (
+    TerminationProvision as TerminationProvision,
 )
 from attestor.instrument.fx_types import (
     DayCountConvention as DayCountConvention,

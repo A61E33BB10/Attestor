@@ -16,8 +16,8 @@ from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType
 from attestor.instrument.derivative_types import (
     FuturesDetail,
     OptionDetail,
-    OptionStyle,
-    OptionType,
+    OptionExerciseStyleEnum,
+    OptionTypeEnum,
     SettlementType,
 )
 from attestor.instrument.lifecycle import (
@@ -106,8 +106,8 @@ class TestFullOptionLifecycle:
             # Option-specific
             "strike": "150",
             "expiry_date": date(2025, 12, 19),
-            "option_type": "CALL",
-            "option_style": "AMERICAN",
+            "option_type": "Call",
+            "option_style": "American",
             "settlement_type": "CASH",
             "underlying_id": "AAPL",
         }
@@ -120,7 +120,7 @@ class TestFullOptionLifecycle:
         party_b = unwrap(Party.create("PB", "Party B", _LEI_B))
         instrument = unwrap(create_option_instrument(
             "AAPL251219C00150000", "AAPL", Decimal("150"),
-            date(2025, 12, 19), OptionType.CALL, OptionStyle.AMERICAN,
+            date(2025, 12, 19), OptionTypeEnum.CALL, OptionExerciseStyleEnum.AMERICAN,
             SettlementType.CASH, "USD", "CBOE",
             (party_a, party_b), date(2025, 6, 15),
         ))
@@ -131,7 +131,7 @@ class TestFullOptionLifecycle:
         quote_att = unwrap(ingest_option_quote(
             instrument_id="AAPL251219C00150000",
             underlying_id="AAPL", strike=Decimal("150"),
-            expiry_date=date(2025, 12, 19), option_type=OptionType.CALL,
+            expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
             bid=Decimal("5.00"), ask=Decimal("5.50"),
             currency="USD", venue="CBOE",
             timestamp=datetime(2025, 6, 15, 10, 0, 0, tzinfo=UTC),
@@ -187,7 +187,7 @@ class TestFullOptionLifecycle:
         report = report_att.value
         assert isinstance(report.instrument_fields, OptionReportFields)
         assert report.instrument_fields.strike == Decimal("150")
-        assert report.instrument_fields.option_type == OptionType.CALL
+        assert report.instrument_fields.option_type == OptionTypeEnum.CALL
 
         # 10. Conservation
         contract_unit = (
@@ -204,7 +204,7 @@ class TestFullOptionLifecycle:
         """Premium + OTM expiry (no exercise) — position closed, no extra cash."""
         detail = unwrap(OptionDetail.create(
             strike=Decimal("200"), expiry_date=date(2025, 12, 19),
-            option_type=OptionType.CALL, option_style=OptionStyle.EUROPEAN,
+            option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.EUROPEAN,
             settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
         ))
         order = unwrap(CanonicalOrder.create(
@@ -391,10 +391,10 @@ class TestFullFuturesLifecycle:
 class TestImportSmoke:
     def test_import_derivative_types(self) -> None:
         from attestor.instrument.derivative_types import (
-            OptionType,
+            OptionTypeEnum,
             SettlementType,
         )
-        assert OptionType.CALL.value == "CALL"
+        assert OptionTypeEnum.CALL.value == "Call"
         assert SettlementType.PHYSICAL.value == "PHYSICAL"
 
     def test_import_ledger_options(self) -> None:

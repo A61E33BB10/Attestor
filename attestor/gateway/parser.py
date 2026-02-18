@@ -21,8 +21,8 @@ from attestor.instrument.derivative_types import (
     FXDetail,
     IRSwapDetail,
     OptionDetail,
-    OptionStyle,
-    OptionType,
+    OptionExerciseStyleEnum,
+    OptionTypeEnum,
     ProtectionSide,
     SeniorityLevel,
     SettlementType,
@@ -287,8 +287,10 @@ def parse_option_order(
             path="expiry_date", constraint="required date",
             actual_value=repr(raw.get("expiry_date")),
         ))
-    option_type: OptionType | None = _parse_enum(raw, "option_type", OptionType, violations)
-    option_style: OptionStyle | None = _parse_enum(raw, "option_style", OptionStyle, violations)
+    option_type: OptionTypeEnum | None = _parse_enum(raw, "option_type", OptionTypeEnum, violations)
+    option_style: OptionExerciseStyleEnum | None = _parse_enum(
+        raw, "option_style", OptionExerciseStyleEnum, violations,
+    )
     settlement_type: SettlementType | None = _parse_enum(
         raw, "settlement_type", SettlementType, violations,
     )

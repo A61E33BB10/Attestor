@@ -15,8 +15,8 @@ from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType
 from attestor.instrument.derivative_types import (
     MarginType,
     OptionDetail,
-    OptionStyle,
-    OptionType,
+    OptionExerciseStyleEnum,
+    OptionTypeEnum,
     SettlementType,
 )
 from attestor.instrument.lifecycle import (
@@ -38,7 +38,7 @@ _LEI_B = "529900ODI3JL1O4COU11"
 def _option_order() -> CanonicalOrder:
     detail = unwrap(OptionDetail.create(
         strike=Decimal("150"), expiry_date=date(2025, 12, 19),
-        option_type=OptionType.CALL, option_style=OptionStyle.AMERICAN,
+        option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
         settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
     ))
     return unwrap(CanonicalOrder.create(

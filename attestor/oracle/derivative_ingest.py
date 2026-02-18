@@ -14,7 +14,7 @@ from typing import final
 from attestor.core.money import NonEmptyStr
 from attestor.core.result import Err, Ok
 from attestor.core.types import UtcDatetime
-from attestor.instrument.derivative_types import OptionType
+from attestor.instrument.derivative_types import OptionTypeEnum
 from attestor.oracle.attestation import (
     Attestation,
     FirmConfidence,
@@ -32,7 +32,7 @@ class OptionQuote:
     underlying_id: NonEmptyStr
     strike: Decimal
     expiry_date: date
-    option_type: OptionType
+    option_type: OptionTypeEnum
     bid: Decimal
     ask: Decimal
     implied_vol_bid: Decimal | None
@@ -58,7 +58,7 @@ def ingest_option_quote(
     underlying_id: str,
     strike: Decimal,
     expiry_date: date,
-    option_type: OptionType,
+    option_type: OptionTypeEnum,
     bid: Decimal,
     ask: Decimal,
     currency: str,

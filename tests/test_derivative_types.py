@@ -15,9 +15,9 @@ from attestor.instrument.derivative_types import (
     FuturesPayoutSpec,
     MarginType,
     OptionDetail,
+    OptionExerciseStyleEnum,
     OptionPayoutSpec,
-    OptionStyle,
-    OptionType,
+    OptionTypeEnum,
     SettlementType,
 )
 from attestor.instrument.types import (
@@ -38,10 +38,16 @@ _LEI = "529900HNOAA1KXQJUQ27"
 
 class TestEnums:
     def test_option_type_values(self) -> None:
-        assert {e.value for e in OptionType} == {"CALL", "PUT"}
+        assert {e.value for e in OptionTypeEnum} == {
+            "Call", "Put", "Payer", "Receiver", "Straddle",
+        }
+        assert len(OptionTypeEnum) == 5
 
-    def test_option_style_values(self) -> None:
-        assert {e.value for e in OptionStyle} == {"EUROPEAN", "AMERICAN"}
+    def test_option_exercise_style_values(self) -> None:
+        assert {e.value for e in OptionExerciseStyleEnum} == {
+            "European", "Bermuda", "American",
+        }
+        assert len(OptionExerciseStyleEnum) == 3
 
     def test_settlement_type_values(self) -> None:
         assert {e.value for e in SettlementType} == {"PHYSICAL", "CASH"}
@@ -59,8 +65,8 @@ class TestOptionPayoutSpec:
     def test_create_valid(self) -> None:
         result = OptionPayoutSpec.create(
             underlying_id="AAPL", strike=Decimal("150"),
-            expiry_date=date(2025, 12, 19), option_type=OptionType.CALL,
-            option_style=OptionStyle.AMERICAN,
+            expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
+            option_style=OptionExerciseStyleEnum.AMERICAN,
             settlement_type=SettlementType.PHYSICAL,
             currency="USD", exchange="CBOE",
         )
@@ -68,14 +74,14 @@ class TestOptionPayoutSpec:
         spec = unwrap(result)
         assert spec.underlying_id.value == "AAPL"
         assert spec.strike.value == Decimal("150")
-        assert spec.option_type == OptionType.CALL
+        assert spec.option_type == OptionTypeEnum.CALL
         assert spec.multiplier.value == Decimal("100")
 
     def test_create_custom_multiplier(self) -> None:
         result = OptionPayoutSpec.create(
             underlying_id="SPX", strike=Decimal("5000"),
-            expiry_date=date(2025, 12, 19), option_type=OptionType.PUT,
-            option_style=OptionStyle.EUROPEAN,
+            expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.PUT,
+            option_style=OptionExerciseStyleEnum.EUROPEAN,
             settlement_type=SettlementType.CASH,
             currency="USD", exchange="CBOE", multiplier=Decimal("1"),
         )
@@ -85,8 +91,8 @@ class TestOptionPayoutSpec:
     def test_create_empty_underlying_err(self) -> None:
         result = OptionPayoutSpec.create(
             underlying_id="", strike=Decimal("150"),
-            expiry_date=date(2025, 12, 19), option_type=OptionType.CALL,
-            option_style=OptionStyle.AMERICAN,
+            expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
+            option_style=OptionExerciseStyleEnum.AMERICAN,
             settlement_type=SettlementType.PHYSICAL,
             currency="USD", exchange="CBOE",
         )
@@ -96,8 +102,8 @@ class TestOptionPayoutSpec:
     def test_create_zero_strike_ok(self) -> None:
         result = OptionPayoutSpec.create(
             underlying_id="AAPL", strike=Decimal("0"),
-            expiry_date=date(2025, 12, 19), option_type=OptionType.CALL,
-            option_style=OptionStyle.AMERICAN,
+            expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
+            option_style=OptionExerciseStyleEnum.AMERICAN,
             settlement_type=SettlementType.PHYSICAL,
             currency="USD", exchange="CBOE",
         )
@@ -107,8 +113,8 @@ class TestOptionPayoutSpec:
     def test_create_empty_currency_err(self) -> None:
         result = OptionPayoutSpec.create(
             underlying_id="AAPL", strike=Decimal("150"),
-            expiry_date=date(2025, 12, 19), option_type=OptionType.CALL,
-            option_style=OptionStyle.AMERICAN,
+            expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
+            option_style=OptionExerciseStyleEnum.AMERICAN,
             settlement_type=SettlementType.PHYSICAL,
             currency="", exchange="CBOE",
         )
@@ -117,13 +123,13 @@ class TestOptionPayoutSpec:
     def test_frozen(self) -> None:
         spec = unwrap(OptionPayoutSpec.create(
             underlying_id="AAPL", strike=Decimal("150"),
-            expiry_date=date(2025, 12, 19), option_type=OptionType.CALL,
-            option_style=OptionStyle.AMERICAN,
+            expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
+            option_style=OptionExerciseStyleEnum.AMERICAN,
             settlement_type=SettlementType.PHYSICAL,
             currency="USD", exchange="CBOE",
         ))
         with pytest.raises(dataclasses.FrozenInstanceError):
-            spec.option_type = OptionType.PUT  # type: ignore[misc]
+            spec.option_type = OptionTypeEnum.PUT  # type: ignore[misc]
 
 
 # ---------------------------------------------------------------------------
@@ -206,18 +212,18 @@ class TestOptionDetail:
     def test_create_valid(self) -> None:
         result = OptionDetail.create(
             strike=Decimal("150"), expiry_date=date(2025, 12, 19),
-            option_type=OptionType.CALL, option_style=OptionStyle.AMERICAN,
+            option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
             settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
         )
         assert isinstance(result, Ok)
         od = unwrap(result)
-        assert od.option_type == OptionType.CALL
+        assert od.option_type == OptionTypeEnum.CALL
         assert od.multiplier.value == Decimal("100")
 
     def test_create_zero_strike_ok(self) -> None:
         result = OptionDetail.create(
             strike=Decimal("0"), expiry_date=date(2025, 12, 19),
-            option_type=OptionType.CALL, option_style=OptionStyle.AMERICAN,
+            option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
             settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
         )
         assert isinstance(result, Ok)
@@ -226,7 +232,7 @@ class TestOptionDetail:
     def test_create_empty_underlying_err(self) -> None:
         result = OptionDetail.create(
             strike=Decimal("150"), expiry_date=date(2025, 12, 19),
-            option_type=OptionType.CALL, option_style=OptionStyle.AMERICAN,
+            option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
             settlement_type=SettlementType.PHYSICAL, underlying_id="",
         )
         assert isinstance(result, Err)
@@ -256,7 +262,7 @@ class TestInstrumentDetailPatternMatch:
             EquityDetail(),
             unwrap(OptionDetail.create(
                 strike=Decimal("150"), expiry_date=date(2025, 12, 19),
-                option_type=OptionType.CALL, option_style=OptionStyle.AMERICAN,
+                option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
                 settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
             )),
             unwrap(FuturesDetail.create(
@@ -289,8 +295,8 @@ class TestPayoutUnion:
     def test_option_payout(self) -> None:
         payout = unwrap(OptionPayoutSpec.create(
             underlying_id="AAPL", strike=Decimal("150"),
-            expiry_date=date(2025, 12, 19), option_type=OptionType.CALL,
-            option_style=OptionStyle.AMERICAN,
+            expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
+            option_style=OptionExerciseStyleEnum.AMERICAN,
             settlement_type=SettlementType.PHYSICAL,
             currency="USD", exchange="CBOE",
         ))
@@ -321,8 +327,8 @@ class TestCreateOptionInstrument:
         result = create_option_instrument(
             instrument_id="AAPL251219C00150000",
             underlying_id="AAPL", strike=Decimal("150"),
-            expiry_date=date(2025, 12, 19), option_type=OptionType.CALL,
-            option_style=OptionStyle.AMERICAN,
+            expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
+            option_style=OptionExerciseStyleEnum.AMERICAN,
             settlement_type=SettlementType.PHYSICAL,
             currency="USD", exchange="CBOE",
             parties=(party,), trade_date=date(2025, 6, 15),
@@ -336,8 +342,8 @@ class TestCreateOptionInstrument:
         party = unwrap(Party.create("P001", "Acme Corp", _LEI))
         result = create_option_instrument(
             instrument_id="", underlying_id="AAPL", strike=Decimal("150"),
-            expiry_date=date(2025, 12, 19), option_type=OptionType.CALL,
-            option_style=OptionStyle.AMERICAN,
+            expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
+            option_style=OptionExerciseStyleEnum.AMERICAN,
             settlement_type=SettlementType.PHYSICAL,
             currency="USD", exchange="CBOE",
             parties=(party,), trade_date=date(2025, 6, 15),
@@ -348,8 +354,8 @@ class TestCreateOptionInstrument:
         party = unwrap(Party.create("P001", "Acme Corp", _LEI))
         result = create_option_instrument(
             instrument_id="OPT-1", underlying_id="AAPL", strike=Decimal("-10"),
-            expiry_date=date(2025, 12, 19), option_type=OptionType.CALL,
-            option_style=OptionStyle.AMERICAN,
+            expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
+            option_style=OptionExerciseStyleEnum.AMERICAN,
             settlement_type=SettlementType.PHYSICAL,
             currency="USD", exchange="CBOE",
             parties=(party,), trade_date=date(2025, 6, 15),

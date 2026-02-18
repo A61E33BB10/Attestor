@@ -13,7 +13,7 @@ from attestor.core.money import ATTESTOR_DECIMAL_CONTEXT, PositiveDecimal
 from attestor.core.result import Err, Ok
 from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder
-from attestor.instrument.derivative_types import OptionDetail, OptionType, SettlementType
+from attestor.instrument.derivative_types import OptionDetail, OptionTypeEnum, SettlementType
 from attestor.ledger.transactions import Move, Transaction
 
 
@@ -56,7 +56,7 @@ def create_premium_transaction(
         premium = order.price * order.quantity.value * detail.multiplier.value
 
     contract_unit = (
-        f"OPT-{detail.underlying_id.value}-{detail.option_type.value}"
+        f"OPT-{detail.underlying_id.value}-{detail.option_type.name}"
         f"-{detail.strike.value}-{detail.expiry_date.isoformat()}"
     )
 
@@ -128,12 +128,28 @@ def create_exercise_transaction(
     CALL: holder pays strike*qty*multiplier cash, receives securities
     PUT: holder delivers securities, receives strike*qty*multiplier cash
     Both: option position (qty) holder -> writer (close position)
+
+    Only CALL and PUT are supported. PAYER, RECEIVER, STRADDLE are rejected.
     """
     match _option_detail_or_err(order, "create_exercise_transaction"):
         case Err(e):
             return Err(e)
         case Ok(detail):
             pass
+
+    _exercisable = frozenset({OptionTypeEnum.CALL, OptionTypeEnum.PUT})
+    if detail.option_type not in _exercisable:
+        return Err(ValidationError(
+            message=(
+                f"create_exercise_transaction: option_type "
+                f"{detail.option_type.name} not supported for exercise "
+                f"(only CALL and PUT)"
+            ),
+            code="UNSUPPORTED_OPTION_TYPE",
+            timestamp=order.timestamp,
+            source="ledger.options.create_exercise_transaction",
+            fields=(),
+        ))
 
     if detail.settlement_type != SettlementType.PHYSICAL:
         return Err(ValidationError(
@@ -149,7 +165,7 @@ def create_exercise_transaction(
         securities_qty = order.quantity.value * detail.multiplier.value
 
     contract_unit = (
-        f"OPT-{detail.underlying_id.value}-{detail.option_type.value}"
+        f"OPT-{detail.underlying_id.value}-{detail.option_type.name}"
         f"-{detail.strike.value}-{detail.expiry_date.isoformat()}"
     )
 
@@ -157,7 +173,7 @@ def create_exercise_transaction(
     sec_pd = PositiveDecimal(value=securities_qty)
 
     moves: list[Move] = []
-    if detail.option_type == OptionType.CALL:
+    if detail.option_type == OptionTypeEnum.CALL:
         # Holder pays cash, receives securities
         moves.append(Move(holder_cash_account, writer_cash_account,
                           order.currency.value, cash_pd, tx_id))
@@ -202,12 +218,28 @@ def create_cash_settlement_exercise_transaction(
     PUT: writer pays (strike - settlement_price) * qty * multiplier to holder
     + close option position (holder -> writer)
     OTM exercise is rejected.
+
+    Only CALL and PUT are supported. PAYER, RECEIVER, STRADDLE are rejected.
     """
     match _option_detail_or_err(order, "create_cash_settlement_exercise_transaction"):
         case Err(e):
             return Err(e)
         case Ok(detail):
             pass
+
+    _exercisable = frozenset({OptionTypeEnum.CALL, OptionTypeEnum.PUT})
+    if detail.option_type not in _exercisable:
+        return Err(ValidationError(
+            message=(
+                f"create_cash_settlement_exercise_transaction: option_type "
+                f"{detail.option_type.name} not supported for exercise "
+                f"(only CALL and PUT)"
+            ),
+            code="UNSUPPORTED_OPTION_TYPE",
+            timestamp=order.timestamp,
+            source="ledger.options.create_cash_settlement_exercise_transaction",
+            fields=(),
+        ))
 
     if detail.settlement_type != SettlementType.CASH:
         return Err(ValidationError(
@@ -219,7 +251,7 @@ def create_cash_settlement_exercise_transaction(
         ))
 
     # OTM rejection
-    if detail.option_type == OptionType.CALL and settlement_price <= detail.strike.value:
+    if detail.option_type == OptionTypeEnum.CALL and settlement_price <= detail.strike.value:
         return Err(ValidationError(
             message=(
                 f"CALL exercise rejected: settlement_price ({settlement_price}) "
@@ -230,7 +262,7 @@ def create_cash_settlement_exercise_transaction(
             source="ledger.options.create_cash_settlement_exercise_transaction",
             fields=(),
         ))
-    if detail.option_type == OptionType.PUT and settlement_price >= detail.strike.value:
+    if detail.option_type == OptionTypeEnum.PUT and settlement_price >= detail.strike.value:
         return Err(ValidationError(
             message=(
                 f"PUT exercise rejected: settlement_price ({settlement_price}) "
@@ -244,13 +276,13 @@ def create_cash_settlement_exercise_transaction(
 
     with localcontext(ATTESTOR_DECIMAL_CONTEXT):
         qty_mul = order.quantity.value * detail.multiplier.value
-        if detail.option_type == OptionType.CALL:
+        if detail.option_type == OptionTypeEnum.CALL:
             intrinsic = (settlement_price - detail.strike.value) * qty_mul
         else:
             intrinsic = (detail.strike.value - settlement_price) * qty_mul
 
     contract_unit = (
-        f"OPT-{detail.underlying_id.value}-{detail.option_type.value}"
+        f"OPT-{detail.underlying_id.value}-{detail.option_type.name}"
         f"-{detail.strike.value}-{detail.expiry_date.isoformat()}"
     )
 

@@ -11,8 +11,8 @@ from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType
 from attestor.instrument.derivative_types import (
     OptionDetail,
-    OptionStyle,
-    OptionType,
+    OptionExerciseStyleEnum,
+    OptionTypeEnum,
     SettlementType,
 )
 from attestor.ledger.engine import LedgerEngine
@@ -34,7 +34,7 @@ def _call_order(
 ) -> CanonicalOrder:
     detail = unwrap(OptionDetail.create(
         strike=Decimal("150"), expiry_date=date(2025, 12, 19),
-        option_type=OptionType.CALL, option_style=OptionStyle.AMERICAN,
+        option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
         settlement_type=settlement_type, underlying_id="AAPL",
     ))
     return unwrap(CanonicalOrder.create(
@@ -52,13 +52,33 @@ def _put_order(
 ) -> CanonicalOrder:
     detail = unwrap(OptionDetail.create(
         strike=Decimal("150"), expiry_date=date(2025, 12, 19),
-        option_type=OptionType.PUT, option_style=OptionStyle.AMERICAN,
+        option_type=OptionTypeEnum.PUT, option_style=OptionExerciseStyleEnum.AMERICAN,
         settlement_type=settlement_type, underlying_id="AAPL",
     ))
     return unwrap(CanonicalOrder.create(
         order_id="OPT-002", instrument_id="AAPL251219P00150000",
         isin=None, side=OrderSide.BUY, quantity=Decimal("10"),
         price=Decimal("3.00"), currency="USD", order_type=OrderType.LIMIT,
+        counterparty_lei=_LEI_A, executing_party_lei=_LEI_B,
+        trade_date=date(2025, 6, 15), settlement_date=date(2025, 6, 16),
+        venue="CBOE", timestamp=_TS, instrument_detail=detail,
+    ))
+
+
+def _make_unsupported_order(
+    option_type: OptionTypeEnum,
+    settlement_type: SettlementType = SettlementType.PHYSICAL,
+) -> CanonicalOrder:
+    """Create an order with a non-CALL/PUT option type for rejection tests."""
+    detail = unwrap(OptionDetail.create(
+        strike=Decimal("150"), expiry_date=date(2025, 12, 19),
+        option_type=option_type, option_style=OptionExerciseStyleEnum.EUROPEAN,
+        settlement_type=settlement_type, underlying_id="AAPL",
+    ))
+    return unwrap(CanonicalOrder.create(
+        order_id="OPT-UNS", instrument_id="AAPL251219X",
+        isin=None, side=OrderSide.BUY, quantity=Decimal("10"),
+        price=Decimal("5.00"), currency="USD", order_type=OrderType.LIMIT,
         counterparty_lei=_LEI_A, executing_party_lei=_LEI_B,
         trade_date=date(2025, 6, 15), settlement_date=date(2025, 6, 16),
         venue="CBOE", timestamp=_TS, instrument_detail=detail,
@@ -227,6 +247,36 @@ class TestExercisePhysical:
         assert engine.total_supply("USD") == Decimal(0)
         assert engine.total_supply("AAPL") == Decimal(0)
 
+    def test_reject_payer_option_type(self) -> None:
+        order = _make_unsupported_order(OptionTypeEnum.PAYER)
+        result = create_exercise_transaction(
+            order, "HOLDER-CASH", "HOLDER-SEC",
+            "WRITER-CASH", "WRITER-SEC",
+            "HOLDER-POS", "WRITER-POS", "TX-FAIL",
+        )
+        assert isinstance(result, Err)
+        assert result.error.code == "UNSUPPORTED_OPTION_TYPE"
+
+    def test_reject_receiver_option_type(self) -> None:
+        order = _make_unsupported_order(OptionTypeEnum.RECEIVER)
+        result = create_exercise_transaction(
+            order, "HOLDER-CASH", "HOLDER-SEC",
+            "WRITER-CASH", "WRITER-SEC",
+            "HOLDER-POS", "WRITER-POS", "TX-FAIL",
+        )
+        assert isinstance(result, Err)
+        assert result.error.code == "UNSUPPORTED_OPTION_TYPE"
+
+    def test_reject_straddle_option_type(self) -> None:
+        order = _make_unsupported_order(OptionTypeEnum.STRADDLE)
+        result = create_exercise_transaction(
+            order, "HOLDER-CASH", "HOLDER-SEC",
+            "WRITER-CASH", "WRITER-SEC",
+            "HOLDER-POS", "WRITER-POS", "TX-FAIL",
+        )
+        assert isinstance(result, Err)
+        assert result.error.code == "UNSUPPORTED_OPTION_TYPE"
+
 
 # ---------------------------------------------------------------------------
 # Cash settlement exercise
@@ -289,6 +339,26 @@ class TestCashSettlementExercise:
         result = engine.execute(tx)
         assert isinstance(result, Ok)
         assert engine.total_supply("USD") == Decimal(0)
+
+    def test_reject_payer_option_type(self) -> None:
+        order = _make_unsupported_order(OptionTypeEnum.PAYER, SettlementType.CASH)
+        result = create_cash_settlement_exercise_transaction(
+            order, "HOLDER-CASH", "WRITER-CASH",
+            "HOLDER-POS", "WRITER-POS", "TX-FAIL",
+            settlement_price=Decimal("160"),
+        )
+        assert isinstance(result, Err)
+        assert result.error.code == "UNSUPPORTED_OPTION_TYPE"
+
+    def test_reject_straddle_option_type(self) -> None:
+        order = _make_unsupported_order(OptionTypeEnum.STRADDLE, SettlementType.CASH)
+        result = create_cash_settlement_exercise_transaction(
+            order, "HOLDER-CASH", "WRITER-CASH",
+            "HOLDER-POS", "WRITER-POS", "TX-FAIL",
+            settlement_price=Decimal("160"),
+        )
+        assert isinstance(result, Err)
+        assert result.error.code == "UNSUPPORTED_OPTION_TYPE"
 
 
 # ---------------------------------------------------------------------------

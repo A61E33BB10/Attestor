@@ -39,9 +39,9 @@ from attestor.instrument.derivative_types import (
     FXDetail,
     IRSwapDetail,
     OptionDetail,
+    OptionExerciseStyleEnum,
     OptionPayoutSpec,
-    OptionStyle,
-    OptionType,
+    OptionTypeEnum,
     SettlementType,
     SwaptionDetail,
     SwaptionType,
@@ -353,8 +353,8 @@ class TestNegativeRateAndZeroStrike:
     def test_option_zero_strike_ok(self) -> None:
         result = OptionPayoutSpec.create(
             underlying_id="AAPL", strike=Decimal("0"),
-            expiry_date=date(2025, 12, 19), option_type=OptionType.CALL,
-            option_style=OptionStyle.AMERICAN,
+            expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
+            option_style=OptionExerciseStyleEnum.AMERICAN,
             settlement_type=SettlementType.PHYSICAL,
             currency="USD", exchange="CBOE",
         )
@@ -364,7 +364,7 @@ class TestNegativeRateAndZeroStrike:
     def test_option_detail_zero_strike_ok(self) -> None:
         result = OptionDetail.create(
             strike=Decimal("0"), expiry_date=date(2025, 12, 19),
-            option_type=OptionType.CALL, option_style=OptionStyle.AMERICAN,
+            option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
             settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
         )
         assert isinstance(result, Ok)

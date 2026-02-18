@@ -19,19 +19,21 @@ from attestor.core.identifiers import LEI
 from attestor.core.money import NonEmptyStr
 from attestor.core.party import PartyIdentifier, PartyIdentifierTypeEnum
 from attestor.core.result import Err, Ok
-from attestor.core.types import PayerReceiver
+from attestor.core.types import BusinessDayAdjustments, PayerReceiver
 from attestor.instrument.credit_types import (
     CDSPayoutSpec,
     SwaptionPayoutSpec,
 )
 from attestor.instrument.derivative_types import (
+    CalculationAgent,
     FuturesPayoutSpec,
+    OptionExerciseStyleEnum,
     OptionPayoutSpec,
-    OptionStyle,
-    OptionType,
+    OptionTypeEnum,
     PerformancePayoutSpec,
     SettlementType,
     SwaptionType,
+    TerminationProvision,
 )
 from attestor.instrument.fx_types import (
     DayCountConvention,
@@ -167,19 +169,72 @@ type Payout = (
 @final
 @dataclass(frozen=True, slots=True)
 class EconomicTerms:
-    """Economic terms of an instrument. CDM: payout (1..*)."""
+    """CDM: EconomicTerms — full set of price-forming features.
+
+    Fields: payout (1..*), effectiveDate (0..1), terminationDate (0..1),
+    dateAdjustments (0..1), terminationProvision (0..1),
+    calculationAgent (0..1), nonStandardisedTerms (0..1).
+    """
 
     payouts: tuple[Payout, ...]
     effective_date: date
     termination_date: date | None  # None for perpetual equities
+    # NS5b CDM fields
+    date_adjustments: BusinessDayAdjustments | None = None
+    termination_provision: TerminationProvision | None = None
+    calculation_agent: CalculationAgent | None = None
+    non_standardised_terms: bool | None = None
 
     def __post_init__(self) -> None:
         if not self.payouts:
-            raise TypeError("EconomicTerms.payouts must contain at least one Payout")
-        if self.termination_date is not None and self.effective_date > self.termination_date:
+            raise TypeError(
+                "EconomicTerms.payouts must contain at least one Payout"
+            )
+        if (
+            self.termination_date is not None
+            and self.effective_date > self.termination_date
+        ):
             raise TypeError(
                 f"EconomicTerms: effective_date ({self.effective_date}) "
                 f"must be <= termination_date ({self.termination_date})"
+            )
+        if (
+            self.date_adjustments is not None
+            and not isinstance(self.date_adjustments, BusinessDayAdjustments)
+        ):
+            raise TypeError(
+                "EconomicTerms.date_adjustments must be "
+                "BusinessDayAdjustments or None, "
+                f"got {type(self.date_adjustments).__name__}"
+            )
+        if (
+            self.termination_provision is not None
+            and not isinstance(
+                self.termination_provision, TerminationProvision
+            )
+        ):
+            raise TypeError(
+                "EconomicTerms.termination_provision must be "
+                "TerminationProvision or None, "
+                f"got {type(self.termination_provision).__name__}"
+            )
+        if (
+            self.calculation_agent is not None
+            and not isinstance(self.calculation_agent, CalculationAgent)
+        ):
+            raise TypeError(
+                "EconomicTerms.calculation_agent must be "
+                "CalculationAgent or None, "
+                f"got {type(self.calculation_agent).__name__}"
+            )
+        if (
+            self.non_standardised_terms is not None
+            and not isinstance(self.non_standardised_terms, bool)
+        ):
+            raise TypeError(
+                "EconomicTerms.non_standardised_terms must be "
+                f"bool or None, "
+                f"got {type(self.non_standardised_terms).__name__}"
             )
 
 
@@ -237,8 +292,8 @@ def create_option_instrument(
     underlying_id: str,
     strike: Decimal,
     expiry_date: date,
-    option_type: OptionType,
-    option_style: OptionStyle,
+    option_type: OptionTypeEnum,
+    option_style: OptionExerciseStyleEnum,
     settlement_type: SettlementType,
     currency: str,
     exchange: str,

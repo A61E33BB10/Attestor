@@ -25,8 +25,8 @@ from attestor.instrument.derivative_types import (
     FXDetail,
     IRSwapDetail,
     OptionDetail,
-    OptionStyle,
-    OptionType,
+    OptionExerciseStyleEnum,
+    OptionTypeEnum,
     SwaptionDetail,
 )
 from attestor.oracle.attestation import (
@@ -55,8 +55,8 @@ class OptionReportFields:
 
     strike: Decimal
     expiry_date: date
-    option_type: OptionType
-    option_style: OptionStyle
+    option_type: OptionTypeEnum
+    option_style: OptionExerciseStyleEnum
 
 
 @final

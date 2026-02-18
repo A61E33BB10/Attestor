@@ -28,9 +28,9 @@ from attestor.instrument.derivative_types import (
     FXDetail,
     IRSwapDetail,
     OptionDetail,
+    OptionExerciseStyleEnum,
     OptionPayoutSpec,
-    OptionStyle,
-    OptionType,
+    OptionTypeEnum,
     ProtectionSide,
     SeniorityLevel,
     SettlementType,
@@ -584,7 +584,7 @@ class TestInstrumentDetailUnion:
             EquityDetail(),
             unwrap(OptionDetail.create(
                 strike=Decimal("150"), expiry_date=date(2025, 12, 19),
-                option_type=OptionType.CALL, option_style=OptionStyle.AMERICAN,
+                option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
                 settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
             )),
             unwrap(FuturesDetail.create(

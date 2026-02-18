@@ -6,7 +6,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from attestor.core.result import Err, Ok, unwrap
-from attestor.instrument.derivative_types import OptionType
+from attestor.instrument.derivative_types import OptionTypeEnum
 from attestor.oracle.derivative_ingest import (
     FuturesSettlement,
     OptionQuote,
@@ -23,7 +23,7 @@ class TestIngestOptionQuote:
             instrument_id="AAPL251219C00150000",
             underlying_id="AAPL", strike=Decimal("150"),
             expiry_date=date(2025, 12, 19),
-            option_type=OptionType.CALL,
+            option_type=OptionTypeEnum.CALL,
             bid=Decimal("5.00"), ask=Decimal("5.50"),
             currency="USD", venue="CBOE", timestamp=_TS,
         )
@@ -37,7 +37,7 @@ class TestIngestOptionQuote:
             instrument_id="AAPL251219C00150000",
             underlying_id="AAPL", strike=Decimal("150"),
             expiry_date=date(2025, 12, 19),
-            option_type=OptionType.CALL,
+            option_type=OptionTypeEnum.CALL,
             bid=Decimal("5.00"), ask=Decimal("5.50"),
             currency="USD", venue="CBOE", timestamp=_TS,
             implied_vol_bid=Decimal("0.25"),
@@ -51,7 +51,7 @@ class TestIngestOptionQuote:
         result = ingest_option_quote(
             instrument_id="", underlying_id="AAPL",
             strike=Decimal("150"), expiry_date=date(2025, 12, 19),
-            option_type=OptionType.CALL,
+            option_type=OptionTypeEnum.CALL,
             bid=Decimal("5.00"), ask=Decimal("5.50"),
             currency="USD", venue="CBOE", timestamp=_TS,
         )
@@ -61,7 +61,7 @@ class TestIngestOptionQuote:
         result = ingest_option_quote(
             instrument_id="OPT-1", underlying_id="",
             strike=Decimal("150"), expiry_date=date(2025, 12, 19),
-            option_type=OptionType.CALL,
+            option_type=OptionTypeEnum.CALL,
             bid=Decimal("5.00"), ask=Decimal("5.50"),
             currency="USD", venue="CBOE", timestamp=_TS,
         )
@@ -71,7 +71,7 @@ class TestIngestOptionQuote:
         result = ingest_option_quote(
             instrument_id="OPT-1", underlying_id="AAPL",
             strike=Decimal("150"), expiry_date=date(2025, 12, 19),
-            option_type=OptionType.CALL,
+            option_type=OptionTypeEnum.CALL,
             bid=Decimal("5.00"), ask=Decimal("5.50"),
             currency="USD", venue="CBOE",
             timestamp=datetime(2025, 6, 15, 10, 0, 0),  # naive

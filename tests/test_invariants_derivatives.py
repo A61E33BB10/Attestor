@@ -18,8 +18,8 @@ from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType
 from attestor.instrument.derivative_types import (
     OptionDetail,
-    OptionStyle,
-    OptionType,
+    OptionExerciseStyleEnum,
+    OptionTypeEnum,
     SettlementType,
 )
 from attestor.ledger.engine import LedgerEngine
@@ -58,7 +58,7 @@ def _option_engine() -> tuple[LedgerEngine, CanonicalOrder]:
 
     detail = unwrap(OptionDetail.create(
         strike=Decimal("150"), expiry_date=date(2025, 12, 19),
-        option_type=OptionType.CALL, option_style=OptionStyle.AMERICAN,
+        option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
         settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
     ))
     order = unwrap(CanonicalOrder.create(
@@ -140,7 +140,7 @@ class TestCLD1PremiumConservation:
             ))
         detail = unwrap(OptionDetail.create(
             strike=Decimal("100"), expiry_date=date(2025, 12, 19),
-            option_type=OptionType.CALL, option_style=OptionStyle.EUROPEAN,
+            option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.EUROPEAN,
             settlement_type=SettlementType.PHYSICAL, underlying_id="X",
         ))
         order = unwrap(CanonicalOrder.create(
@@ -250,7 +250,7 @@ class TestCLD5FullOptionLifecycle:
 
         detail = unwrap(OptionDetail.create(
             strike=Decimal("150"), expiry_date=date(2025, 12, 19),
-            option_type=OptionType.CALL, option_style=OptionStyle.EUROPEAN,
+            option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.EUROPEAN,
             settlement_type=SettlementType.CASH, underlying_id="AAPL",
         ))
         order = unwrap(CanonicalOrder.create(
@@ -467,12 +467,12 @@ class TestCSD4SequentialComposition:
             ))
 
         for i, (strike, otype) in enumerate([
-            (Decimal("150"), OptionType.CALL),
-            (Decimal("140"), OptionType.PUT),
+            (Decimal("150"), OptionTypeEnum.CALL),
+            (Decimal("140"), OptionTypeEnum.PUT),
         ]):
             detail = unwrap(OptionDetail.create(
                 strike=strike, expiry_date=date(2025, 12, 19),
-                option_type=otype, option_style=OptionStyle.EUROPEAN,
+                option_type=otype, option_style=OptionExerciseStyleEnum.EUROPEAN,
                 settlement_type=SettlementType.CASH, underlying_id="AAPL",
             ))
             order = unwrap(CanonicalOrder.create(

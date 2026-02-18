@@ -11,8 +11,8 @@ from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType
 from attestor.instrument.derivative_types import (
     FuturesDetail,
     OptionDetail,
-    OptionStyle,
-    OptionType,
+    OptionExerciseStyleEnum,
+    OptionTypeEnum,
     SettlementType,
 )
 from attestor.reporting.mifid2 import (
@@ -42,7 +42,7 @@ def _equity_order() -> CanonicalOrder:
 def _option_order() -> CanonicalOrder:
     detail = unwrap(OptionDetail.create(
         strike=Decimal("150"), expiry_date=date(2025, 12, 19),
-        option_type=OptionType.CALL, option_style=OptionStyle.AMERICAN,
+        option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
         settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
     ))
     return unwrap(CanonicalOrder.create(
@@ -95,7 +95,7 @@ class TestMiFIDIIReportOption:
         report = unwrap(result).value
         assert isinstance(report.instrument_fields, OptionReportFields)
         assert report.instrument_fields.strike == Decimal("150")
-        assert report.instrument_fields.option_type == OptionType.CALL
+        assert report.instrument_fields.option_type == OptionTypeEnum.CALL
 
     def test_option_attestation_refs(self) -> None:
         report = unwrap(project_mifid2_report(

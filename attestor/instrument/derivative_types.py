@@ -20,14 +20,74 @@ from attestor.core.result import Err, Ok
 # ---------------------------------------------------------------------------
 
 
-class OptionType(Enum):
-    CALL = "CALL"
-    PUT = "PUT"
+class OptionTypeEnum(Enum):
+    """CDM: OptionTypeEnum extends PutCallEnum.
+
+    Put/Call for vanilla options; Payer/Receiver for swaptions on index CDS;
+    Straddle for combined call+put at same strike/expiry.
+    """
+
+    CALL = "Call"
+    PUT = "Put"
+    PAYER = "Payer"
+    RECEIVER = "Receiver"
+    STRADDLE = "Straddle"
 
 
-class OptionStyle(Enum):
-    EUROPEAN = "EUROPEAN"
-    AMERICAN = "AMERICAN"
+class OptionExerciseStyleEnum(Enum):
+    """CDM: OptionExerciseStyleEnum — option exercise style.
+
+    European (single), Bermuda (multiple specified dates), American (continuous range).
+    """
+
+    EUROPEAN = "European"
+    BERMUDA = "Bermuda"
+    AMERICAN = "American"
+
+
+class ExpirationTimeTypeEnum(Enum):
+    """CDM: ExpirationTimeTypeEnum — time of day at which equity option expires."""
+
+    CLOSE = "Close"
+    OPEN = "Open"
+    OSP = "OSP"
+    SPECIFIC_TIME = "SpecificTime"
+    XETRA = "XETRA"
+    DERIVATIVES_CLOSE = "DerivativesClose"
+    AS_SPECIFIED_IN_MASTER_CONFIRMATION = "AsSpecifiedInMasterConfirmation"
+
+
+class CallingPartyEnum(Enum):
+    """CDM: CallingPartyEnum — party with right to demand termination."""
+
+    INITIAL_BUYER = "InitialBuyer"
+    INITIAL_SELLER = "InitialSeller"
+    EITHER = "Either"
+    AS_DEFINED_IN_MASTER_AGREEMENT = "AsDefinedInMasterAgreement"
+
+
+class ExerciseNoticeGiverEnum(Enum):
+    """CDM: ExerciseNoticeGiverEnum — principal party with right to exercise."""
+
+    BUYER = "Buyer"
+    SELLER = "Seller"
+    BOTH = "Both"
+    AS_SPECIFIED_IN_MASTER_AGREEMENT = "AsSpecifiedInMasterAgreement"
+
+
+class AveragingInOutEnum(Enum):
+    """CDM: AveragingInOutEnum — type of averaging in Asian options."""
+
+    IN = "In"
+    OUT = "Out"
+    BOTH = "Both"
+
+
+class AssetPayoutTradeTypeEnum(Enum):
+    """CDM: AssetPayoutTradeTypeEnum — securities finance trade type."""
+
+    REPO = "Repo"
+    BUY_SELL_BACK = "BuySellBack"
 
 
 class SettlementType(Enum):
@@ -105,16 +165,15 @@ class OptionPayoutSpec:
     """Vanilla option payout specification.
 
     Note: exercise_terms, when present, provides richer exercise detail
-    than option_style. Bermuda exercise has no corresponding OptionStyle
-    member, so cross-validation is intentionally not enforced — exercise_terms
-    takes precedence over option_style for downstream logic.
+    than option_style. exercise_terms takes precedence over option_style
+    for downstream logic.
     """
 
     underlying_id: NonEmptyStr
     strike: NonNegativeDecimal  # zero-strike allowed for total return structures
     expiry_date: date
-    option_type: OptionType
-    option_style: OptionStyle
+    option_type: OptionTypeEnum
+    option_style: OptionExerciseStyleEnum
     settlement_type: SettlementType
     currency: NonEmptyStr
     exchange: NonEmptyStr
@@ -127,8 +186,8 @@ class OptionPayoutSpec:
         underlying_id: str,
         strike: Decimal,
         expiry_date: date,
-        option_type: OptionType,
-        option_style: OptionStyle,
+        option_type: OptionTypeEnum,
+        option_style: OptionExerciseStyleEnum,
         settlement_type: SettlementType,
         currency: str,
         exchange: str,
@@ -248,8 +307,8 @@ class OptionDetail:
 
     strike: NonNegativeDecimal
     expiry_date: date
-    option_type: OptionType
-    option_style: OptionStyle
+    option_type: OptionTypeEnum
+    option_style: OptionExerciseStyleEnum
     settlement_type: SettlementType
     underlying_id: NonEmptyStr
     multiplier: PositiveDecimal
@@ -258,8 +317,8 @@ class OptionDetail:
     def create(
         strike: Decimal,
         expiry_date: date,
-        option_type: OptionType,
-        option_style: OptionStyle,
+        option_type: OptionTypeEnum,
+        option_style: OptionExerciseStyleEnum,
         settlement_type: SettlementType,
         underlying_id: str,
         multiplier: Decimal = Decimal("100"),
@@ -675,3 +734,108 @@ class BermudaExercise:
 
 
 type ExerciseTerms = AmericanExercise | EuropeanExercise | BermudaExercise
+
+
+# ---------------------------------------------------------------------------
+# NS5b: ReturnTerms, TerminationProvision, CalculationAgent
+# ---------------------------------------------------------------------------
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class ReturnTerms:
+    """CDM: ReturnTerms — specifies the type of return of a performance payout.
+
+    At least one return term must be present (CDM condition ReturnTermsExists).
+    When priceReturnTerms.returnType == Total, dividendReturnTerms must exist.
+    """
+
+    price_return: bool = False
+    dividend_return: bool = False
+    variance_return: bool = False
+    volatility_return: bool = False
+    correlation_return: bool = False
+
+    def __post_init__(self) -> None:
+        if not any((
+            self.price_return, self.dividend_return,
+            self.variance_return, self.volatility_return,
+            self.correlation_return,
+        )):
+            raise TypeError(
+                "ReturnTerms: at least one return type must be True"
+            )
+        for field_name in (
+            "price_return", "dividend_return", "variance_return",
+            "volatility_return", "correlation_return",
+        ):
+            val = getattr(self, field_name)
+            if not isinstance(val, bool):
+                raise TypeError(
+                    f"ReturnTerms.{field_name} must be bool, "
+                    f"got {type(val).__name__}"
+                )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class CalculationAgent:
+    """CDM: CalculationAgent — ISDA calculation agent for a product.
+
+    calculation_agent_party references an AncillaryRoleEnum; simplified
+    here to an optional NonEmptyStr identifier.
+    """
+
+    calculation_agent_party: NonEmptyStr | None = None
+    calculation_agent_business_center: NonEmptyStr | None = None
+
+    def __post_init__(self) -> None:
+        if (
+            self.calculation_agent_party is not None
+            and not isinstance(self.calculation_agent_party, NonEmptyStr)
+        ):
+            raise TypeError(
+                "CalculationAgent.calculation_agent_party must be "
+                f"NonEmptyStr or None, "
+                f"got {type(self.calculation_agent_party).__name__}"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class TerminationProvision:
+    """CDM: TerminationProvision — optional provisions for contract termination.
+
+    CDM requires choice among: cancelableProvision, earlyTerminationProvision,
+    evergreenProvision, extendibleProvision, recallProvision.
+
+    Simplified stub: flags indicating which provisions are present.
+    Full sub-types will be added in later NS iterations.
+    """
+
+    cancelable: bool = False
+    early_termination: bool = False
+    evergreen: bool = False
+    extendible: bool = False
+    recallable: bool = False
+
+    def __post_init__(self) -> None:
+        # CDM required choice: at least one must be set
+        if not any((
+            self.cancelable, self.early_termination,
+            self.evergreen, self.extendible, self.recallable,
+        )):
+            raise TypeError(
+                "TerminationProvision: at least one provision must be True "
+                "(CDM required choice)"
+            )
+        for field_name in (
+            "cancelable", "early_termination",
+            "evergreen", "extendible", "recallable",
+        ):
+            val = getattr(self, field_name)
+            if not isinstance(val, bool):
+                raise TypeError(
+                    f"TerminationProvision.{field_name} must be bool, "
+                    f"got {type(val).__name__}"
+                )

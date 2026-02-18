@@ -10,7 +10,7 @@ from attestor.instrument.derivative_types import (
     EquityDetail,
     FuturesDetail,
     OptionDetail,
-    OptionType,
+    OptionTypeEnum,
 )
 
 _LEI_A = "529900HNOAA1KXQJUQ27"
@@ -34,8 +34,8 @@ def _valid_option_raw() -> dict[str, object]:
         # Option-specific
         "strike": "150",
         "expiry_date": "2025-12-19",
-        "option_type": "CALL",
-        "option_style": "AMERICAN",
+        "option_type": "Call",
+        "option_style": "American",
         "settlement_type": "PHYSICAL",
         "underlying_id": "AAPL",
     }
@@ -74,7 +74,7 @@ class TestParseOptionOrder:
         assert isinstance(result, Ok)
         order = unwrap(result)
         assert isinstance(order.instrument_detail, OptionDetail)
-        assert order.instrument_detail.option_type == OptionType.CALL
+        assert order.instrument_detail.option_type == OptionTypeEnum.CALL
 
     def test_settlement_date_defaults_to_t_plus_1(self) -> None:
         raw = _valid_option_raw()
