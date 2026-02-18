@@ -85,7 +85,7 @@ from attestor.instrument.derivative_types import (
     CDSDetail as CDSDetail,
 )
 from attestor.instrument.derivative_types import (
-    CreditEventType as CreditEventType,
+    CreditEventTypeEnum as CreditEventTypeEnum,
 )
 from attestor.instrument.derivative_types import (
     DeliveryMethodEnum as DeliveryMethodEnum,
@@ -208,6 +208,17 @@ from attestor.instrument.fx_types import (
 )
 from attestor.instrument.fx_types import (
     SwapLegType as SwapLegType,
+)
+
+# NS7: event-common lifecycle enums
+from attestor.instrument.lifecycle import (
+    AffirmationStatusEnum as AffirmationStatusEnum,
+)
+from attestor.instrument.lifecycle import (
+    ConfirmationStatusEnum as ConfirmationStatusEnum,
+)
+from attestor.instrument.lifecycle import (
+    ExecutionTypeEnum as ExecutionTypeEnum,
 )
 
 # Phase C: rate specifications

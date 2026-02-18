@@ -191,20 +191,25 @@ class MarginType(Enum):
     INITIAL = "INITIAL"
 
 
-class CreditEventType(Enum):
+class CreditEventTypeEnum(Enum):
     """ISDA credit event triggers for CDS contracts.
 
-    CDM: CreditEventTypeEnum (~6 of 12 values).
-    Phase F: expanded with OBLIGATION_DEFAULT, GOVERNMENTAL_INTERVENTION,
-    REPUDIATION_MORATORIUM.
+    CDM: CreditEventTypeEnum (13 values).
     """
 
-    BANKRUPTCY = "BANKRUPTCY"
-    FAILURE_TO_PAY = "FAILURE_TO_PAY"
-    RESTRUCTURING = "RESTRUCTURING"
-    OBLIGATION_DEFAULT = "OBLIGATION_DEFAULT"
-    GOVERNMENTAL_INTERVENTION = "GOVERNMENTAL_INTERVENTION"
-    REPUDIATION_MORATORIUM = "REPUDIATION_MORATORIUM"
+    BANKRUPTCY = "Bankruptcy"
+    DISTRESSED_RATINGS_DOWNGRADE = "DistressedRatingsDowngrade"
+    FAILURE_TO_PAY = "FailureToPay"
+    FAILURE_TO_PAY_INTEREST = "FailureToPayInterest"
+    FAILURE_TO_PAY_PRINCIPAL = "FailureToPayPrincipal"
+    GOVERNMENTAL_INTERVENTION = "GovernmentalIntervention"
+    IMPLIED_WRITEDOWN = "ImpliedWritedown"
+    MATURITY_EXTENSION = "MaturityExtension"
+    OBLIGATION_ACCELERATION = "ObligationAcceleration"
+    OBLIGATION_DEFAULT = "ObligationDefault"
+    REPUDIATION_MORATORIUM = "RepudiationMoratorium"
+    RESTRUCTURING = "Restructuring"
+    WRITEDOWN = "Writedown"
 
 
 class SeniorityLevel(Enum):

@@ -15,7 +15,7 @@ from typing import final
 from attestor.core.money import NonEmptyStr
 from attestor.core.result import Err, Ok
 from attestor.core.types import UtcDatetime
-from attestor.instrument.derivative_types import CreditEventType
+from attestor.instrument.derivative_types import CreditEventTypeEnum
 from attestor.oracle.attestation import (
     Attestation,
     FirmConfidence,
@@ -151,13 +151,13 @@ def ingest_cds_spread(
 # ---------------------------------------------------------------------------
 
 
-def _parse_credit_event_type(raw: str) -> Ok[CreditEventType] | Err[str]:
-    """Parse a string into CreditEventType without raising."""
-    for member in CreditEventType:
+def _parse_credit_event_type(raw: str) -> Ok[CreditEventTypeEnum] | Err[str]:
+    """Parse a string into CreditEventTypeEnum without raising."""
+    for member in CreditEventTypeEnum:
         if member.value == raw:
             return Ok(member)
-    valid = ", ".join(m.value for m in CreditEventType)
-    return Err(f"invalid CreditEventType: {raw!r}, expected one of: {valid}")
+    valid = ", ".join(m.value for m in CreditEventTypeEnum)
+    return Err(f"invalid CreditEventTypeEnum: {raw!r}, expected one of: {valid}")
 
 
 @final
@@ -166,7 +166,7 @@ class CreditEventRecord:
     """Oracle record of a credit event declaration."""
 
     reference_entity: NonEmptyStr
-    event_type: CreditEventType
+    event_type: CreditEventTypeEnum
     determination_date: date
 
 
@@ -182,7 +182,7 @@ def ingest_credit_event(
 
     Validates:
     - reference_entity non-empty
-    - event_type is a valid CreditEventType value
+    - event_type is a valid CreditEventTypeEnum value
     - source non-empty
     """
     match NonEmptyStr.parse(reference_entity):
@@ -237,14 +237,14 @@ class AuctionResult:
     """Final auction price after a credit event."""
 
     reference_entity: NonEmptyStr
-    event_type: CreditEventType
+    event_type: CreditEventTypeEnum
     determination_date: date
     auction_price: Decimal  # recovery price in [0, 1]
 
     @staticmethod
     def create(
         reference_entity: str,
-        event_type: CreditEventType,
+        event_type: CreditEventTypeEnum,
         determination_date: date,
         auction_price: Decimal,
     ) -> Ok[AuctionResult] | Err[str]:

@@ -43,7 +43,7 @@ from attestor.instrument.derivative_types import (
     AmericanExercise,
     BermudaExercise,
     CashSettlementTerms,
-    CreditEventType,
+    CreditEventTypeEnum,
     EuropeanExercise,
     OptionExerciseStyleEnum,
     OptionPayoutSpec,
@@ -497,12 +497,12 @@ class TestProtectionTerms:
     def test_valid(self) -> None:
         pt = ProtectionTerms(
             credit_events=frozenset({
-                CreditEventType.BANKRUPTCY,
-                CreditEventType.FAILURE_TO_PAY,
+                CreditEventTypeEnum.BANKRUPTCY,
+                CreditEventTypeEnum.FAILURE_TO_PAY,
             }),
             obligations_category=_BM,
         )
-        assert CreditEventType.BANKRUPTCY in pt.credit_events
+        assert CreditEventTypeEnum.BANKRUPTCY in pt.credit_events
 
     def test_empty_credit_events_rejected(self) -> None:
         with pytest.raises(TypeError, match="credit_events must be non-empty"):
@@ -678,8 +678,8 @@ class TestCDSPayoutSpecEnrichment:
         )
         pt = ProtectionTerms(
             credit_events=frozenset({
-                CreditEventType.BANKRUPTCY,
-                CreditEventType.FAILURE_TO_PAY,
+                CreditEventTypeEnum.BANKRUPTCY,
+                CreditEventTypeEnum.FAILURE_TO_PAY,
             }),
             obligations_category=_BM,
         )
@@ -699,7 +699,7 @@ class TestCDSPayoutSpecEnrichment:
         )
         assert cds.general_terms is not None
         assert cds.protection_terms is not None
-        assert CreditEventType.BANKRUPTCY in cds.protection_terms.credit_events
+        assert CreditEventTypeEnum.BANKRUPTCY in cds.protection_terms.credit_events
 
 
 # ---------------------------------------------------------------------------

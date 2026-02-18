@@ -15,8 +15,9 @@ Make Attestor follow ISDA CDM Rosetta exactly, namespace by namespace.
 | 3 | `base-math` | Quantity, UnitType, Rounding | DONE | `ns03_math.md` |
 | 4 | `observable-asset` | Price, PriceQuantity, Observable | DONE (4a59f3b) | `ns04_observable.md` |
 | 5 | `product-template` | EconomicTerms, Payout, TradableProduct | DONE (65a3015) | `ns05_product.md` |
-| 6 | `product-common-settlement` | SettlementTerms, SettlementPayout | PENDING | `ns06_settlement.md` |
-| 7 | `event-common` | Trade, TradeState, BusinessEvent | PENDING | `ns07_event.md` |
+| 6 | `product-common-settlement` | SettlementTerms, SettlementPayout | DONE (767b527) | `ns06_settlement.md` |
+| 7a | `event-common` enums | ClosedState, EventIntent, CreditEventType, +3 new | NS7a DONE | `ns07_event.md` |
+| 7b | `event-common` types | Trade, TradeState, BusinessEvent enrichment | PENDING | `ns07_event.md` |
 
 ## Process per namespace
 1. Explore agent reads Rosetta files, writes gap analysis to `_rosetta_alignment/nsXX_*.md`
@@ -27,6 +28,6 @@ Make Attestor follow ISDA CDM Rosetta exactly, namespace by namespace.
 6. Commit, update tracker, /compact
 
 ## Metrics
-- Tests: 2,118
+- Tests: 2,210
 - Files: 60 source
-- Classes/enums: ~250
+- Classes/enums: ~263

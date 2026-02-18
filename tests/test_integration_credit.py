@@ -1063,12 +1063,12 @@ class TestImportSmoke:
 
     def test_derivative_enums_importable(self) -> None:
         from attestor.instrument.derivative_types import (
-            CreditEventType,
+            CreditEventTypeEnum,
             ProtectionSide,
             SeniorityLevel,
             SwaptionType,
         )
-        assert CreditEventType.BANKRUPTCY.value == "BANKRUPTCY"
+        assert CreditEventTypeEnum.BANKRUPTCY.value == "Bankruptcy"
         assert ProtectionSide.BUYER.value == "BUYER"
         assert SeniorityLevel.SENIOR_UNSECURED.value == "SENIOR_UNSECURED"
         assert SwaptionType.PAYER.value == "PAYER"
@@ -1233,21 +1233,21 @@ class TestOracleCreditIngest:
         from attestor.oracle.credit_ingest import ingest_credit_event
         att = unwrap(ingest_credit_event(
             reference_entity="ACME Corp",
-            event_type="BANKRUPTCY",
+            event_type="Bankruptcy",
             determination_date=date(2025, 8, 1),
             source="ISDA-DC",
             timestamp=_TS,
             attestation_ref="ATT-CE-001",
         ))
-        from attestor.instrument.derivative_types import CreditEventType
-        assert att.value.event_type is CreditEventType.BANKRUPTCY
+        from attestor.instrument.derivative_types import CreditEventTypeEnum
+        assert att.value.event_type is CreditEventTypeEnum.BANKRUPTCY
         assert att.value.determination_date == date(2025, 8, 1)
 
     def test_ingest_auction_result(self) -> None:
         from attestor.oracle.credit_ingest import ingest_auction_result
         att = unwrap(ingest_auction_result(
             reference_entity="ACME Corp",
-            event_type="BANKRUPTCY",
+            event_type="Bankruptcy",
             determination_date=date(2025, 8, 1),
             auction_price=Decimal("0.35"),
             source="CREDITEX",

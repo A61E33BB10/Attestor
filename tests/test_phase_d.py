@@ -83,12 +83,12 @@ _EURIBOR = FloatingRateIndex(
 
 class TestClosedStateEnum:
     def test_count(self) -> None:
-        assert len(ClosedStateEnum) == 6
+        assert len(ClosedStateEnum) == 7
 
     def test_members(self) -> None:
         expected = {
-            "MATURED", "TERMINATED", "NOVATED",
-            "EXERCISED", "EXPIRED", "CANCELLED",
+            "ALLOCATED", "CANCELLED", "EXERCISED",
+            "EXPIRED", "MATURED", "NOVATED", "TERMINATED",
         }
         actual = {e.name for e in ClosedStateEnum}
         assert actual == expected
@@ -118,12 +118,12 @@ class TestTransferStatusEnum:
 
 class TestEventIntentEnum:
     def test_count(self) -> None:
-        assert len(EventIntentEnum) == 10
+        assert len(EventIntentEnum) == 23
 
     def test_key_members(self) -> None:
-        assert EventIntentEnum.NOVATION.value == "NOVATION"
-        assert EventIntentEnum.PARTIAL_TERMINATION.value == "PARTIAL_TERMINATION"
-        assert EventIntentEnum.INDEX_TRANSITION.value == "INDEX_TRANSITION"
+        assert EventIntentEnum.NOVATION.value == "Novation"
+        assert EventIntentEnum.OPTION_EXERCISE.value == "OptionExercise"
+        assert EventIntentEnum.INDEX_TRANSITION.value == "IndexTransition"
 
 
 # ---------------------------------------------------------------------------
@@ -133,12 +133,17 @@ class TestEventIntentEnum:
 
 class TestCorporateActionTypeEnum:
     def test_count(self) -> None:
-        assert len(CorporateActionTypeEnum) == 6
+        assert len(CorporateActionTypeEnum) == 20
 
     def test_members(self) -> None:
         expected = {
-            "CASH_DIVIDEND", "STOCK_DIVIDEND", "STOCK_SPLIT",
-            "REVERSE_STOCK_SPLIT", "MERGER", "SPIN_OFF",
+            "BANKRUPTCY_OR_INSOLVENCY", "BESPOKE_EVENT", "BONUS_ISSUE",
+            "CASH_DIVIDEND", "CLASS_ACTION", "DELISTING",
+            "EARLY_REDEMPTION", "ISSUER_NATIONALIZATION", "LIQUIDATION",
+            "MERGER", "RELISTING", "REVERSE_STOCK_SPLIT",
+            "RIGHTS_ISSUE", "SPIN_OFF", "STOCK_DIVIDEND",
+            "STOCK_IDENTIFIER_CHANGE", "STOCK_NAME_CHANGE",
+            "STOCK_RECLASSIFICATION", "STOCK_SPLIT", "TAKEOVER",
         }
         actual = {e.name for e in CorporateActionTypeEnum}
         assert actual == expected
@@ -559,13 +564,13 @@ class TestBusinessEventEnrichment:
             timestamp=UtcDatetime.now(),
             before=before,
             after=after,
-            event_intent=EventIntentEnum.PARTIAL_TERMINATION,
+            event_intent=EventIntentEnum.DECREASE,
             action=ActionEnum.NEW,
             event_ref=_nes("TX-12345"),
         )
         assert ev.before is not None
         assert ev.after is not None
-        assert ev.event_intent == EventIntentEnum.PARTIAL_TERMINATION
+        assert ev.event_intent == EventIntentEnum.DECREASE
         assert ev.event_ref is not None
 
     def test_action_default_is_new(self) -> None:

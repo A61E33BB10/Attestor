@@ -140,7 +140,7 @@ class TestIngestCreditEvent:
     def test_valid_ok_with_firm_confidence(self) -> None:
         result = ingest_credit_event(
             reference_entity="ACME Corp",
-            event_type="BANKRUPTCY",
+            event_type="Bankruptcy",
             determination_date=date(2025, 7, 1),
             source="ISDA",
             timestamp=_TS,
@@ -150,7 +150,7 @@ class TestIngestCreditEvent:
         att = unwrap(result)
         assert isinstance(att.value, CreditEventRecord)
         assert att.value.reference_entity.value == "ACME Corp"
-        assert att.value.event_type.value == "BANKRUPTCY"
+        assert att.value.event_type.value == "Bankruptcy"
         assert att.value.determination_date == date(2025, 7, 1)
         assert isinstance(att.confidence, FirmConfidence)
 
@@ -168,7 +168,7 @@ class TestIngestCreditEvent:
     def test_empty_reference_entity_err(self) -> None:
         result = ingest_credit_event(
             reference_entity="",
-            event_type="FAILURE_TO_PAY",
+            event_type="FailureToPay",
             determination_date=date(2025, 7, 1),
             source="ISDA",
             timestamp=_TS,
@@ -181,7 +181,7 @@ class TestCreditEventRecordFrozen:
     def test_immutable(self) -> None:
         att = unwrap(ingest_credit_event(
             reference_entity="ACME Corp",
-            event_type="RESTRUCTURING",
+            event_type="Restructuring",
             determination_date=date(2025, 7, 1),
             source="ISDA",
             timestamp=_TS,
@@ -200,7 +200,7 @@ class TestIngestAuctionResult:
     def test_valid_ok_with_firm_confidence(self) -> None:
         result = ingest_auction_result(
             reference_entity="ACME Corp",
-            event_type="BANKRUPTCY",
+            event_type="Bankruptcy",
             determination_date=date(2025, 7, 1),
             auction_price=Decimal("0.35"),
             source="Creditex",
@@ -216,7 +216,7 @@ class TestIngestAuctionResult:
     def test_price_greater_than_1_err(self) -> None:
         result = ingest_auction_result(
             reference_entity="ACME Corp",
-            event_type="BANKRUPTCY",
+            event_type="Bankruptcy",
             determination_date=date(2025, 7, 1),
             auction_price=Decimal("1.01"),
             source="Creditex",
@@ -228,7 +228,7 @@ class TestIngestAuctionResult:
     def test_price_negative_err(self) -> None:
         result = ingest_auction_result(
             reference_entity="ACME Corp",
-            event_type="BANKRUPTCY",
+            event_type="Bankruptcy",
             determination_date=date(2025, 7, 1),
             auction_price=Decimal("-0.01"),
             source="Creditex",
@@ -254,7 +254,7 @@ class TestAuctionResultFrozen:
     def test_immutable(self) -> None:
         att = unwrap(ingest_auction_result(
             reference_entity="ACME Corp",
-            event_type="FAILURE_TO_PAY",
+            event_type="FailureToPay",
             determination_date=date(2025, 7, 1),
             auction_price=Decimal("0.25"),
             source="Creditex",
@@ -288,7 +288,7 @@ class TestAttestationMetadata:
     def test_credit_event_has_content_hash(self) -> None:
         att = unwrap(ingest_credit_event(
             reference_entity="ACME Corp",
-            event_type="BANKRUPTCY",
+            event_type="Bankruptcy",
             determination_date=date(2025, 7, 1),
             source="ISDA",
             timestamp=_TS,
@@ -300,7 +300,7 @@ class TestAttestationMetadata:
     def test_auction_result_has_content_hash(self) -> None:
         att = unwrap(ingest_auction_result(
             reference_entity="ACME Corp",
-            event_type="BANKRUPTCY",
+            event_type="Bankruptcy",
             determination_date=date(2025, 7, 1),
             auction_price=Decimal("0.35"),
             source="Creditex",
@@ -397,10 +397,10 @@ class TestAuctionResultCreate:
     """AuctionResult.create validates auction_price in [0, 1]."""
 
     def test_valid_ok(self) -> None:
-        from attestor.instrument.derivative_types import CreditEventType
+        from attestor.instrument.derivative_types import CreditEventTypeEnum
         result = AuctionResult.create(
             reference_entity="ACME Corp",
-            event_type=CreditEventType.BANKRUPTCY,
+            event_type=CreditEventTypeEnum.BANKRUPTCY,
             determination_date=date(2025, 8, 1),
             auction_price=Decimal("0.35"),
         )
@@ -409,50 +409,50 @@ class TestAuctionResultCreate:
         assert ar.auction_price == Decimal("0.35")
 
     def test_price_above_one_err(self) -> None:
-        from attestor.instrument.derivative_types import CreditEventType
+        from attestor.instrument.derivative_types import CreditEventTypeEnum
         result = AuctionResult.create(
             reference_entity="ACME Corp",
-            event_type=CreditEventType.BANKRUPTCY,
+            event_type=CreditEventTypeEnum.BANKRUPTCY,
             determination_date=date(2025, 8, 1),
             auction_price=Decimal("1.5"),
         )
         assert isinstance(result, Err)
 
     def test_price_negative_err(self) -> None:
-        from attestor.instrument.derivative_types import CreditEventType
+        from attestor.instrument.derivative_types import CreditEventTypeEnum
         result = AuctionResult.create(
             reference_entity="ACME Corp",
-            event_type=CreditEventType.BANKRUPTCY,
+            event_type=CreditEventTypeEnum.BANKRUPTCY,
             determination_date=date(2025, 8, 1),
             auction_price=Decimal("-0.1"),
         )
         assert isinstance(result, Err)
 
     def test_price_one_ok(self) -> None:
-        from attestor.instrument.derivative_types import CreditEventType
+        from attestor.instrument.derivative_types import CreditEventTypeEnum
         result = AuctionResult.create(
             reference_entity="ACME Corp",
-            event_type=CreditEventType.BANKRUPTCY,
+            event_type=CreditEventTypeEnum.BANKRUPTCY,
             determination_date=date(2025, 8, 1),
             auction_price=Decimal("1"),
         )
         assert isinstance(result, Ok)
 
     def test_price_zero_ok(self) -> None:
-        from attestor.instrument.derivative_types import CreditEventType
+        from attestor.instrument.derivative_types import CreditEventTypeEnum
         result = AuctionResult.create(
             reference_entity="ACME Corp",
-            event_type=CreditEventType.BANKRUPTCY,
+            event_type=CreditEventTypeEnum.BANKRUPTCY,
             determination_date=date(2025, 8, 1),
             auction_price=Decimal("0"),
         )
         assert isinstance(result, Ok)
 
     def test_empty_entity_err(self) -> None:
-        from attestor.instrument.derivative_types import CreditEventType
+        from attestor.instrument.derivative_types import CreditEventTypeEnum
         result = AuctionResult.create(
             reference_entity="",
-            event_type=CreditEventType.BANKRUPTCY,
+            event_type=CreditEventTypeEnum.BANKRUPTCY,
             determination_date=date(2025, 8, 1),
             auction_price=Decimal("0.35"),
         )

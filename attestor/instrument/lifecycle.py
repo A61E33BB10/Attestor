@@ -23,7 +23,7 @@ from attestor.core.money import Money, NonEmptyStr, PositiveDecimal
 from attestor.core.result import Err, Ok
 from attestor.core.types import FrozenMap, PayerReceiver, UtcDatetime
 from attestor.gateway.types import CanonicalOrder
-from attestor.instrument.derivative_types import CreditEventType, MarginType
+from attestor.instrument.derivative_types import CreditEventTypeEnum, MarginType
 from attestor.instrument.types import PositionStatusEnum
 from attestor.oracle.observable import FloatingRateIndex
 
@@ -35,72 +35,130 @@ from attestor.oracle.observable import FloatingRateIndex
 class ClosedStateEnum(Enum):
     """Reason a trade was closed.
 
-    CDM: ClosedStateEnum (~6 of 6 values).
+    CDM: ClosedStateEnum (7 values).
     """
 
-    MATURED = "MATURED"
-    TERMINATED = "TERMINATED"
-    NOVATED = "NOVATED"
-    EXERCISED = "EXERCISED"
-    EXPIRED = "EXPIRED"
-    CANCELLED = "CANCELLED"
+    ALLOCATED = "Allocated"
+    CANCELLED = "Cancelled"
+    EXERCISED = "Exercised"
+    EXPIRED = "Expired"
+    MATURED = "Matured"
+    NOVATED = "Novated"
+    TERMINATED = "Terminated"
 
 
 class TransferStatusEnum(Enum):
     """Settlement transfer lifecycle status.
 
-    CDM: TransferStatusEnum (~5 values).
+    CDM: TransferStatusEnum (5 values).
     """
 
-    PENDING = "PENDING"
-    INSTRUCTED = "INSTRUCTED"
-    SETTLED = "SETTLED"
-    NETTED = "NETTED"
-    DISPUTED = "DISPUTED"
+    DISPUTED = "Disputed"
+    INSTRUCTED = "Instructed"
+    NETTED = "Netted"
+    PENDING = "Pending"
+    SETTLED = "Settled"
 
 
 class EventIntentEnum(Enum):
     """Business intent of a lifecycle event.
 
-    CDM: IntentEnum (~10 of 20 values). Covers the most common
-    post-trade events for vanilla derivatives.
+    CDM: EventIntentEnum (23 values).
     """
 
-    ALLOCATION = "ALLOCATION"
-    CLEARING = "CLEARING"
-    COMPRESSION = "COMPRESSION"
-    CORPORATE_ACTION = "CORPORATE_ACTION"
-    EARLY_TERMINATION = "EARLY_TERMINATION"
-    EXERCISE = "EXERCISE"
-    INCREASE = "INCREASE"
-    INDEX_TRANSITION = "INDEX_TRANSITION"
-    NOVATION = "NOVATION"
-    PARTIAL_TERMINATION = "PARTIAL_TERMINATION"
+    ALLOCATION = "Allocation"
+    CASH_FLOW = "CashFlow"
+    CLEARING = "Clearing"
+    COMPRESSION = "Compression"
+    CONTRACT_FORMATION = "ContractFormation"
+    CONTRACT_TERMS_AMENDMENT = "ContractTermsAmendment"
+    CORPORATE_ACTION_ADJUSTMENT = "CorporateActionAdjustment"
+    CREDIT_EVENT = "CreditEvent"
+    DECREASE = "Decrease"
+    EARLY_TERMINATION_PROVISION = "EarlyTerminationProvision"
+    INCREASE = "Increase"
+    INDEX_TRANSITION = "IndexTransition"
+    NOTIONAL_RESET = "NotionalReset"
+    NOTIONAL_STEP = "NotionalStep"
+    NOVATION = "Novation"
+    OBSERVATION_RECORD = "ObservationRecord"
+    OPTION_EXERCISE = "OptionExercise"
+    OPTIONAL_CANCELLATION = "OptionalCancellation"
+    OPTIONAL_EXTENSION = "OptionalExtension"
+    PORTFOLIO_REBALANCING = "PortfolioRebalancing"
+    PRINCIPAL_EXCHANGE = "PrincipalExchange"
+    REALLOCATION = "Reallocation"
+    REPURCHASE = "Repurchase"
 
 
 class CorporateActionTypeEnum(Enum):
     """Corporate action classification.
 
-    CDM: CorporateActionTypeEnum (~6 of 19 values).
+    CDM: CorporateActionTypeEnum (20 values).
     """
 
-    CASH_DIVIDEND = "CASH_DIVIDEND"
-    STOCK_DIVIDEND = "STOCK_DIVIDEND"
-    STOCK_SPLIT = "STOCK_SPLIT"
-    REVERSE_STOCK_SPLIT = "REVERSE_STOCK_SPLIT"
-    MERGER = "MERGER"
-    SPIN_OFF = "SPIN_OFF"
+    BANKRUPTCY_OR_INSOLVENCY = "BankruptcyOrInsolvency"
+    BESPOKE_EVENT = "BespokeEvent"
+    BONUS_ISSUE = "BonusIssue"
+    CASH_DIVIDEND = "CashDividend"
+    CLASS_ACTION = "ClassAction"
+    DELISTING = "Delisting"
+    EARLY_REDEMPTION = "EarlyRedemption"
+    ISSUER_NATIONALIZATION = "IssuerNationalization"
+    LIQUIDATION = "Liquidation"
+    MERGER = "Merger"
+    RELISTING = "Relisting"
+    REVERSE_STOCK_SPLIT = "ReverseStockSplit"
+    RIGHTS_ISSUE = "RightsIssue"
+    SPIN_OFF = "SpinOff"
+    STOCK_DIVIDEND = "StockDividend"
+    STOCK_IDENTIFIER_CHANGE = "StockIdentifierChange"
+    STOCK_NAME_CHANGE = "StockNameChange"
+    STOCK_RECLASSIFICATION = "StockReclassification"
+    STOCK_SPLIT = "StockSplit"
+    TAKEOVER = "Takeover"
 
 
 class ActionEnum(Enum):
     """Message action type for trade reporting.
 
-    CDM: ActionEnum.
+    CDM: ActionEnum (3 values).
     """
 
-    NEW = "NEW"
-    CORRECT = "CORRECT"
-    CANCEL = "CANCEL"
+    CANCEL = "Cancel"
+    CORRECT = "Correct"
+    NEW = "New"
+
+
+class ExecutionTypeEnum(Enum):
+    """How a contract was executed.
+
+    CDM: ExecutionTypeEnum (3 values).
+    """
+
+    ELECTRONIC = "Electronic"
+    OFF_FACILITY = "OffFacility"
+    ON_VENUE = "OnVenue"
+
+
+class ConfirmationStatusEnum(Enum):
+    """Confirmation status of a trade.
+
+    CDM: ConfirmationStatusEnum (2 values).
+    """
+
+    CONFIRMED = "Confirmed"
+    UNCONFIRMED = "Unconfirmed"
+
+
+class AffirmationStatusEnum(Enum):
+    """Affirmation status of a trade.
+
+    CDM: AffirmationStatusEnum (2 values).
+    """
+
+    AFFIRMED = "Affirmed"
+    UNAFFIRMED = "Unaffirmed"
 
 
 # ---------------------------------------------------------------------------
@@ -272,7 +330,7 @@ class CreditEventPI:
     """Credit event declaration -- triggers protection leg."""
 
     instrument_id: NonEmptyStr
-    event_type: CreditEventType
+    event_type: CreditEventTypeEnum
     determination_date: date
     auction_price: Decimal | None  # None before auction, populated after
 

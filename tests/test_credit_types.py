@@ -21,7 +21,7 @@ from attestor.instrument.credit_types import (
 )
 from attestor.instrument.derivative_types import (
     CDSDetail,
-    CreditEventType,
+    CreditEventTypeEnum,
     EquityDetail,
     FuturesDetail,
     FuturesPayoutSpec,
@@ -90,10 +90,13 @@ def _make_underlying_swap() -> IRSwapPayoutSpec:
 
 class TestCreditEnums:
     def test_credit_event_type_values(self) -> None:
-        assert {e.value for e in CreditEventType} == {
-            "BANKRUPTCY", "FAILURE_TO_PAY", "RESTRUCTURING",
-            "OBLIGATION_DEFAULT", "GOVERNMENTAL_INTERVENTION",
-            "REPUDIATION_MORATORIUM",
+        assert {e.value for e in CreditEventTypeEnum} == {
+            "Bankruptcy", "DistressedRatingsDowngrade",
+            "FailureToPay", "FailureToPayInterest", "FailureToPayPrincipal",
+            "GovernmentalIntervention", "ImpliedWritedown",
+            "MaturityExtension", "ObligationAcceleration",
+            "ObligationDefault", "RepudiationMoratorium",
+            "Restructuring", "Writedown",
         }
 
     def test_seniority_level_values(self) -> None:

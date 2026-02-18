@@ -3,7 +3,7 @@
 All types are @final @dataclass(frozen=True, slots=True). Smart constructors
 return Ok | Err for validated creation.
 
-Enums (CreditEventType, SeniorityLevel, ProtectionSide, SwaptionType) live in
+Enums (CreditEventTypeEnum, SeniorityLevel, ProtectionSide, SwaptionType) live in
 derivative_types.py to avoid circular imports (this module imports SettlementTypeEnum
 from there).
 """
@@ -19,7 +19,7 @@ from attestor.core.money import NonEmptyStr, NonNegativeDecimal, PositiveDecimal
 from attestor.core.result import Err, Ok
 from attestor.core.types import PayerReceiver
 from attestor.instrument.derivative_types import (
-    CreditEventType,
+    CreditEventTypeEnum,
     SeniorityLevel,
     SettlementTypeEnum,
     SwaptionType,
@@ -232,7 +232,7 @@ class ProtectionTerms:
          + floatingAmountEvents.
     """
 
-    credit_events: frozenset[CreditEventType]
+    credit_events: frozenset[CreditEventTypeEnum]
     obligations_category: NonEmptyStr  # e.g. "BorrowedMoney"
 
     def __post_init__(self) -> None:

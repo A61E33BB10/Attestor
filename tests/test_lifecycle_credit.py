@@ -11,7 +11,7 @@ import pytest
 
 from attestor.core.money import Money, NonEmptyStr
 from attestor.core.result import Err, Ok, unwrap
-from attestor.instrument.derivative_types import CreditEventType
+from attestor.instrument.derivative_types import CreditEventTypeEnum
 from attestor.instrument.lifecycle import (
     CDS_TRANSITIONS,
     SWAPTION_TRANSITIONS,
@@ -180,19 +180,19 @@ class TestCreditEventPI:
     def test_construction_without_auction_price(self) -> None:
         pi = CreditEventPI(
             instrument_id=NonEmptyStr(value="CDS-001"),
-            event_type=CreditEventType.BANKRUPTCY,
+            event_type=CreditEventTypeEnum.BANKRUPTCY,
             determination_date=date(2026, 3, 15),
             auction_price=None,
         )
         assert pi.instrument_id.value == "CDS-001"
-        assert pi.event_type is CreditEventType.BANKRUPTCY
+        assert pi.event_type is CreditEventTypeEnum.BANKRUPTCY
         assert pi.determination_date == date(2026, 3, 15)
         assert pi.auction_price is None
 
     def test_construction_with_auction_price(self) -> None:
         pi = CreditEventPI(
             instrument_id=NonEmptyStr(value="CDS-002"),
-            event_type=CreditEventType.FAILURE_TO_PAY,
+            event_type=CreditEventTypeEnum.FAILURE_TO_PAY,
             determination_date=date(2026, 4, 1),
             auction_price=Decimal("0.35"),
         )
@@ -201,7 +201,7 @@ class TestCreditEventPI:
     def test_frozen(self) -> None:
         pi = CreditEventPI(
             instrument_id=NonEmptyStr(value="CDS-001"),
-            event_type=CreditEventType.RESTRUCTURING,
+            event_type=CreditEventTypeEnum.RESTRUCTURING,
             determination_date=date(2026, 3, 15),
             auction_price=None,
         )
@@ -211,7 +211,7 @@ class TestCreditEventPI:
     def test_replace(self) -> None:
         pi = CreditEventPI(
             instrument_id=NonEmptyStr(value="CDS-001"),
-            event_type=CreditEventType.BANKRUPTCY,
+            event_type=CreditEventTypeEnum.BANKRUPTCY,
             determination_date=date(2026, 3, 15),
             auction_price=None,
         )

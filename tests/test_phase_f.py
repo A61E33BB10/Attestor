@@ -2,7 +2,7 @@
 
 Tests for:
 - RestructuringEnum (new enum in derivative_types.py)
-- CreditEventType expansion (3 new members)
+- CreditEventTypeEnum expansion (3 new members)
 - TradingCapacityEnum (new enum in mifid2.py)
 - MiFIDIIReport optional field additions (6 fields)
 - EMIRTradeReport optional field addition (1 field)
@@ -20,7 +20,7 @@ from attestor.core.money import NonEmptyStr, PositiveDecimal
 from attestor.core.types import UtcDatetime
 from attestor.gateway.types import OrderSide
 from attestor.instrument.derivative_types import (
-    CreditEventType,
+    CreditEventTypeEnum,
     RestructuringEnum,
 )
 from attestor.reporting.emir import EMIRTradeReport
@@ -51,23 +51,23 @@ class TestRestructuringEnum:
 
 
 # ---------------------------------------------------------------------------
-# CreditEventType expansion
+# CreditEventTypeEnum expansion
 # ---------------------------------------------------------------------------
 
 
 class TestCreditEventTypeExpansion:
     def test_member_count(self) -> None:
-        assert len(CreditEventType) == 6
+        assert len(CreditEventTypeEnum) == 13
 
     def test_original_members_preserved(self) -> None:
-        assert CreditEventType.BANKRUPTCY.value == "BANKRUPTCY"
-        assert CreditEventType.FAILURE_TO_PAY.value == "FAILURE_TO_PAY"
-        assert CreditEventType.RESTRUCTURING.value == "RESTRUCTURING"
+        assert CreditEventTypeEnum.BANKRUPTCY.value == "Bankruptcy"
+        assert CreditEventTypeEnum.FAILURE_TO_PAY.value == "FailureToPay"
+        assert CreditEventTypeEnum.RESTRUCTURING.value == "Restructuring"
 
     def test_new_members(self) -> None:
-        assert CreditEventType.OBLIGATION_DEFAULT.value == "OBLIGATION_DEFAULT"
-        assert CreditEventType.GOVERNMENTAL_INTERVENTION.value == "GOVERNMENTAL_INTERVENTION"
-        assert CreditEventType.REPUDIATION_MORATORIUM.value == "REPUDIATION_MORATORIUM"
+        assert CreditEventTypeEnum.OBLIGATION_DEFAULT.value == "ObligationDefault"
+        assert CreditEventTypeEnum.GOVERNMENTAL_INTERVENTION.value == "GovernmentalIntervention"
+        assert CreditEventTypeEnum.REPUDIATION_MORATORIUM.value == "RepudiationMoratorium"
 
 
 # ---------------------------------------------------------------------------
