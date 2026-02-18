@@ -20,6 +20,7 @@ from decimal import Decimal
 import pytest
 
 from attestor.core.money import NonEmptyStr, PositiveDecimal
+from attestor.core.party import CounterpartyRoleEnum
 from attestor.core.result import Ok
 from attestor.core.types import (
     AdjustableDate,
@@ -78,8 +79,8 @@ _SOFR = FloatingRateIndex(
     index=FloatingRateIndexEnum.SOFR,
     designated_maturity=Period(1, "D"),
 )
-_PR = PayerReceiver(payer="PARTY1", receiver="PARTY2")
-_PR_INV = PayerReceiver(payer="PARTY2", receiver="PARTY1")
+_PR = PayerReceiver(payer=CounterpartyRoleEnum.PARTY1, receiver=CounterpartyRoleEnum.PARTY2)
+_PR_INV = PayerReceiver(payer=CounterpartyRoleEnum.PARTY2, receiver=CounterpartyRoleEnum.PARTY1)
 _USD_r = NonEmptyStr.parse("USD")
 assert isinstance(_USD_r, Ok)
 _USD: NonEmptyStr = _USD_r.value

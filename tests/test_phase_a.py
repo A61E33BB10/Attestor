@@ -22,6 +22,7 @@ import pytest
 
 from attestor.core.calendar import adjust_date, day_count_fraction
 from attestor.core.money import VALID_CURRENCIES
+from attestor.core.party import CounterpartyRoleEnum
 from attestor.core.result import Ok
 from attestor.core.types import (
     AdjustableDate,
@@ -47,8 +48,8 @@ from attestor.instrument.types import (
 )
 from attestor.oracle.observable import FloatingRateIndex, FloatingRateIndexEnum
 
-_PR = PayerReceiver(payer="PARTY1", receiver="PARTY2")
-_PR_INV = PayerReceiver(payer="PARTY2", receiver="PARTY1")
+_PR = PayerReceiver(payer=CounterpartyRoleEnum.PARTY1, receiver=CounterpartyRoleEnum.PARTY2)
+_PR_INV = PayerReceiver(payer=CounterpartyRoleEnum.PARTY2, receiver=CounterpartyRoleEnum.PARTY1)
 _SOFR = FloatingRateIndex(
     index=FloatingRateIndexEnum.SOFR, designated_maturity=Period(1, "D"),
 )
@@ -283,27 +284,27 @@ class TestRelativeDateOffset:
 
 class TestPayerReceiver:
     def test_valid_party1_pays(self) -> None:
-        pr = PayerReceiver(payer="PARTY1", receiver="PARTY2")
-        assert pr.payer == "PARTY1"
-        assert pr.receiver == "PARTY2"
+        pr = PayerReceiver(payer=CounterpartyRoleEnum.PARTY1, receiver=CounterpartyRoleEnum.PARTY2)
+        assert pr.payer == CounterpartyRoleEnum.PARTY1
+        assert pr.receiver == CounterpartyRoleEnum.PARTY2
 
     def test_valid_party2_pays(self) -> None:
-        pr = PayerReceiver(payer="PARTY2", receiver="PARTY1")
-        assert pr.payer == "PARTY2"
-        assert pr.receiver == "PARTY1"
+        pr = PayerReceiver(payer=CounterpartyRoleEnum.PARTY2, receiver=CounterpartyRoleEnum.PARTY1)
+        assert pr.payer == CounterpartyRoleEnum.PARTY2
+        assert pr.receiver == CounterpartyRoleEnum.PARTY1
 
     def test_same_party_rejected(self) -> None:
         with pytest.raises(TypeError, match="payer must differ from receiver"):
-            PayerReceiver(payer="PARTY1", receiver="PARTY1")
+            PayerReceiver(payer=CounterpartyRoleEnum.PARTY1, receiver=CounterpartyRoleEnum.PARTY1)
 
     def test_same_party2_rejected(self) -> None:
         with pytest.raises(TypeError, match="payer must differ from receiver"):
-            PayerReceiver(payer="PARTY2", receiver="PARTY2")
+            PayerReceiver(payer=CounterpartyRoleEnum.PARTY2, receiver=CounterpartyRoleEnum.PARTY2)
 
     def test_frozen(self) -> None:
-        pr = PayerReceiver(payer="PARTY1", receiver="PARTY2")
+        pr = PayerReceiver(payer=CounterpartyRoleEnum.PARTY1, receiver=CounterpartyRoleEnum.PARTY2)
         with pytest.raises(AttributeError):
-            pr.payer = "PARTY2"  # type: ignore[misc]
+            pr.payer = CounterpartyRoleEnum.PARTY2  # type: ignore[misc]
 
 
 # ===========================================================================
@@ -672,8 +673,8 @@ class TestPayerReceiverOnLegs:
             currency=NonEmptyStr(value="USD"),
             notional=PositiveDecimal(value=Decimal("1000000")),
         )
-        assert leg.payer_receiver.payer == "PARTY1"
-        assert leg.payer_receiver.receiver == "PARTY2"
+        assert leg.payer_receiver.payer == CounterpartyRoleEnum.PARTY1
+        assert leg.payer_receiver.receiver == CounterpartyRoleEnum.PARTY2
 
     def test_float_leg_carries_payer_receiver(self) -> None:
         from attestor.core.money import NonEmptyStr, PositiveDecimal
@@ -687,8 +688,8 @@ class TestPayerReceiverOnLegs:
             currency=NonEmptyStr(value="USD"),
             notional=PositiveDecimal(value=Decimal("1000000")),
         )
-        assert leg.payer_receiver.payer == "PARTY2"
-        assert leg.payer_receiver.receiver == "PARTY1"
+        assert leg.payer_receiver.payer == CounterpartyRoleEnum.PARTY2
+        assert leg.payer_receiver.receiver == CounterpartyRoleEnum.PARTY1
 
     def test_float_leg_nan_spread_rejected(self) -> None:
         """FloatLeg rejects NaN spread (Formalis Finding 7)."""
@@ -728,8 +729,8 @@ class TestIRSwapConsistencyInvariant:
         assert isinstance(result, Ok)
         irs = result.value
         # Fixed payer = PARTY1, Float payer = PARTY2 (inverse)
-        assert irs.fixed_leg.payer_receiver.payer == "PARTY1"
-        assert irs.float_leg.payer_receiver.payer == "PARTY2"
+        assert irs.fixed_leg.payer_receiver.payer == CounterpartyRoleEnum.PARTY1
+        assert irs.float_leg.payer_receiver.payer == CounterpartyRoleEnum.PARTY2
         # Consistency: fixed_payer == float_receiver
         assert irs.fixed_leg.payer_receiver.payer == irs.float_leg.payer_receiver.receiver
 
@@ -786,7 +787,7 @@ class TestPayerReceiverOnCredit:
             payer_receiver=_PR,
         )
         assert isinstance(result, Ok)
-        assert result.value.payer_receiver.payer == "PARTY1"
+        assert result.value.payer_receiver.payer == CounterpartyRoleEnum.PARTY1
 
     def test_swaption_create_with_payer_receiver(self) -> None:
         from attestor.instrument.credit_types import SwaptionPayoutSpec
@@ -816,4 +817,4 @@ class TestPayerReceiverOnCredit:
             payer_receiver=_PR,
         )
         assert isinstance(result, Ok)
-        assert result.value.payer_receiver.payer == "PARTY1"
+        assert result.value.payer_receiver.payer == CounterpartyRoleEnum.PARTY1

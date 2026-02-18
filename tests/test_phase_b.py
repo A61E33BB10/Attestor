@@ -704,6 +704,7 @@ class TestFloatLegIntegration:
     """Verify FloatLeg.float_index accepts only FloatingRateIndex."""
 
     def test_irs_create_with_floating_rate_index(self) -> None:
+        from attestor.core.party import CounterpartyRoleEnum
         from attestor.core.result import Ok
         from attestor.core.types import PayerReceiver
         from attestor.instrument.fx_types import (
@@ -712,7 +713,7 @@ class TestFloatLegIntegration:
             PaymentFrequency,
         )
 
-        pr = PayerReceiver(payer="PARTY1", receiver="PARTY2")
+        pr = PayerReceiver(payer=CounterpartyRoleEnum.PARTY1, receiver=CounterpartyRoleEnum.PARTY2)
         result = IRSwapPayoutSpec.create(
             notional=Decimal("10000000"),
             currency="USD",
@@ -731,6 +732,7 @@ class TestFloatLegIntegration:
 
     def test_irs_float_leg_index_is_structured(self) -> None:
         """The float_index field carries structured data, not a string."""
+        from attestor.core.party import CounterpartyRoleEnum
         from attestor.core.result import Ok
         from attestor.core.types import PayerReceiver
         from attestor.instrument.fx_types import (
@@ -739,7 +741,7 @@ class TestFloatLegIntegration:
             PaymentFrequency,
         )
 
-        pr = PayerReceiver(payer="PARTY1", receiver="PARTY2")
+        pr = PayerReceiver(payer=CounterpartyRoleEnum.PARTY1, receiver=CounterpartyRoleEnum.PARTY2)
         result = IRSwapPayoutSpec.create(
             notional=Decimal("10000000"),
             currency="USD",

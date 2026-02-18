@@ -51,6 +51,27 @@ from attestor.core.money import (
 from attestor.core.money import (
     PositiveDecimal as PositiveDecimal,
 )
+from attestor.core.party import (
+    BuyerSeller as BuyerSeller,
+)
+from attestor.core.party import (
+    Counterparty as Counterparty,
+)
+from attestor.core.party import (
+    CounterpartyRoleEnum as CounterpartyRoleEnum,
+)
+from attestor.core.party import (
+    PartyIdentifier as PartyIdentifier,
+)
+from attestor.core.party import (
+    PartyIdentifierTypeEnum as PartyIdentifierTypeEnum,
+)
+from attestor.core.party import (
+    PartyRole as PartyRole,
+)
+from attestor.core.party import (
+    PartyRoleEnum as PartyRoleEnum,
+)
 from attestor.core.quantity import (
     AnyQuantity as AnyQuantity,
 )

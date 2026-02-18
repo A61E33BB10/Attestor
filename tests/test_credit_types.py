@@ -12,6 +12,7 @@ from decimal import Decimal
 
 import pytest
 
+from attestor.core.party import CounterpartyRoleEnum
 from attestor.core.result import Err, Ok, unwrap
 from attestor.core.types import PayerReceiver, Period
 from attestor.instrument.credit_types import (
@@ -57,7 +58,7 @@ from attestor.oracle.observable import FloatingRateIndex, FloatingRateIndexEnum
 # ---------------------------------------------------------------------------
 
 _LEI = "529900HNOAA1KXQJUQ27"
-_PR = PayerReceiver(payer="PARTY1", receiver="PARTY2")
+_PR = PayerReceiver(payer=CounterpartyRoleEnum.PARTY1, receiver=CounterpartyRoleEnum.PARTY2)
 _SOFR = FloatingRateIndex(index=FloatingRateIndexEnum.SOFR, designated_maturity=Period(1, "D"))
 
 

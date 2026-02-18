@@ -315,7 +315,10 @@ class RelativeDateOffset:
 # Phase A: Counterparty direction
 # ---------------------------------------------------------------------------
 
-type CounterpartyRole = Literal["PARTY1", "PARTY2"]
+from attestor.core.party import CounterpartyRoleEnum  # noqa: E402
+
+# Backward compat alias (was Literal["PARTY1", "PARTY2"]).
+type CounterpartyRole = CounterpartyRoleEnum
 
 
 @final
@@ -327,10 +330,20 @@ class PayerReceiver:
     Invariant: payer != receiver (a party cannot pay itself).
     """
 
-    payer: CounterpartyRole
-    receiver: CounterpartyRole
+    payer: CounterpartyRoleEnum
+    receiver: CounterpartyRoleEnum
 
     def __post_init__(self) -> None:
+        if not isinstance(self.payer, CounterpartyRoleEnum):
+            raise TypeError(
+                f"PayerReceiver.payer must be CounterpartyRoleEnum, "
+                f"got {type(self.payer).__name__}"
+            )
+        if not isinstance(self.receiver, CounterpartyRoleEnum):
+            raise TypeError(
+                f"PayerReceiver.receiver must be CounterpartyRoleEnum, "
+                f"got {type(self.receiver).__name__}"
+            )
         if self.payer == self.receiver:
             raise TypeError(
                 f"PayerReceiver: payer must differ from receiver, both are {self.payer!r}"

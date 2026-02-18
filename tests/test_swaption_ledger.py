@@ -9,6 +9,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from attestor.core.money import NonEmptyStr
+from attestor.core.party import CounterpartyRoleEnum
 from attestor.core.result import Err, Ok, unwrap
 from attestor.core.types import PayerReceiver, Period, UtcDatetime
 from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType
@@ -38,7 +39,7 @@ from attestor.oracle.observable import FloatingRateIndex, FloatingRateIndexEnum
 _TS = UtcDatetime(value=datetime(2025, 7, 1, 10, 0, 0, tzinfo=UTC))
 _LEI_A = "529900HNOAA1KXQJUQ27"
 _LEI_B = "529900ODI3JL1O4COU11"
-_PR = PayerReceiver(payer="PARTY1", receiver="PARTY2")
+_PR = PayerReceiver(payer=CounterpartyRoleEnum.PARTY1, receiver=CounterpartyRoleEnum.PARTY2)
 _SOFR = FloatingRateIndex(
     index=FloatingRateIndexEnum.SOFR, designated_maturity=Period(1, "D"),
 )

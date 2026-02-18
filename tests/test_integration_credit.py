@@ -11,6 +11,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from attestor.core.money import NonEmptyStr
+from attestor.core.party import CounterpartyRoleEnum
 from attestor.core.result import Ok, unwrap
 from attestor.core.types import PayerReceiver, Period, UtcDatetime
 from attestor.gateway.parser import parse_cds_order, parse_swaption_order
@@ -87,7 +88,7 @@ _TS = datetime(2025, 6, 15, 10, 0, 0, tzinfo=UTC)
 _TS_UTC = UtcDatetime(value=_TS)
 _LEI_A = "529900HNOAA1KXQJUQ27"
 _LEI_B = "969500UEQ9HE3W646P42"
-_PR = PayerReceiver(payer="PARTY1", receiver="PARTY2")
+_PR = PayerReceiver(payer=CounterpartyRoleEnum.PARTY1, receiver=CounterpartyRoleEnum.PARTY2)
 _SOFR = FloatingRateIndex(index=FloatingRateIndexEnum.SOFR, designated_maturity=Period(1, "D"))
 
 

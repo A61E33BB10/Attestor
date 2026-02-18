@@ -17,6 +17,7 @@ from typing import get_args
 import pytest
 
 from attestor.core.money import NonEmptyStr
+from attestor.core.party import CounterpartyRoleEnum
 from attestor.core.result import Ok
 from attestor.core.types import (
     FrozenMap,
@@ -48,7 +49,7 @@ from attestor.oracle.observable import FloatingRateIndex, FloatingRateIndexEnum
 # Helpers
 # ---------------------------------------------------------------------------
 
-_PR = PayerReceiver(payer="PARTY1", receiver="PARTY2")
+_PR = PayerReceiver(payer=CounterpartyRoleEnum.PARTY1, receiver=CounterpartyRoleEnum.PARTY2)
 
 
 def _nes(s: str) -> NonEmptyStr:

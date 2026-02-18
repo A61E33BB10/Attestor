@@ -17,6 +17,7 @@ from typing import final
 
 from attestor.core.identifiers import LEI
 from attestor.core.money import NonEmptyStr
+from attestor.core.party import PartyIdentifier, PartyIdentifierTypeEnum
 from attestor.core.result import Err, Ok
 from attestor.core.types import PayerReceiver
 from attestor.instrument.credit_types import (
@@ -56,18 +57,56 @@ class PositionStatusEnum(Enum):
 @final
 @dataclass(frozen=True, slots=True)
 class Party:
-    """Counterparty or executing party."""
+    """A party to a transaction.
 
-    party_id: NonEmptyStr
-    name: NonEmptyStr
-    lei: LEI
+    CDM: Party = partyId (1..*) + name (0..1).
+    Attestor uses typed PartyIdentifier with LEI/BIC/MIC validation.
+    """
+
+    party_id: tuple[PartyIdentifier, ...]
+    name: NonEmptyStr | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.party_id, tuple):
+            raise TypeError(
+                f"Party.party_id must be a tuple, "
+                f"got {type(self.party_id).__name__}"
+            )
+        if not self.party_id:
+            raise TypeError("Party.party_id must be non-empty")
+        for i, pid in enumerate(self.party_id):
+            if not isinstance(pid, PartyIdentifier):
+                raise TypeError(
+                    f"Party.party_id[{i}] must be PartyIdentifier, "
+                    f"got {type(pid).__name__}"
+                )
+        if self.name is not None and not isinstance(self.name, NonEmptyStr):
+            raise TypeError(
+                f"Party.name must be NonEmptyStr or None, "
+                f"got {type(self.name).__name__}"
+            )
 
     @staticmethod
     def create(party_id: str, name: str, lei: str) -> Ok[Party] | Err[str]:
+        """Backward-compatible factory: creates Party with LEI identifier.
+
+        Kept for migration; prefer ``Party.from_lei()`` for new code.
+        """
+        return Party.from_lei(party_id=party_id, name=name, lei=lei)
+
+    @staticmethod
+    def from_lei(
+        *, party_id: str, name: str, lei: str,
+    ) -> Ok[Party] | Err[str]:
+        """Create a Party identified by LEI with a separate party_id.
+
+        Creates two PartyIdentifiers: one untyped (party_id) and one
+        typed LEI. Name is required for this factory.
+        """
         match NonEmptyStr.parse(party_id):
             case Err(e):
                 return Err(f"Party.party_id: {e}")
-            case Ok(pid):
+            case Ok(pid_str):
                 pass
         match NonEmptyStr.parse(name):
             case Err(e):
@@ -77,9 +116,14 @@ class Party:
         match LEI.parse(lei):
             case Err(e):
                 return Err(f"Party.lei: {e}")
-            case Ok(l_):
+            case Ok(_):
                 pass
-        return Ok(Party(party_id=pid, name=n, lei=l_))
+        pid = PartyIdentifier(identifier=pid_str, identifier_type=None)
+        lei_id = PartyIdentifier(
+            identifier=NonEmptyStr(value=lei),
+            identifier_type=PartyIdentifierTypeEnum.LEI,
+        )
+        return Ok(Party(party_id=(pid, lei_id), name=n))
 
 
 @final

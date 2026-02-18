@@ -20,7 +20,9 @@ class TestParty:
     def test_valid_creation(self) -> None:
         result = Party.create("P001", "Acme Corp", _LEI)
         assert isinstance(result, Ok)
-        assert result.value.party_id.value == "P001"
+        assert isinstance(result.value.party_id, tuple)
+        assert len(result.value.party_id) >= 1
+        assert result.value.name is not None
         assert result.value.name.value == "Acme Corp"
 
     def test_empty_party_id(self) -> None:

@@ -11,7 +11,7 @@ Make Attestor follow ISDA CDM Rosetta exactly, namespace by namespace.
 | # | Namespace | Rosetta Files | Status | Findings File |
 |---|-----------|--------------|--------|---------------|
 | 1 | `base-staticdata-asset-common` | enum + type | DONE (b2a9aa3) | n/a |
-| 2 | `base-staticdata-party` | Party, Counterparty, PartyRole | PENDING | `ns02_party.md` |
+| 2 | `base-staticdata-party` | Party, Counterparty, PartyRole | DONE | `ns02_party.md` |
 | 3 | `base-math` | Quantity, UnitType, Rounding | DONE | `ns03_math.md` |
 | 4 | `observable-asset` | Price, PriceQuantity, Observable | PENDING | `ns04_observable.md` |
 | 5 | `product-template` | EconomicTerms, Payout, TradableProduct | PENDING | `ns05_product.md` |
@@ -27,5 +27,5 @@ Make Attestor follow ISDA CDM Rosetta exactly, namespace by namespace.
 6. Commit, update tracker, /compact
 
 ## Metrics
-- Tests: 1,942
-- Files: 59 source
+- Tests: 1,970
+- Files: 60 source
