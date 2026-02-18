@@ -15,7 +15,7 @@ from attestor.core.types import PayerReceiver, Period, UtcDatetime
 from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType
 from attestor.instrument.credit_types import SwaptionPayoutSpec
 from attestor.instrument.derivative_types import (
-    SettlementType,
+    SettlementTypeEnum,
     SwaptionDetail,
     SwaptionType,
 )
@@ -47,7 +47,7 @@ _SOFR = FloatingRateIndex(
 
 def _make_swaption_detail(
     swaption_type: SwaptionType = SwaptionType.PAYER,
-    settlement_type: SettlementType = SettlementType.PHYSICAL,
+    settlement_type: SettlementTypeEnum = SettlementTypeEnum.PHYSICAL,
 ) -> SwaptionDetail:
     return unwrap(SwaptionDetail.create(
         swaption_type=swaption_type,
@@ -75,7 +75,7 @@ def _make_underlying_swap() -> IRSwapPayoutSpec:
 
 def _make_swaption_payout(
     swaption_type: SwaptionType = SwaptionType.PAYER,
-    settlement_type: SettlementType = SettlementType.PHYSICAL,
+    settlement_type: SettlementTypeEnum = SettlementTypeEnum.PHYSICAL,
 ) -> SwaptionPayoutSpec:
     return unwrap(SwaptionPayoutSpec.create(
         swaption_type=swaption_type,
@@ -98,7 +98,7 @@ def _make_parties() -> tuple[Party, ...]:
 
 def _swaption_order(
     swaption_type: SwaptionType = SwaptionType.PAYER,
-    settlement_type: SettlementType = SettlementType.PHYSICAL,
+    settlement_type: SettlementTypeEnum = SettlementTypeEnum.PHYSICAL,
 ) -> CanonicalOrder:
     detail = _make_swaption_detail(swaption_type, settlement_type)
     return unwrap(CanonicalOrder.create(

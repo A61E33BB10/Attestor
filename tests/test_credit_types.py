@@ -33,7 +33,7 @@ from attestor.instrument.derivative_types import (
     OptionTypeEnum,
     ProtectionSide,
     SeniorityLevel,
-    SettlementType,
+    SettlementTypeEnum,
     SwaptionDetail,
     SwaptionType,
 )
@@ -326,7 +326,7 @@ class TestSwaptionPayoutSpec:
             strike=Decimal("0.035"),
             exercise_date=date(2027, 6, 15),
             underlying_swap=swap,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
             payer_receiver=_PR,
@@ -336,7 +336,7 @@ class TestSwaptionPayoutSpec:
         assert spec.swaption_type == SwaptionType.PAYER
         assert spec.strike.value == Decimal("0.035")
         assert spec.underlying_swap is swap
-        assert spec.settlement_type == SettlementType.PHYSICAL
+        assert spec.settlement_type == SettlementTypeEnum.PHYSICAL
 
     def test_exercise_before_swap_start_ok(self) -> None:
         swap = _make_underlying_swap()
@@ -345,7 +345,7 @@ class TestSwaptionPayoutSpec:
             strike=Decimal("0.04"),
             exercise_date=date(2027, 6, 10),  # before swap start 2027-06-15
             underlying_swap=swap,
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             currency="USD",
             notional=Decimal("5000000"),
             payer_receiver=_PR,
@@ -359,7 +359,7 @@ class TestSwaptionPayoutSpec:
             strike=Decimal("0.035"),
             exercise_date=date(2027, 6, 16),  # after swap start 2027-06-15
             underlying_swap=swap,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
             payer_receiver=_PR,
@@ -375,7 +375,7 @@ class TestSwaptionPayoutSpec:
             strike=Decimal("0"),
             exercise_date=date(2027, 6, 15),
             underlying_swap=swap,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
             payer_receiver=_PR,
@@ -390,7 +390,7 @@ class TestSwaptionPayoutSpec:
             strike=Decimal("0.035"),
             exercise_date=date(2027, 6, 15),
             underlying_swap=swap,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD",
             notional=Decimal("0"),
             payer_receiver=_PR,
@@ -405,7 +405,7 @@ class TestSwaptionPayoutSpec:
             strike=Decimal("0.035"),
             exercise_date=date(2027, 6, 15),
             underlying_swap=swap,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="",
             notional=Decimal("10000000"),
             payer_receiver=_PR,
@@ -420,7 +420,7 @@ class TestSwaptionPayoutSpec:
             strike=Decimal("0.035"),
             exercise_date=date(2027, 6, 15),
             underlying_swap=swap,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
             payer_receiver=_PR,
@@ -513,7 +513,7 @@ class TestSwaptionDetail:
             underlying_fixed_rate=Decimal("0.035"),
             underlying_float_index="SOFR",
             underlying_tenor_months=60,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
         )
         assert isinstance(result, Ok)
         detail = unwrap(result)
@@ -528,7 +528,7 @@ class TestSwaptionDetail:
             underlying_fixed_rate=Decimal("0"),
             underlying_float_index="SOFR",
             underlying_tenor_months=60,
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
         )
         assert isinstance(result, Ok)
         assert result.value.underlying_fixed_rate == Decimal("0")
@@ -540,7 +540,7 @@ class TestSwaptionDetail:
             underlying_fixed_rate=Decimal("0.035"),
             underlying_float_index="",
             underlying_tenor_months=60,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
         )
         assert isinstance(result, Err)
         assert "underlying_float_index" in result.error
@@ -552,7 +552,7 @@ class TestSwaptionDetail:
             underlying_fixed_rate=Decimal("0.035"),
             underlying_float_index="SOFR",
             underlying_tenor_months=0,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
         )
         assert isinstance(result, Err)
         assert "underlying_tenor_months" in result.error
@@ -564,7 +564,7 @@ class TestSwaptionDetail:
             underlying_fixed_rate=Decimal("0.035"),
             underlying_float_index="SOFR",
             underlying_tenor_months=-12,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
         )
         assert isinstance(result, Err)
         assert "underlying_tenor_months" in result.error
@@ -585,16 +585,16 @@ class TestInstrumentDetailUnion:
             unwrap(OptionDetail.create(
                 strike=Decimal("150"), expiry_date=date(2025, 12, 19),
                 option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
-                settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
+                settlement_type=SettlementTypeEnum.PHYSICAL, underlying_id="AAPL",
             )),
             unwrap(FuturesDetail.create(
                 expiry_date=date(2025, 12, 19), contract_size=Decimal("50"),
-                settlement_type=SettlementType.CASH, underlying_id="ES",
+                settlement_type=SettlementTypeEnum.CASH, underlying_id="ES",
             )),
             unwrap(FXDetail.create(
                 currency_pair="EUR/USD",
                 settlement_date=date(2026, 3, 17),
-                settlement_type=SettlementType.PHYSICAL,
+                settlement_type=SettlementTypeEnum.PHYSICAL,
             )),
             unwrap(IRSwapDetail.create(
                 fixed_rate=Decimal("0.035"), float_index="SOFR",
@@ -614,7 +614,7 @@ class TestInstrumentDetailUnion:
                 underlying_fixed_rate=Decimal("0.035"),
                 underlying_float_index="SOFR",
                 underlying_tenor_months=60,
-                settlement_type=SettlementType.PHYSICAL,
+                settlement_type=SettlementTypeEnum.PHYSICAL,
             )),
         ]
         for d in details:
@@ -735,7 +735,7 @@ class TestCreateSwaptionInstrument:
             strike=Decimal("0.035"),
             exercise_date=date(2027, 6, 15),
             underlying_swap=swap,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
             parties=_make_parties(),
@@ -756,7 +756,7 @@ class TestCreateSwaptionInstrument:
             strike=Decimal("0.035"),
             exercise_date=date(2027, 6, 15),
             underlying_swap=swap,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
             parties=_make_parties(),
@@ -773,7 +773,7 @@ class TestCreateSwaptionInstrument:
             strike=Decimal("0.035"),
             exercise_date=date(2027, 7, 1),  # after swap start 2027-06-15
             underlying_swap=swap,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
             parties=_make_parties(),
@@ -806,7 +806,7 @@ class TestImmutability:
             underlying_fixed_rate=Decimal("0.035"),
             underlying_float_index="SOFR",
             underlying_tenor_months=60,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
         ))
         with pytest.raises(dataclasses.FrozenInstanceError):
             detail.swaption_type = SwaptionType.RECEIVER  # type: ignore[misc]

@@ -791,7 +791,7 @@ class TestPayerReceiverOnCredit:
 
     def test_swaption_create_with_payer_receiver(self) -> None:
         from attestor.instrument.credit_types import SwaptionPayoutSpec
-        from attestor.instrument.derivative_types import SettlementType
+        from attestor.instrument.derivative_types import SettlementTypeEnum
 
         underlying = IRSwapPayoutSpec.create(
             fixed_rate=Decimal("0.03"),
@@ -811,7 +811,7 @@ class TestPayerReceiverOnCredit:
             strike=Decimal("0.03"),
             exercise_date=date(2024, 1, 10),
             underlying_swap=underlying.value,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD",
             notional=Decimal("1000000"),
             payer_receiver=_PR,

@@ -18,7 +18,7 @@ from attestor.instrument.derivative_types import (
     OptionDetail,
     OptionExerciseStyleEnum,
     OptionTypeEnum,
-    SettlementType,
+    SettlementTypeEnum,
 )
 from attestor.instrument.lifecycle import (
     DERIVATIVE_TRANSITIONS,
@@ -108,7 +108,7 @@ class TestFullOptionLifecycle:
             "expiry_date": date(2025, 12, 19),
             "option_type": "Call",
             "option_style": "American",
-            "settlement_type": "CASH",
+            "settlement_type": "Cash",
             "underlying_id": "AAPL",
         }
         order = unwrap(parse_option_order(raw))
@@ -121,7 +121,7 @@ class TestFullOptionLifecycle:
         instrument = unwrap(create_option_instrument(
             "AAPL251219C00150000", "AAPL", Decimal("150"),
             date(2025, 12, 19), OptionTypeEnum.CALL, OptionExerciseStyleEnum.AMERICAN,
-            SettlementType.CASH, "USD", "CBOE",
+            SettlementTypeEnum.CASH, "USD", "CBOE",
             (party_a, party_b), date(2025, 6, 15),
         ))
         assert isinstance(instrument, Instrument)
@@ -205,7 +205,7 @@ class TestFullOptionLifecycle:
         detail = unwrap(OptionDetail.create(
             strike=Decimal("200"), expiry_date=date(2025, 12, 19),
             option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.EUROPEAN,
-            settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
+            settlement_type=SettlementTypeEnum.PHYSICAL, underlying_id="AAPL",
         ))
         order = unwrap(CanonicalOrder.create(
             order_id="OPT-OTM", instrument_id="OPT-OTM-ID",
@@ -278,7 +278,7 @@ class TestFullFuturesLifecycle:
             # Futures-specific
             "expiry_date": date(2025, 12, 19),
             "contract_size": "50",
-            "settlement_type": "CASH",
+            "settlement_type": "Cash",
             "underlying_id": "ES",
         }
         order = unwrap(parse_futures_order(raw))
@@ -290,7 +290,7 @@ class TestFullFuturesLifecycle:
         party_b = unwrap(Party.create("PB", "Party B", _LEI_B))
         instrument = unwrap(create_futures_instrument(
             "ESZ5", "ES", date(2025, 12, 19), date(2025, 12, 18),
-            SettlementType.CASH, Decimal("50"), "USD", "CME",
+            SettlementTypeEnum.CASH, Decimal("50"), "USD", "CME",
             (party_a, party_b), date(2025, 6, 15),
         ))
         assert instrument.status == PositionStatusEnum.PROPOSED
@@ -392,10 +392,10 @@ class TestImportSmoke:
     def test_import_derivative_types(self) -> None:
         from attestor.instrument.derivative_types import (
             OptionTypeEnum,
-            SettlementType,
+            SettlementTypeEnum,
         )
         assert OptionTypeEnum.CALL.value == "Call"
-        assert SettlementType.PHYSICAL.value == "PHYSICAL"
+        assert SettlementTypeEnum.PHYSICAL.value == "Physical"
 
     def test_import_ledger_options(self) -> None:
         from attestor.ledger.options import create_premium_transaction as f

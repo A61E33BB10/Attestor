@@ -10,7 +10,7 @@ from attestor.instrument.derivative_types import (
     CDSDetail,
     ProtectionSide,
     SeniorityLevel,
-    SettlementType,
+    SettlementTypeEnum,
     SwaptionDetail,
     SwaptionType,
 )
@@ -148,7 +148,7 @@ class TestParseSwaptionOrder:
             underlying_fixed_rate="0.035",
             underlying_float_index="SOFR",
             underlying_tenor_months="60",
-            settlement_type="PHYSICAL",
+            settlement_type="Physical",
         )
         result = parse_swaption_order(raw)
         assert isinstance(result, Ok)
@@ -162,7 +162,7 @@ class TestParseSwaptionOrder:
             underlying_fixed_rate="0.035",
             underlying_float_index="SOFR",
             underlying_tenor_months="60",
-            settlement_type="PHYSICAL",
+            settlement_type="Physical",
         )
         result = parse_swaption_order(raw)
         assert isinstance(result, Err)
@@ -174,7 +174,7 @@ class TestParseSwaptionOrder:
             underlying_fixed_rate="-0.01",
             underlying_float_index="SOFR",
             underlying_tenor_months="60",
-            settlement_type="PHYSICAL",
+            settlement_type="Physical",
         )
         result = parse_swaption_order(raw)
         assert isinstance(result, Ok)
@@ -187,7 +187,7 @@ class TestParseSwaptionOrder:
             underlying_fixed_rate="0.035",
             underlying_float_index="SOFR",
             underlying_tenor_months="0",
-            settlement_type="PHYSICAL",
+            settlement_type="Physical",
         )
         result = parse_swaption_order(raw)
         assert isinstance(result, Err)
@@ -199,7 +199,7 @@ class TestParseSwaptionOrder:
             underlying_fixed_rate="0.035",
             underlying_float_index="SOFR",
             underlying_tenor_months="60",
-            settlement_type="CASH",
+            settlement_type="Cash",
         )
         order = unwrap(parse_swaption_order(raw))
         detail = order.instrument_detail
@@ -213,7 +213,7 @@ class TestParseSwaptionOrder:
             underlying_fixed_rate="0.035",
             underlying_float_index="SOFR",
             underlying_tenor_months="60",
-            settlement_type="PHYSICAL",
+            settlement_type="Physical",
         )
         assert "settlement_date" not in raw
         order = unwrap(parse_swaption_order(raw))
@@ -252,7 +252,7 @@ class TestIdempotency:
             underlying_fixed_rate="0.035",
             underlying_float_index="SOFR",
             underlying_tenor_months="60",
-            settlement_type="PHYSICAL",
+            settlement_type="Physical",
         )
         r1 = parse_swaption_order(raw)
         r2 = parse_swaption_order(raw)
@@ -313,7 +313,7 @@ class TestFieldValueIntegration:
             underlying_fixed_rate="0.035",
             underlying_float_index="SOFR",
             underlying_tenor_months="60",
-            settlement_type="CASH",
+            settlement_type="Cash",
         )
         order = unwrap(parse_swaption_order(raw))
         detail = order.instrument_detail
@@ -324,4 +324,4 @@ class TestFieldValueIntegration:
         assert detail.underlying_fixed_rate == Decimal("0.035")
         assert detail.underlying_float_index.value == "SOFR"
         assert detail.underlying_tenor_months == 60
-        assert detail.settlement_type is SettlementType.CASH
+        assert detail.settlement_type is SettlementTypeEnum.CASH

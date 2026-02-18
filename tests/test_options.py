@@ -13,7 +13,7 @@ from attestor.instrument.derivative_types import (
     OptionDetail,
     OptionExerciseStyleEnum,
     OptionTypeEnum,
-    SettlementType,
+    SettlementTypeEnum,
 )
 from attestor.ledger.engine import LedgerEngine
 from attestor.ledger.options import (
@@ -30,7 +30,7 @@ _LEI_B = "529900ODI3JL1O4COU11"
 
 
 def _call_order(
-    settlement_type: SettlementType = SettlementType.PHYSICAL,
+    settlement_type: SettlementTypeEnum = SettlementTypeEnum.PHYSICAL,
 ) -> CanonicalOrder:
     detail = unwrap(OptionDetail.create(
         strike=Decimal("150"), expiry_date=date(2025, 12, 19),
@@ -48,7 +48,7 @@ def _call_order(
 
 
 def _put_order(
-    settlement_type: SettlementType = SettlementType.PHYSICAL,
+    settlement_type: SettlementTypeEnum = SettlementTypeEnum.PHYSICAL,
 ) -> CanonicalOrder:
     detail = unwrap(OptionDetail.create(
         strike=Decimal("150"), expiry_date=date(2025, 12, 19),
@@ -67,7 +67,7 @@ def _put_order(
 
 def _make_unsupported_order(
     option_type: OptionTypeEnum,
-    settlement_type: SettlementType = SettlementType.PHYSICAL,
+    settlement_type: SettlementTypeEnum = SettlementTypeEnum.PHYSICAL,
 ) -> CanonicalOrder:
     """Create an order with a non-CALL/PUT option type for rejection tests."""
     detail = unwrap(OptionDetail.create(
@@ -227,8 +227,32 @@ class TestExercisePhysical:
 
     def test_reject_cash_settled_order(self) -> None:
         result = create_exercise_transaction(
-            _call_order(SettlementType.CASH),
+            _call_order(SettlementTypeEnum.CASH),
             "HOLDER-CASH", "HOLDER-SEC",
+            "WRITER-CASH", "WRITER-SEC",
+            "HOLDER-POS", "WRITER-POS", "TX-FAIL",
+        )
+        assert isinstance(result, Err)
+        assert "PHYSICAL" in result.error.message
+
+    def test_reject_election_settlement_type(self) -> None:
+        order = _make_unsupported_order(
+            OptionTypeEnum.CALL, SettlementTypeEnum.ELECTION,
+        )
+        result = create_exercise_transaction(
+            order, "HOLDER-CASH", "HOLDER-SEC",
+            "WRITER-CASH", "WRITER-SEC",
+            "HOLDER-POS", "WRITER-POS", "TX-FAIL",
+        )
+        assert isinstance(result, Err)
+        assert "PHYSICAL" in result.error.message
+
+    def test_reject_cash_or_physical_settlement_type(self) -> None:
+        order = _make_unsupported_order(
+            OptionTypeEnum.CALL, SettlementTypeEnum.CASH_OR_PHYSICAL,
+        )
+        result = create_exercise_transaction(
+            order, "HOLDER-CASH", "HOLDER-SEC",
             "WRITER-CASH", "WRITER-SEC",
             "HOLDER-POS", "WRITER-POS", "TX-FAIL",
         )
@@ -285,7 +309,7 @@ class TestExercisePhysical:
 
 class TestCashSettlementExercise:
     def test_call_itm(self) -> None:
-        order = _call_order(SettlementType.CASH)
+        order = _call_order(SettlementTypeEnum.CASH)
         # settlement_price=160 > strike=150 -> ITM, intrinsic = 10*10*100=10000
         tx = unwrap(create_cash_settlement_exercise_transaction(
             order, "HOLDER-CASH", "WRITER-CASH",
@@ -298,7 +322,7 @@ class TestCashSettlementExercise:
         assert cash_move.source == "WRITER-CASH"
 
     def test_put_itm(self) -> None:
-        order = _put_order(SettlementType.CASH)
+        order = _put_order(SettlementTypeEnum.CASH)
         # settlement_price=140 < strike=150 -> ITM, intrinsic = 10*10*100=10000
         tx = unwrap(create_cash_settlement_exercise_transaction(
             order, "HOLDER-CASH", "WRITER-CASH",
@@ -309,7 +333,7 @@ class TestCashSettlementExercise:
         assert cash_move.quantity.value == Decimal("10000")
 
     def test_call_otm_rejected(self) -> None:
-        order = _call_order(SettlementType.CASH)
+        order = _call_order(SettlementTypeEnum.CASH)
         result = create_cash_settlement_exercise_transaction(
             order, "HOLDER-CASH", "WRITER-CASH",
             "HOLDER-POS", "WRITER-POS", "TX-FAIL",
@@ -319,7 +343,7 @@ class TestCashSettlementExercise:
         assert "OTM" in result.error.code
 
     def test_put_otm_rejected(self) -> None:
-        order = _put_order(SettlementType.CASH)
+        order = _put_order(SettlementTypeEnum.CASH)
         result = create_cash_settlement_exercise_transaction(
             order, "HOLDER-CASH", "WRITER-CASH",
             "HOLDER-POS", "WRITER-POS", "TX-FAIL",
@@ -330,7 +354,7 @@ class TestCashSettlementExercise:
 
     def test_conservation_in_engine(self) -> None:
         engine = _setup_engine()
-        order = _call_order(SettlementType.CASH)
+        order = _call_order(SettlementTypeEnum.CASH)
         tx = unwrap(create_cash_settlement_exercise_transaction(
             order, "HOLDER-CASH", "WRITER-CASH",
             "HOLDER-POS", "WRITER-POS", "TX-CS-CON",
@@ -341,7 +365,7 @@ class TestCashSettlementExercise:
         assert engine.total_supply("USD") == Decimal(0)
 
     def test_reject_payer_option_type(self) -> None:
-        order = _make_unsupported_order(OptionTypeEnum.PAYER, SettlementType.CASH)
+        order = _make_unsupported_order(OptionTypeEnum.PAYER, SettlementTypeEnum.CASH)
         result = create_cash_settlement_exercise_transaction(
             order, "HOLDER-CASH", "WRITER-CASH",
             "HOLDER-POS", "WRITER-POS", "TX-FAIL",
@@ -351,7 +375,7 @@ class TestCashSettlementExercise:
         assert result.error.code == "UNSUPPORTED_OPTION_TYPE"
 
     def test_reject_straddle_option_type(self) -> None:
-        order = _make_unsupported_order(OptionTypeEnum.STRADDLE, SettlementType.CASH)
+        order = _make_unsupported_order(OptionTypeEnum.STRADDLE, SettlementTypeEnum.CASH)
         result = create_cash_settlement_exercise_transaction(
             order, "HOLDER-CASH", "WRITER-CASH",
             "HOLDER-POS", "WRITER-POS", "TX-FAIL",
@@ -359,6 +383,30 @@ class TestCashSettlementExercise:
         )
         assert isinstance(result, Err)
         assert result.error.code == "UNSUPPORTED_OPTION_TYPE"
+
+    def test_reject_election_settlement_type(self) -> None:
+        order = _make_unsupported_order(
+            OptionTypeEnum.CALL, SettlementTypeEnum.ELECTION,
+        )
+        result = create_cash_settlement_exercise_transaction(
+            order, "HOLDER-CASH", "WRITER-CASH",
+            "HOLDER-POS", "WRITER-POS", "TX-FAIL",
+            settlement_price=Decimal("160"),
+        )
+        assert isinstance(result, Err)
+        assert "CASH" in result.error.message
+
+    def test_reject_cash_or_physical_settlement_type(self) -> None:
+        order = _make_unsupported_order(
+            OptionTypeEnum.CALL, SettlementTypeEnum.CASH_OR_PHYSICAL,
+        )
+        result = create_cash_settlement_exercise_transaction(
+            order, "HOLDER-CASH", "WRITER-CASH",
+            "HOLDER-POS", "WRITER-POS", "TX-FAIL",
+            settlement_price=Decimal("160"),
+        )
+        assert isinstance(result, Err)
+        assert "CASH" in result.error.message
 
 
 # ---------------------------------------------------------------------------

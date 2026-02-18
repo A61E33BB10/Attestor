@@ -17,7 +17,7 @@ from attestor.instrument.derivative_types import (
     OptionDetail,
     OptionExerciseStyleEnum,
     OptionTypeEnum,
-    SettlementType,
+    SettlementTypeEnum,
 )
 from attestor.instrument.lifecycle import (
     DERIVATIVE_TRANSITIONS,
@@ -39,7 +39,7 @@ def _option_order() -> CanonicalOrder:
     detail = unwrap(OptionDetail.create(
         strike=Decimal("150"), expiry_date=date(2025, 12, 19),
         option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
-        settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
+        settlement_type=SettlementTypeEnum.PHYSICAL, underlying_id="AAPL",
     ))
     return unwrap(CanonicalOrder.create(
         order_id="OPT-001", instrument_id="AAPL251219C00150000",

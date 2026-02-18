@@ -63,7 +63,7 @@ def _swaption_order() -> CanonicalOrder:
         "underlying_fixed_rate": "0.035",
         "underlying_float_index": "SOFR",
         "underlying_tenor_months": "60",
-        "settlement_type": "PHYSICAL",
+        "settlement_type": "Physical",
     }
     return unwrap(parse_swaption_order(raw))
 
@@ -163,7 +163,7 @@ class TestMiFIDIISwaption:
         assert fields.expiry_date == date(2026, 6, 15)
         assert fields.underlying_fixed_rate == Decimal("0.035")
         assert fields.underlying_tenor_months == 60
-        assert fields.settlement_type == "PHYSICAL"
+        assert fields.settlement_type == "Physical"
 
 
 # ---------------------------------------------------------------------------
@@ -305,7 +305,7 @@ class TestEMIRCredit:
         assert report.instrument_fields.expiry_date == date(2026, 6, 15)
         assert report.instrument_fields.underlying_fixed_rate == Decimal("0.035")
         assert report.instrument_fields.underlying_tenor_months == 60
-        assert report.instrument_fields.settlement_type == "PHYSICAL"
+        assert report.instrument_fields.settlement_type == "Physical"
 
     def test_emir_equity_has_no_instrument_fields(self) -> None:
         """EMIR report for non-CDS/swaption has instrument_fields=None."""
@@ -366,7 +366,7 @@ class TestFrozenInvariants:
             expiry_date=date(2026, 6, 15),
             underlying_fixed_rate=Decimal("0.035"),
             underlying_tenor_months=60,
-            settlement_type="PHYSICAL",
+            settlement_type="Physical",
         )
         assert dataclasses.is_dataclass(fields)
         try:

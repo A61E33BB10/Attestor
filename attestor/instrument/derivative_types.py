@@ -90,11 +90,98 @@ class AssetPayoutTradeTypeEnum(Enum):
     BUY_SELL_BACK = "BuySellBack"
 
 
-class SettlementType(Enum):
-    """Physical delivery or cash settlement."""
+class SettlementTypeEnum(Enum):
+    """CDM: SettlementTypeEnum — how a product is settled.
 
-    PHYSICAL = "PHYSICAL"
-    CASH = "CASH"
+    Physical delivery of securities, cash settlement of intrinsic value,
+    election between the two, or either without prior election.
+    """
+
+    CASH = "Cash"
+    PHYSICAL = "Physical"
+    ELECTION = "Election"
+    CASH_OR_PHYSICAL = "CashOrPhysical"
+
+
+class DeliveryMethodEnum(Enum):
+    """CDM: DeliveryMethodEnum — securities delivery mechanism."""
+
+    DELIVERY_VERSUS_PAYMENT = "DeliveryVersusPayment"
+    FREE_OF_PAYMENT = "FreeOfPayment"
+    PRE_DELIVERY = "PreDelivery"
+    PRE_PAYMENT = "PrePayment"
+
+
+class TransferSettlementEnum(Enum):
+    """CDM: TransferSettlementEnum — how a transfer settles."""
+
+    DELIVERY_VERSUS_DELIVERY = "DeliveryVersusDelivery"
+    DELIVERY_VERSUS_PAYMENT = "DeliveryVersusPayment"
+    PAYMENT_VERSUS_PAYMENT = "PaymentVersusPayment"
+    NOT_CENTRAL_SETTLEMENT = "NotCentralSettlement"
+
+
+class StandardSettlementStyleEnum(Enum):
+    """CDM: StandardSettlementStyleEnum — settlement style."""
+
+    STANDARD = "Standard"
+    NET = "Net"
+    STANDARD_AND_NET = "StandardAndNet"
+    PAIR_AND_NET = "PairAndNet"
+
+
+class SettlementCentreEnum(Enum):
+    """CDM: SettlementCentreEnum — settlement centre."""
+
+    EUROCLEAR_BANK = "EuroclearBank"
+    CLEARSTREAM_BANKING_LUXEMBOURG = "ClearstreamBankingLuxembourg"
+
+
+class CashSettlementMethodEnum(Enum):
+    """CDM: CashSettlementMethodEnum — ISDA cash settlement methods.
+
+    Values from ISDA 2006 Definitions Section 18.3 and
+    ISDA 2021 Definitions Section 18.2.
+    """
+
+    CASH_PRICE_METHOD = "CashPriceMethod"
+    CASH_PRICE_ALTERNATE_METHOD = "CashPriceAlternateMethod"
+    PAR_YIELD_CURVE_ADJUSTED_METHOD = "ParYieldCurveAdjustedMethod"
+    ZERO_COUPON_YIELD_ADJUSTED_METHOD = "ZeroCouponYieldAdjustedMethod"
+    PAR_YIELD_CURVE_UNADJUSTED_METHOD = "ParYieldCurveUnadjustedMethod"
+    CROSS_CURRENCY_METHOD = "CrossCurrencyMethod"
+    COLLATERALIZED_CASH_PRICE_METHOD = "CollateralizedCashPriceMethod"
+    MID_MARKET_INDICATIVE_QUOTATIONS = "MidMarketIndicativeQuotations"
+    MID_MARKET_INDICATIVE_QUOTATIONS_ALTERNATE = "MidMarketIndicativeQuotationsAlternate"
+    MID_MARKET_CALCULATION_AGENT_DETERMINATION = "MidMarketCalculationAgentDetermination"
+    REPLACEMENT_VALUE_FIRM_QUOTATIONS = "ReplacementValueFirmQuotations"
+    REPLACEMENT_VALUE_CALCULATION_AGENT_DETERMINATION = (
+        "ReplacementValueCalculationAgentDetermination"
+    )
+
+
+class ScheduledTransferEnum(Enum):
+    """CDM: ScheduledTransferEnum — type of scheduled cashflow."""
+
+    CORPORATE_ACTION = "CorporateAction"
+    COUPON = "Coupon"
+    CREDIT_EVENT = "CreditEvent"
+    DIVIDEND_RETURN = "DividendReturn"
+    EXERCISE = "Exercise"
+    FIXED_RATE_RETURN = "FixedRateReturn"
+    FLOATING_RATE_RETURN = "FloatingRateReturn"
+    FRACTIONAL_AMOUNT = "FractionalAmount"
+    INTEREST_RETURN = "InterestReturn"
+    NET_INTEREST = "NetInterest"
+    PERFORMANCE = "Performance"
+    PRINCIPAL = "Principal"
+
+
+class UnscheduledTransferEnum(Enum):
+    """CDM: UnscheduledTransferEnum — type of non-scheduled transfer."""
+
+    RECALL = "Recall"
+    RETURN = "Return"
 
 
 class MarginType(Enum):
@@ -174,7 +261,7 @@ class OptionPayoutSpec:
     expiry_date: date
     option_type: OptionTypeEnum
     option_style: OptionExerciseStyleEnum
-    settlement_type: SettlementType
+    settlement_type: SettlementTypeEnum
     currency: NonEmptyStr
     exchange: NonEmptyStr
     multiplier: PositiveDecimal  # typically 100
@@ -188,7 +275,7 @@ class OptionPayoutSpec:
         expiry_date: date,
         option_type: OptionTypeEnum,
         option_style: OptionExerciseStyleEnum,
-        settlement_type: SettlementType,
+        settlement_type: SettlementTypeEnum,
         currency: str,
         exchange: str,
         multiplier: Decimal = Decimal("100"),
@@ -234,7 +321,7 @@ class FuturesPayoutSpec:
     underlying_id: NonEmptyStr
     expiry_date: date
     last_trading_date: date
-    settlement_type: SettlementType
+    settlement_type: SettlementTypeEnum
     contract_size: PositiveDecimal  # point value (USD per unit of price movement)
     currency: NonEmptyStr
     exchange: NonEmptyStr
@@ -251,7 +338,7 @@ class FuturesPayoutSpec:
         underlying_id: str,
         expiry_date: date,
         last_trading_date: date,
-        settlement_type: SettlementType,
+        settlement_type: SettlementTypeEnum,
         contract_size: Decimal,
         currency: str,
         exchange: str,
@@ -309,7 +396,7 @@ class OptionDetail:
     expiry_date: date
     option_type: OptionTypeEnum
     option_style: OptionExerciseStyleEnum
-    settlement_type: SettlementType
+    settlement_type: SettlementTypeEnum
     underlying_id: NonEmptyStr
     multiplier: PositiveDecimal
 
@@ -319,7 +406,7 @@ class OptionDetail:
         expiry_date: date,
         option_type: OptionTypeEnum,
         option_style: OptionExerciseStyleEnum,
-        settlement_type: SettlementType,
+        settlement_type: SettlementTypeEnum,
         underlying_id: str,
         multiplier: Decimal = Decimal("100"),
     ) -> Ok[OptionDetail] | Err[str]:
@@ -353,14 +440,14 @@ class FuturesDetail:
 
     expiry_date: date
     contract_size: PositiveDecimal
-    settlement_type: SettlementType
+    settlement_type: SettlementTypeEnum
     underlying_id: NonEmptyStr
 
     @staticmethod
     def create(
         expiry_date: date,
         contract_size: Decimal,
-        settlement_type: SettlementType,
+        settlement_type: SettlementTypeEnum,
         underlying_id: str,
     ) -> Ok[FuturesDetail] | Err[str]:
         match PositiveDecimal.parse(contract_size):
@@ -386,7 +473,7 @@ class FXDetail:
 
     currency_pair: str  # "EUR/USD" format, validated at gateway
     settlement_date: date
-    settlement_type: SettlementType
+    settlement_type: SettlementTypeEnum
     forward_rate: PositiveDecimal | None = None  # None for spot
     fixing_source: NonEmptyStr | None = None  # non-None for NDF
     fixing_date: date | None = None  # non-None for NDF
@@ -395,7 +482,7 @@ class FXDetail:
     def create(
         currency_pair: str,
         settlement_date: date,
-        settlement_type: SettlementType,
+        settlement_type: SettlementTypeEnum,
         forward_rate: Decimal | None = None,
         fixing_source: str | None = None,
         fixing_date: date | None = None,
@@ -545,7 +632,7 @@ class SwaptionDetail:
     underlying_fixed_rate: Decimal
     underlying_float_index: NonEmptyStr
     underlying_tenor_months: int
-    settlement_type: SettlementType
+    settlement_type: SettlementTypeEnum
 
     def __post_init__(self) -> None:
         ufr = self.underlying_fixed_rate
@@ -567,7 +654,7 @@ class SwaptionDetail:
         underlying_fixed_rate: Decimal,
         underlying_float_index: str,
         underlying_tenor_months: int,
-        settlement_type: SettlementType,
+        settlement_type: SettlementTypeEnum,
     ) -> Ok[SwaptionDetail] | Err[str]:
         if not isinstance(underlying_fixed_rate, Decimal) or not underlying_fixed_rate.is_finite():
             return Err(
@@ -635,28 +722,127 @@ class PerformancePayoutSpec:
 @final
 @dataclass(frozen=True, slots=True)
 class CashSettlementTerms:
-    """Cash settlement method and valuation parameters.
+    """CDM: CashSettlementTerms — parameters for cash settlement computation.
 
-    CDM: CashSettlementTerms = cashSettlementMethod + valuationDate
-         + valuationTime + cashSettlementAmount.
+    settlement_method: ISDA settlement method (e.g. CashPriceMethod).
+    valuation_date: date of valuation for settlement amount.
+    currency: settlement currency.
+    cash_settlement_method: CDM enum for method (optional, typed).
+    cash_settlement_amount: fixed amount (optional).
+    recovery_factor: fixed recovery level for Recovery Lock (0.0-1.0).
+    fixed_settlement: whether fixed settlement applies.
+    accrued_interest: include/exclude accrued interest.
     """
 
-    settlement_method: NonEmptyStr  # e.g. "MidMarket", "ParYieldCurve"
+    settlement_method: NonEmptyStr
     valuation_date: date
     currency: NonEmptyStr
+    cash_settlement_method: CashSettlementMethodEnum | None = None
+    cash_settlement_amount: NonNegativeDecimal | None = None
+    recovery_factor: Decimal | None = None
+    fixed_settlement: bool | None = None
+    accrued_interest: bool | None = None
+
+    def __post_init__(self) -> None:
+        if self.recovery_factor is not None:
+            if not isinstance(self.recovery_factor, Decimal):
+                raise TypeError(
+                    "CashSettlementTerms.recovery_factor must be Decimal or None, "
+                    f"got {type(self.recovery_factor).__name__}"
+                )
+            if not (Decimal("0") <= self.recovery_factor <= Decimal("1")):
+                raise TypeError(
+                    "CashSettlementTerms.recovery_factor must be in [0.0, 1.0], "
+                    f"got {self.recovery_factor}"
+                )
+        if self.fixed_settlement is not None and not isinstance(
+            self.fixed_settlement, bool
+        ):
+            raise TypeError(
+                "CashSettlementTerms.fixed_settlement must be bool or None, "
+                f"got {type(self.fixed_settlement).__name__}"
+            )
+        if self.accrued_interest is not None and not isinstance(
+            self.accrued_interest, bool
+        ):
+            raise TypeError(
+                "CashSettlementTerms.accrued_interest must be bool or None, "
+                f"got {type(self.accrued_interest).__name__}"
+            )
+
+
+@final
+@dataclass(frozen=True, slots=True)
+class PhysicalSettlementPeriod:
+    """CDM: PhysicalSettlementPeriod — physical settlement period specification.
+
+    CDM one-of choice: businessDaysNotSpecified | businessDays | maximumBusinessDays.
+    Exactly one must be set.
+    """
+
+    business_days_not_specified: bool = False
+    business_days: int | None = None
+    maximum_business_days: int | None = None
+
+    def __post_init__(self) -> None:
+        choices = sum([
+            self.business_days_not_specified,
+            self.business_days is not None,
+            self.maximum_business_days is not None,
+        ])
+        if choices != 1:
+            raise TypeError(
+                "PhysicalSettlementPeriod: exactly one of "
+                "business_days_not_specified, business_days, "
+                f"maximum_business_days must be set (got {choices})"
+            )
+        if self.business_days is not None:
+            if not isinstance(self.business_days, int) or isinstance(
+                self.business_days, bool
+            ):
+                raise TypeError(
+                    "PhysicalSettlementPeriod.business_days must be int, "
+                    f"got {type(self.business_days).__name__}"
+                )
+            if self.business_days < 0:
+                raise TypeError(
+                    "PhysicalSettlementPeriod.business_days must be >= 0, "
+                    f"got {self.business_days}"
+                )
+        if self.maximum_business_days is not None:
+            if not isinstance(self.maximum_business_days, int) or isinstance(
+                self.maximum_business_days, bool
+            ):
+                raise TypeError(
+                    "PhysicalSettlementPeriod.maximum_business_days must be int, "
+                    f"got {type(self.maximum_business_days).__name__}"
+                )
+            if self.maximum_business_days < 0:
+                raise TypeError(
+                    "PhysicalSettlementPeriod.maximum_business_days must be >= 0, "
+                    f"got {self.maximum_business_days}"
+                )
 
 
 @final
 @dataclass(frozen=True, slots=True)
 class PhysicalSettlementTerms:
-    """Physical delivery settlement parameters.
+    """CDM: PhysicalSettlementTerms — physical settlement for CDS or option.
 
-    CDM: PhysicalSettlementTerms = deliverableObligations
-         + physicalSettlementPeriod.
+    delivery_period_days: legacy field (number of business days).
+    settlement_currency: settlement currency.
+    cleared_physical_settlement: swap clears through CCP.
+    physical_settlement_period: CDM period specification (optional).
+    escrow: settlement through escrow agent.
+    sixty_business_day_settlement_cap: ISDA 2003 sixty-day cap.
     """
 
     delivery_period_days: int
     settlement_currency: NonEmptyStr
+    cleared_physical_settlement: bool | None = None
+    physical_settlement_period: PhysicalSettlementPeriod | None = None
+    escrow: bool | None = None
+    sixty_business_day_settlement_cap: bool | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.delivery_period_days, int) or isinstance(
@@ -671,6 +857,27 @@ class PhysicalSettlementTerms:
                 "PhysicalSettlementTerms.delivery_period_days must be > 0, "
                 f"got {self.delivery_period_days}"
             )
+        if (
+            self.physical_settlement_period is not None
+            and not isinstance(
+                self.physical_settlement_period, PhysicalSettlementPeriod
+            )
+        ):
+            raise TypeError(
+                "PhysicalSettlementTerms.physical_settlement_period must be "
+                "PhysicalSettlementPeriod or None, "
+                f"got {type(self.physical_settlement_period).__name__}"
+            )
+        for field_name in (
+            "cleared_physical_settlement", "escrow",
+            "sixty_business_day_settlement_cap",
+        ):
+            val = getattr(self, field_name)
+            if val is not None and not isinstance(val, bool):
+                raise TypeError(
+                    f"PhysicalSettlementTerms.{field_name} must be bool or None, "
+                    f"got {type(val).__name__}"
+                )
 
 
 type SettlementTerms = CashSettlementTerms | PhysicalSettlementTerms

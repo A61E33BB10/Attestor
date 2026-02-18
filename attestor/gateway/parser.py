@@ -25,7 +25,7 @@ from attestor.instrument.derivative_types import (
     OptionTypeEnum,
     ProtectionSide,
     SeniorityLevel,
-    SettlementType,
+    SettlementTypeEnum,
     SwaptionDetail,
     SwaptionType,
 )
@@ -291,8 +291,8 @@ def parse_option_order(
     option_style: OptionExerciseStyleEnum | None = _parse_enum(
         raw, "option_style", OptionExerciseStyleEnum, violations,
     )
-    settlement_type: SettlementType | None = _parse_enum(
-        raw, "settlement_type", SettlementType, violations,
+    settlement_type: SettlementTypeEnum | None = _parse_enum(
+        raw, "settlement_type", SettlementTypeEnum, violations,
     )
     underlying_id = _extract_str(raw, "underlying_id")
     if underlying_id is None:
@@ -399,8 +399,8 @@ def parse_futures_order(
             path="contract_size", constraint="required numeric",
             actual_value=repr(raw.get("contract_size")),
         ))
-    settlement_type: SettlementType | None = _parse_enum(
-        raw, "settlement_type", SettlementType, violations,
+    settlement_type: SettlementTypeEnum | None = _parse_enum(
+        raw, "settlement_type", SettlementTypeEnum, violations,
     )
     underlying_id = _extract_str(raw, "underlying_id")
     if underlying_id is None:
@@ -558,8 +558,8 @@ def parse_fx_spot_order(
             actual_value=repr(raw.get("currency_pair")),
         ))
 
-    settlement_type: SettlementType | None = _parse_optional_enum(
-        raw, "settlement_type", SettlementType, violations, SettlementType.PHYSICAL,
+    settlement_type: SettlementTypeEnum | None = _parse_optional_enum(
+        raw, "settlement_type", SettlementTypeEnum, violations, SettlementTypeEnum.PHYSICAL,
     )
 
     if violations:
@@ -644,8 +644,8 @@ def parse_fx_forward_order(
             actual_value=repr(raw.get("settlement_date")),
         ))
 
-    settlement_type: SettlementType | None = _parse_optional_enum(
-        raw, "settlement_type", SettlementType, violations, SettlementType.PHYSICAL,
+    settlement_type: SettlementTypeEnum | None = _parse_optional_enum(
+        raw, "settlement_type", SettlementTypeEnum, violations, SettlementTypeEnum.PHYSICAL,
     )
 
     if violations:
@@ -742,7 +742,7 @@ def parse_ndf_order(
     match FXDetail.create(
         currency_pair=currency_pair,
         settlement_date=settlement_date,
-        settlement_type=SettlementType.CASH,
+        settlement_type=SettlementTypeEnum.CASH,
         forward_rate=forward_rate,
         fixing_source=fixing_source,
         fixing_date=fixing_date,
@@ -975,7 +975,7 @@ def parse_swaption_order(
     """Parse raw swaption order into CanonicalOrder with SwaptionDetail.
 
     Required fields: swaption_type (PAYER|RECEIVER), expiry_date, underlying_fixed_rate,
-    underlying_float_index, underlying_tenor_months, settlement_type (PHYSICAL|CASH).
+    underlying_float_index, underlying_tenor_months, settlement_type.
     Settlement default: T+1.
     """
     violations: list[FieldViolation] = []
@@ -1012,8 +1012,8 @@ def parse_swaption_order(
             actual_value=repr(raw.get("underlying_tenor_months")),
         ))
 
-    settlement_type: SettlementType | None = _parse_enum(
-        raw, "settlement_type", SettlementType, violations,
+    settlement_type: SettlementTypeEnum | None = _parse_enum(
+        raw, "settlement_type", SettlementTypeEnum, violations,
     )
 
     if violations:

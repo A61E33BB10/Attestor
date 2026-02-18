@@ -13,7 +13,7 @@ from attestor.instrument.derivative_types import (
     OptionDetail,
     OptionExerciseStyleEnum,
     OptionTypeEnum,
-    SettlementType,
+    SettlementTypeEnum,
 )
 from attestor.reporting.mifid2 import (
     FuturesReportFields,
@@ -43,7 +43,7 @@ def _option_order() -> CanonicalOrder:
     detail = unwrap(OptionDetail.create(
         strike=Decimal("150"), expiry_date=date(2025, 12, 19),
         option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
-        settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
+        settlement_type=SettlementTypeEnum.PHYSICAL, underlying_id="AAPL",
     ))
     return unwrap(CanonicalOrder.create(
         order_id="OPT-001", instrument_id="AAPL251219C00150000",
@@ -59,7 +59,7 @@ def _option_order() -> CanonicalOrder:
 def _futures_order() -> CanonicalOrder:
     detail = unwrap(FuturesDetail.create(
         expiry_date=date(2025, 12, 19), contract_size=Decimal("50"),
-        settlement_type=SettlementType.CASH, underlying_id="ES",
+        settlement_type=SettlementTypeEnum.CASH, underlying_id="ES",
     ))
     return unwrap(CanonicalOrder.create(
         order_id="FUT-001", instrument_id="ESZ5",

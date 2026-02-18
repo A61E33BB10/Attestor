@@ -4,7 +4,7 @@ All types are @final @dataclass(frozen=True, slots=True). Smart constructors
 return Ok | Err for validated creation.
 
 Enums (CreditEventType, SeniorityLevel, ProtectionSide, SwaptionType) live in
-derivative_types.py to avoid circular imports (this module imports SettlementType
+derivative_types.py to avoid circular imports (this module imports SettlementTypeEnum
 from there).
 """
 
@@ -21,7 +21,7 @@ from attestor.core.types import PayerReceiver
 from attestor.instrument.derivative_types import (
     CreditEventType,
     SeniorityLevel,
-    SettlementType,
+    SettlementTypeEnum,
     SwaptionType,
 )
 from attestor.instrument.fx_types import (
@@ -150,7 +150,7 @@ class SwaptionPayoutSpec:
     strike: NonNegativeDecimal  # fixed rate K (zero-strike allowed for total return)
     exercise_date: date
     underlying_swap: IRSwapPayoutSpec  # the IRS that exercise creates
-    settlement_type: SettlementType  # PHYSICAL or CASH
+    settlement_type: SettlementTypeEnum
     currency: NonEmptyStr
     notional: PositiveDecimal
 
@@ -167,7 +167,7 @@ class SwaptionPayoutSpec:
         strike: Decimal,
         exercise_date: date,
         underlying_swap: IRSwapPayoutSpec,
-        settlement_type: SettlementType,
+        settlement_type: SettlementTypeEnum,
         currency: str,
         notional: Decimal,
         payer_receiver: PayerReceiver,

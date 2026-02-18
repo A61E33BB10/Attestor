@@ -51,7 +51,7 @@ from attestor.instrument.derivative_types import (
     PerformancePayoutSpec,
     PhysicalSettlementTerms,
     SeniorityLevel,
-    SettlementType,
+    SettlementTypeEnum,
 )
 from attestor.instrument.fx_types import (
     FixedLeg,
@@ -715,7 +715,7 @@ class TestOptionPayoutSpecEnrichment:
             expiry_date=date(2025, 6, 20),
             option_type=OptionTypeEnum.CALL,
             option_style=OptionExerciseStyleEnum.EUROPEAN,
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             currency="USD",
             exchange="CBOE",
         )
@@ -729,7 +729,7 @@ class TestOptionPayoutSpecEnrichment:
             expiry_date=date(2025, 6, 20),
             option_type=OptionTypeEnum.CALL,
             option_style=OptionExerciseStyleEnum.EUROPEAN,
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             currency="USD",
             exchange="CBOE",
         )
@@ -759,7 +759,7 @@ class TestOptionPayoutSpecEnrichment:
             expiry_date=date(2025, 6, 20),
             option_type=OptionTypeEnum.CALL,
             option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             currency="USD",
             exchange="CBOE",
         )

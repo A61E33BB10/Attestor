@@ -20,7 +20,7 @@ from attestor.instrument.derivative_types import (
     CDSDetail,
     ProtectionSide,
     SeniorityLevel,
-    SettlementType,
+    SettlementTypeEnum,
     SwaptionDetail,
     SwaptionType,
 )
@@ -352,7 +352,7 @@ class TestFullSwaptionPhysicalLifecycle:
             "underlying_fixed_rate": "0.035",
             "underlying_float_index": "SOFR",
             "underlying_tenor_months": "120",
-            "settlement_type": "PHYSICAL",
+            "settlement_type": "Physical",
         }
         order_result = parse_swaption_order(raw)
         assert isinstance(order_result, Ok)
@@ -361,7 +361,7 @@ class TestFullSwaptionPhysicalLifecycle:
         assert order.instrument_detail.swaption_type is SwaptionType.PAYER
         assert order.instrument_detail.underlying_fixed_rate == Decimal("0.035")
         assert order.instrument_detail.underlying_tenor_months == 120
-        assert order.instrument_detail.settlement_type is SettlementType.PHYSICAL
+        assert order.instrument_detail.settlement_type is SettlementTypeEnum.PHYSICAL
 
         # ---------------------------------------------------------------
         # Step 2: Create swaption instrument
@@ -384,7 +384,7 @@ class TestFullSwaptionPhysicalLifecycle:
             strike=Decimal("0.035"),
             exercise_date=date(2030, 6, 15),
             underlying_swap=underlying_swap,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
             parties=parties,
@@ -433,7 +433,7 @@ class TestFullSwaptionPhysicalLifecycle:
             strike=Decimal("0.035"),
             exercise_date=date(2030, 6, 15),
             underlying_swap=underlying_swap,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
             payer_receiver=_PR,
@@ -484,7 +484,7 @@ class TestFullSwaptionPhysicalLifecycle:
         assert mifid_fields.swaption_type == "PAYER"
         assert mifid_fields.underlying_fixed_rate == Decimal("0.035")
         assert mifid_fields.underlying_tenor_months == 120
-        assert mifid_fields.settlement_type == "PHYSICAL"
+        assert mifid_fields.settlement_type == "Physical"
 
         dodd_att = unwrap(project_dodd_frank_report(order, "ATT-SWPTN-001"))
         df_report = dodd_att.value
@@ -533,11 +533,11 @@ class TestFullSwaptionCashLifecycle:
             "underlying_fixed_rate": "0.04",
             "underlying_float_index": "SOFR",
             "underlying_tenor_months": "60",
-            "settlement_type": "CASH",
+            "settlement_type": "Cash",
         }
         order = unwrap(parse_swaption_order(raw))
         assert isinstance(order.instrument_detail, SwaptionDetail)
-        assert order.instrument_detail.settlement_type is SettlementType.CASH
+        assert order.instrument_detail.settlement_type is SettlementTypeEnum.CASH
 
         # Book premium
         engine = _make_engine(
@@ -1157,7 +1157,7 @@ class TestSwaptionExpiry:
             "underlying_fixed_rate": "0.04",
             "underlying_float_index": "EURIBOR",
             "underlying_tenor_months": "24",
-            "settlement_type": "PHYSICAL",
+            "settlement_type": "Physical",
         }
         order = unwrap(parse_swaption_order(raw))
 
@@ -1390,7 +1390,7 @@ class TestDoddFrankNotional:
             "underlying_fixed_rate": "0.035",
             "underlying_float_index": "SOFR",
             "underlying_tenor_months": "120",
-            "settlement_type": "PHYSICAL",
+            "settlement_type": "Physical",
         }
         order = unwrap(parse_swaption_order(raw))
         df_att = unwrap(project_dodd_frank_report(order, "ATT-DF-002"))

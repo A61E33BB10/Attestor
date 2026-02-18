@@ -42,7 +42,7 @@ from attestor.instrument.derivative_types import (
     OptionExerciseStyleEnum,
     OptionPayoutSpec,
     OptionTypeEnum,
-    SettlementType,
+    SettlementTypeEnum,
     SwaptionDetail,
     SwaptionType,
 )
@@ -166,7 +166,7 @@ class TestSealFuturesPayoutSpec:
                 underlying_id=NonEmptyStr(value="ES"),
                 expiry_date=date(2025, 12, 19),
                 last_trading_date=date(2025, 12, 20),
-                settlement_type=SettlementType.CASH,
+                settlement_type=SettlementTypeEnum.CASH,
                 contract_size=PositiveDecimal(value=Decimal("50")),
                 currency=NonEmptyStr(value="USD"),
                 exchange=NonEmptyStr(value="CME"),
@@ -355,7 +355,7 @@ class TestNegativeRateAndZeroStrike:
             underlying_id="AAPL", strike=Decimal("0"),
             expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
             option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD", exchange="CBOE",
         )
         assert isinstance(result, Ok)
@@ -365,7 +365,7 @@ class TestNegativeRateAndZeroStrike:
         result = OptionDetail.create(
             strike=Decimal("0"), expiry_date=date(2025, 12, 19),
             option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
+            settlement_type=SettlementTypeEnum.PHYSICAL, underlying_id="AAPL",
         )
         assert isinstance(result, Ok)
 
@@ -402,7 +402,7 @@ class TestNegativeRateAndZeroStrike:
                 end_date=date(2031, 1, 15),
                 payer_receiver=_pr,
             )),
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD",
             notional=Decimal("10000000"),
             payer_receiver=_pr,
@@ -504,7 +504,7 @@ class TestGatewayMatchExhaustiveness:
         detail = unwrap(FXDetail.create(
             currency_pair="EUR/USD",
             settlement_date=date(2025, 6, 17),
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
         ))
         result = _make_order(detail)
         assert isinstance(result, Ok)

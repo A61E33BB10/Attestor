@@ -76,6 +76,9 @@ from attestor.instrument.derivative_types import (
     CallingPartyEnum as CallingPartyEnum,
 )
 from attestor.instrument.derivative_types import (
+    CashSettlementMethodEnum as CashSettlementMethodEnum,
+)
+from attestor.instrument.derivative_types import (
     CashSettlementTerms as CashSettlementTerms,
 )
 from attestor.instrument.derivative_types import (
@@ -83,6 +86,9 @@ from attestor.instrument.derivative_types import (
 )
 from attestor.instrument.derivative_types import (
     CreditEventType as CreditEventType,
+)
+from attestor.instrument.derivative_types import (
+    DeliveryMethodEnum as DeliveryMethodEnum,
 )
 from attestor.instrument.derivative_types import (
     EquityDetail as EquityDetail,
@@ -135,6 +141,9 @@ from attestor.instrument.derivative_types import (
     PerformancePayoutSpec as PerformancePayoutSpec,
 )
 from attestor.instrument.derivative_types import (
+    PhysicalSettlementPeriod as PhysicalSettlementPeriod,
+)
+from attestor.instrument.derivative_types import (
     PhysicalSettlementTerms as PhysicalSettlementTerms,
 )
 from attestor.instrument.derivative_types import (
@@ -147,13 +156,22 @@ from attestor.instrument.derivative_types import (
     ReturnTerms as ReturnTerms,
 )
 from attestor.instrument.derivative_types import (
+    ScheduledTransferEnum as ScheduledTransferEnum,
+)
+from attestor.instrument.derivative_types import (
     SeniorityLevel as SeniorityLevel,
+)
+from attestor.instrument.derivative_types import (
+    SettlementCentreEnum as SettlementCentreEnum,
 )
 from attestor.instrument.derivative_types import (
     SettlementTerms as SettlementTerms,
 )
 from attestor.instrument.derivative_types import (
-    SettlementType as SettlementType,
+    SettlementTypeEnum as SettlementTypeEnum,
+)
+from attestor.instrument.derivative_types import (
+    StandardSettlementStyleEnum as StandardSettlementStyleEnum,
 )
 from attestor.instrument.derivative_types import (
     SwaptionDetail as SwaptionDetail,
@@ -163,6 +181,12 @@ from attestor.instrument.derivative_types import (
 )
 from attestor.instrument.derivative_types import (
     TerminationProvision as TerminationProvision,
+)
+from attestor.instrument.derivative_types import (
+    TransferSettlementEnum as TransferSettlementEnum,
+)
+from attestor.instrument.derivative_types import (
+    UnscheduledTransferEnum as UnscheduledTransferEnum,
 )
 from attestor.instrument.fx_types import (
     DayCountConvention as DayCountConvention,

@@ -11,7 +11,7 @@ from attestor.gateway.parser import (
     parse_irs_order,
     parse_ndf_order,
 )
-from attestor.instrument.derivative_types import FXDetail, IRSwapDetail, SettlementType
+from attestor.instrument.derivative_types import FXDetail, IRSwapDetail, SettlementTypeEnum
 
 # ---------------------------------------------------------------------------
 # Shared base fields
@@ -81,7 +81,7 @@ class TestParseFXSpotOrder:
         order = unwrap(parse_fx_spot_order(raw))
         detail = order.instrument_detail
         assert isinstance(detail, FXDetail)
-        assert detail.settlement_type is SettlementType.PHYSICAL
+        assert detail.settlement_type is SettlementTypeEnum.PHYSICAL
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +137,7 @@ class TestParseNDFOrder:
         order = unwrap(result)
         detail = order.instrument_detail
         assert isinstance(detail, FXDetail)
-        assert detail.settlement_type is SettlementType.CASH
+        assert detail.settlement_type is SettlementTypeEnum.CASH
         assert detail.fixing_source is not None
         assert detail.fixing_source.value == "WMR"
 

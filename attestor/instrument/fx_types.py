@@ -22,7 +22,7 @@ from attestor.core.types import (
 from attestor.core.types import (
     DayCountConvention as DayCountConvention,
 )
-from attestor.instrument.derivative_types import SettlementType
+from attestor.instrument.derivative_types import SettlementTypeEnum
 from attestor.instrument.rate_spec import StubPeriod
 from attestor.oracle.observable import (
     FloatingRateCalculationParameters,
@@ -55,7 +55,7 @@ class FXSpotPayoutSpec:
 
     currency_pair: CurrencyPair
     base_notional: PositiveDecimal
-    settlement_type: SettlementType
+    settlement_type: SettlementTypeEnum
     currency: NonEmptyStr  # settlement currency (quote leg)
 
     @staticmethod
@@ -63,7 +63,7 @@ class FXSpotPayoutSpec:
         currency_pair: str,
         base_notional: Decimal,
         currency: str,
-        settlement_type: SettlementType = SettlementType.PHYSICAL,
+        settlement_type: SettlementTypeEnum = SettlementTypeEnum.PHYSICAL,
     ) -> Ok[FXSpotPayoutSpec] | Err[str]:
         match CurrencyPair.parse(currency_pair):
             case Err(e):
@@ -95,7 +95,7 @@ class FXForwardPayoutSpec:
     base_notional: PositiveDecimal
     forward_rate: PositiveDecimal
     settlement_date: date
-    settlement_type: SettlementType
+    settlement_type: SettlementTypeEnum
     currency: NonEmptyStr
 
     @staticmethod
@@ -105,7 +105,7 @@ class FXForwardPayoutSpec:
         forward_rate: Decimal,
         settlement_date: date,
         currency: str,
-        settlement_type: SettlementType = SettlementType.PHYSICAL,
+        settlement_type: SettlementTypeEnum = SettlementTypeEnum.PHYSICAL,
     ) -> Ok[FXForwardPayoutSpec] | Err[str]:
         match CurrencyPair.parse(currency_pair):
             case Err(e):

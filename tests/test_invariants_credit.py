@@ -31,7 +31,7 @@ from attestor.core.money import NonEmptyStr
 from attestor.core.result import Ok, unwrap
 from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder, OrderSide, OrderType
-from attestor.instrument.derivative_types import SettlementType, SwaptionDetail, SwaptionType
+from attestor.instrument.derivative_types import SettlementTypeEnum, SwaptionDetail, SwaptionType
 from attestor.instrument.fx_types import DayCountConvention, PaymentFrequency
 from attestor.ledger.cds import (
     ScheduledCDSPremium,
@@ -150,7 +150,7 @@ def _swaption_order() -> CanonicalOrder:
         underlying_fixed_rate=Decimal("0.035"),
         underlying_float_index="USD-SOFR",
         underlying_tenor_months=60,
-        settlement_type=SettlementType.PHYSICAL,
+        settlement_type=SettlementTypeEnum.PHYSICAL,
     ))
     return unwrap(CanonicalOrder.create(
         order_id="SWN-INV-001",
@@ -456,7 +456,7 @@ class TestCLC4SwaptionPremiumConservation:
             underlying_fixed_rate=Decimal("0.035"),
             underlying_float_index="USD-SOFR",
             underlying_tenor_months=60,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
         ))
         order = unwrap(CanonicalOrder.create(
             order_id="SWN-CLC4",

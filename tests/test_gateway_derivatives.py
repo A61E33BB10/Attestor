@@ -36,7 +36,7 @@ def _valid_option_raw() -> dict[str, object]:
         "expiry_date": "2025-12-19",
         "option_type": "Call",
         "option_style": "American",
-        "settlement_type": "PHYSICAL",
+        "settlement_type": "Physical",
         "underlying_id": "AAPL",
     }
 
@@ -58,7 +58,7 @@ def _valid_futures_raw() -> dict[str, object]:
         # Futures-specific
         "expiry_date": "2025-12-19",
         "contract_size": "50",
-        "settlement_type": "CASH",
+        "settlement_type": "Cash",
         "underlying_id": "ES",
     }
 

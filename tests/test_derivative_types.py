@@ -18,7 +18,7 @@ from attestor.instrument.derivative_types import (
     OptionExerciseStyleEnum,
     OptionPayoutSpec,
     OptionTypeEnum,
-    SettlementType,
+    SettlementTypeEnum,
 )
 from attestor.instrument.types import (
     EconomicTerms,
@@ -50,7 +50,10 @@ class TestEnums:
         assert len(OptionExerciseStyleEnum) == 3
 
     def test_settlement_type_values(self) -> None:
-        assert {e.value for e in SettlementType} == {"PHYSICAL", "CASH"}
+        assert {e.value for e in SettlementTypeEnum} == {
+            "Cash", "Physical", "Election", "CashOrPhysical",
+        }
+        assert len(SettlementTypeEnum) == 4
 
     def test_margin_type_values(self) -> None:
         assert {e.value for e in MarginType} == {"VARIATION", "INITIAL"}
@@ -67,7 +70,7 @@ class TestOptionPayoutSpec:
             underlying_id="AAPL", strike=Decimal("150"),
             expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
             option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD", exchange="CBOE",
         )
         assert isinstance(result, Ok)
@@ -82,7 +85,7 @@ class TestOptionPayoutSpec:
             underlying_id="SPX", strike=Decimal("5000"),
             expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.PUT,
             option_style=OptionExerciseStyleEnum.EUROPEAN,
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             currency="USD", exchange="CBOE", multiplier=Decimal("1"),
         )
         assert isinstance(result, Ok)
@@ -93,7 +96,7 @@ class TestOptionPayoutSpec:
             underlying_id="", strike=Decimal("150"),
             expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
             option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD", exchange="CBOE",
         )
         assert isinstance(result, Err)
@@ -104,7 +107,7 @@ class TestOptionPayoutSpec:
             underlying_id="AAPL", strike=Decimal("0"),
             expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
             option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD", exchange="CBOE",
         )
         assert isinstance(result, Ok)
@@ -115,7 +118,7 @@ class TestOptionPayoutSpec:
             underlying_id="AAPL", strike=Decimal("150"),
             expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
             option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="", exchange="CBOE",
         )
         assert isinstance(result, Err)
@@ -125,7 +128,7 @@ class TestOptionPayoutSpec:
             underlying_id="AAPL", strike=Decimal("150"),
             expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
             option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD", exchange="CBOE",
         ))
         with pytest.raises(dataclasses.FrozenInstanceError):
@@ -142,7 +145,7 @@ class TestFuturesPayoutSpec:
         result = FuturesPayoutSpec.create(
             underlying_id="ES", expiry_date=date(2025, 12, 19),
             last_trading_date=date(2025, 12, 18),
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             contract_size=Decimal("50"), currency="USD", exchange="CME",
         )
         assert isinstance(result, Ok)
@@ -154,7 +157,7 @@ class TestFuturesPayoutSpec:
         result = FuturesPayoutSpec.create(
             underlying_id="ES", expiry_date=date(2025, 12, 19),
             last_trading_date=date(2025, 12, 20),
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             contract_size=Decimal("50"), currency="USD", exchange="CME",
         )
         assert isinstance(result, Err)
@@ -164,7 +167,7 @@ class TestFuturesPayoutSpec:
         result = FuturesPayoutSpec.create(
             underlying_id="ES", expiry_date=date(2025, 12, 19),
             last_trading_date=date(2025, 12, 19),
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             contract_size=Decimal("50"), currency="USD", exchange="CME",
         )
         assert isinstance(result, Ok)
@@ -173,7 +176,7 @@ class TestFuturesPayoutSpec:
         result = FuturesPayoutSpec.create(
             underlying_id="", expiry_date=date(2025, 12, 19),
             last_trading_date=date(2025, 12, 18),
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             contract_size=Decimal("50"), currency="USD", exchange="CME",
         )
         assert isinstance(result, Err)
@@ -182,7 +185,7 @@ class TestFuturesPayoutSpec:
         spec = unwrap(FuturesPayoutSpec.create(
             underlying_id="ES", expiry_date=date(2025, 12, 19),
             last_trading_date=date(2025, 12, 18),
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             contract_size=Decimal("50"), currency="USD", exchange="CME",
         ))
         with pytest.raises(dataclasses.FrozenInstanceError):
@@ -213,7 +216,7 @@ class TestOptionDetail:
         result = OptionDetail.create(
             strike=Decimal("150"), expiry_date=date(2025, 12, 19),
             option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
+            settlement_type=SettlementTypeEnum.PHYSICAL, underlying_id="AAPL",
         )
         assert isinstance(result, Ok)
         od = unwrap(result)
@@ -224,7 +227,7 @@ class TestOptionDetail:
         result = OptionDetail.create(
             strike=Decimal("0"), expiry_date=date(2025, 12, 19),
             option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
+            settlement_type=SettlementTypeEnum.PHYSICAL, underlying_id="AAPL",
         )
         assert isinstance(result, Ok)
         assert unwrap(result).strike.value == Decimal("0")
@@ -233,7 +236,7 @@ class TestOptionDetail:
         result = OptionDetail.create(
             strike=Decimal("150"), expiry_date=date(2025, 12, 19),
             option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.PHYSICAL, underlying_id="",
+            settlement_type=SettlementTypeEnum.PHYSICAL, underlying_id="",
         )
         assert isinstance(result, Err)
 
@@ -242,7 +245,7 @@ class TestFuturesDetail:
     def test_create_valid(self) -> None:
         result = FuturesDetail.create(
             expiry_date=date(2025, 12, 19), contract_size=Decimal("50"),
-            settlement_type=SettlementType.CASH, underlying_id="ES",
+            settlement_type=SettlementTypeEnum.CASH, underlying_id="ES",
         )
         assert isinstance(result, Ok)
         fd = unwrap(result)
@@ -251,7 +254,7 @@ class TestFuturesDetail:
     def test_create_zero_contract_size_err(self) -> None:
         result = FuturesDetail.create(
             expiry_date=date(2025, 12, 19), contract_size=Decimal("0"),
-            settlement_type=SettlementType.CASH, underlying_id="ES",
+            settlement_type=SettlementTypeEnum.CASH, underlying_id="ES",
         )
         assert isinstance(result, Err)
 
@@ -263,11 +266,11 @@ class TestInstrumentDetailPatternMatch:
             unwrap(OptionDetail.create(
                 strike=Decimal("150"), expiry_date=date(2025, 12, 19),
                 option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
-                settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
+                settlement_type=SettlementTypeEnum.PHYSICAL, underlying_id="AAPL",
             )),
             unwrap(FuturesDetail.create(
                 expiry_date=date(2025, 12, 19), contract_size=Decimal("50"),
-                settlement_type=SettlementType.CASH, underlying_id="ES",
+                settlement_type=SettlementTypeEnum.CASH, underlying_id="ES",
             )),
         ]
         for d in details:
@@ -297,7 +300,7 @@ class TestPayoutUnion:
             underlying_id="AAPL", strike=Decimal("150"),
             expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
             option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD", exchange="CBOE",
         ))
         terms = EconomicTerms(payouts=(payout,), effective_date=date(2025, 6, 15),
@@ -308,7 +311,7 @@ class TestPayoutUnion:
         payout = unwrap(FuturesPayoutSpec.create(
             underlying_id="ES", expiry_date=date(2025, 12, 19),
             last_trading_date=date(2025, 12, 18),
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             contract_size=Decimal("50"), currency="USD", exchange="CME",
         ))
         terms = EconomicTerms(payouts=(payout,), effective_date=date(2025, 6, 15),
@@ -329,7 +332,7 @@ class TestCreateOptionInstrument:
             underlying_id="AAPL", strike=Decimal("150"),
             expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
             option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD", exchange="CBOE",
             parties=(party,), trade_date=date(2025, 6, 15),
         )
@@ -344,7 +347,7 @@ class TestCreateOptionInstrument:
             instrument_id="", underlying_id="AAPL", strike=Decimal("150"),
             expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
             option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD", exchange="CBOE",
             parties=(party,), trade_date=date(2025, 6, 15),
         )
@@ -356,7 +359,7 @@ class TestCreateOptionInstrument:
             instrument_id="OPT-1", underlying_id="AAPL", strike=Decimal("-10"),
             expiry_date=date(2025, 12, 19), option_type=OptionTypeEnum.CALL,
             option_style=OptionExerciseStyleEnum.AMERICAN,
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             currency="USD", exchange="CBOE",
             parties=(party,), trade_date=date(2025, 6, 15),
         )
@@ -370,7 +373,7 @@ class TestCreateFuturesInstrument:
             instrument_id="ESZ5", underlying_id="ES",
             expiry_date=date(2025, 12, 19),
             last_trading_date=date(2025, 12, 18),
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             contract_size=Decimal("50"), currency="USD", exchange="CME",
             parties=(party,), trade_date=date(2025, 6, 15),
         )
@@ -385,7 +388,7 @@ class TestCreateFuturesInstrument:
             instrument_id="", underlying_id="ES",
             expiry_date=date(2025, 12, 19),
             last_trading_date=date(2025, 12, 18),
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             contract_size=Decimal("50"), currency="USD", exchange="CME",
             parties=(party,), trade_date=date(2025, 6, 15),
         )
@@ -397,7 +400,7 @@ class TestCreateFuturesInstrument:
             instrument_id="ESZ5", underlying_id="ES",
             expiry_date=date(2025, 12, 19),
             last_trading_date=date(2025, 12, 25),
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             contract_size=Decimal("50"), currency="USD", exchange="CME",
             parties=(party,), trade_date=date(2025, 6, 15),
         )

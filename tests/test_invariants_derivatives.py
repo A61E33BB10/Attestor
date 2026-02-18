@@ -20,7 +20,7 @@ from attestor.instrument.derivative_types import (
     OptionDetail,
     OptionExerciseStyleEnum,
     OptionTypeEnum,
-    SettlementType,
+    SettlementTypeEnum,
 )
 from attestor.ledger.engine import LedgerEngine
 from attestor.ledger.futures import (
@@ -59,7 +59,7 @@ def _option_engine() -> tuple[LedgerEngine, CanonicalOrder]:
     detail = unwrap(OptionDetail.create(
         strike=Decimal("150"), expiry_date=date(2025, 12, 19),
         option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.AMERICAN,
-        settlement_type=SettlementType.PHYSICAL, underlying_id="AAPL",
+        settlement_type=SettlementTypeEnum.PHYSICAL, underlying_id="AAPL",
     ))
     order = unwrap(CanonicalOrder.create(
         order_id="OPT-001", instrument_id="AAPL251219C00150000",
@@ -141,7 +141,7 @@ class TestCLD1PremiumConservation:
         detail = unwrap(OptionDetail.create(
             strike=Decimal("100"), expiry_date=date(2025, 12, 19),
             option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.EUROPEAN,
-            settlement_type=SettlementType.PHYSICAL, underlying_id="X",
+            settlement_type=SettlementTypeEnum.PHYSICAL, underlying_id="X",
         ))
         order = unwrap(CanonicalOrder.create(
             order_id="H-1", instrument_id="H-OPT",
@@ -251,7 +251,7 @@ class TestCLD5FullOptionLifecycle:
         detail = unwrap(OptionDetail.create(
             strike=Decimal("150"), expiry_date=date(2025, 12, 19),
             option_type=OptionTypeEnum.CALL, option_style=OptionExerciseStyleEnum.EUROPEAN,
-            settlement_type=SettlementType.CASH, underlying_id="AAPL",
+            settlement_type=SettlementTypeEnum.CASH, underlying_id="AAPL",
         ))
         order = unwrap(CanonicalOrder.create(
             order_id="LIFE-1", instrument_id="OPT-LIFE",
@@ -473,7 +473,7 @@ class TestCSD4SequentialComposition:
             detail = unwrap(OptionDetail.create(
                 strike=strike, expiry_date=date(2025, 12, 19),
                 option_type=otype, option_style=OptionExerciseStyleEnum.EUROPEAN,
-                settlement_type=SettlementType.CASH, underlying_id="AAPL",
+                settlement_type=SettlementTypeEnum.CASH, underlying_id="AAPL",
             ))
             order = unwrap(CanonicalOrder.create(
                 order_id=f"SEQ-{i}", instrument_id=f"OPT-SEQ-{i}",

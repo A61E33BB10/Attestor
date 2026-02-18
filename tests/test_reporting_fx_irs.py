@@ -88,7 +88,7 @@ class TestMiFIDIIFXReport:
         att = unwrap(project_mifid2_report(_fx_spot_order(), "ATT-001"))
         fields = att.value.instrument_fields
         assert isinstance(fields, FXReportFields)
-        assert fields.settlement_type == "PHYSICAL"
+        assert fields.settlement_type == "Physical"
 
     def test_fx_provenance(self) -> None:
         att = unwrap(project_mifid2_report(_fx_spot_order(), "ATT-001"))

@@ -13,7 +13,7 @@ from attestor.core.money import ATTESTOR_DECIMAL_CONTEXT, PositiveDecimal
 from attestor.core.result import Err, Ok
 from attestor.core.types import UtcDatetime
 from attestor.gateway.types import CanonicalOrder
-from attestor.instrument.derivative_types import OptionDetail, OptionTypeEnum, SettlementType
+from attestor.instrument.derivative_types import OptionDetail, OptionTypeEnum, SettlementTypeEnum
 from attestor.ledger.transactions import Move, Transaction
 
 
@@ -151,7 +151,7 @@ def create_exercise_transaction(
             fields=(),
         ))
 
-    if detail.settlement_type != SettlementType.PHYSICAL:
+    if detail.settlement_type != SettlementTypeEnum.PHYSICAL:
         return Err(ValidationError(
             message="create_exercise_transaction: settlement_type must be PHYSICAL",
             code="INVALID_SETTLEMENT_TYPE",
@@ -241,7 +241,7 @@ def create_cash_settlement_exercise_transaction(
             fields=(),
         ))
 
-    if detail.settlement_type != SettlementType.CASH:
+    if detail.settlement_type != SettlementTypeEnum.CASH:
         return Err(ValidationError(
             message="create_cash_settlement_exercise_transaction: settlement_type must be CASH",
             code="INVALID_SETTLEMENT_TYPE",

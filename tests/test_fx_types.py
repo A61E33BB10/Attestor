@@ -18,7 +18,7 @@ from attestor.core.types import PayerReceiver, Period
 from attestor.instrument.derivative_types import (
     FXDetail,
     IRSwapDetail,
-    SettlementType,
+    SettlementTypeEnum,
 )
 from attestor.instrument.fx_types import (
     DayCountConvention,
@@ -105,7 +105,7 @@ class TestFXSpotPayoutSpec:
         spec = result.value
         assert spec.currency_pair.value == "EUR/USD"
         assert spec.base_notional.value == Decimal("1000000")
-        assert spec.settlement_type == SettlementType.PHYSICAL
+        assert spec.settlement_type == SettlementTypeEnum.PHYSICAL
 
     def test_invalid_pair(self) -> None:
         result = FXSpotPayoutSpec.create(
@@ -319,7 +319,7 @@ class TestFXDetail:
         result = FXDetail.create(
             currency_pair="EUR/USD",
             settlement_date=date(2026, 3, 17),
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
         )
         assert isinstance(result, Ok)
         assert result.value.forward_rate is None
@@ -329,7 +329,7 @@ class TestFXDetail:
         result = FXDetail.create(
             currency_pair="EUR/USD",
             settlement_date=date(2026, 6, 15),
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
             forward_rate=Decimal("1.0850"),
         )
         assert isinstance(result, Ok)
@@ -339,7 +339,7 @@ class TestFXDetail:
         result = FXDetail.create(
             currency_pair="USD/CNY",
             settlement_date=date(2026, 6, 12),
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             forward_rate=Decimal("7.25"),
             fixing_source="WMR",
             fixing_date=date(2026, 6, 10),
@@ -351,7 +351,7 @@ class TestFXDetail:
         result = FXDetail.create(
             currency_pair="INVALID",
             settlement_date=date(2026, 3, 17),
-            settlement_type=SettlementType.PHYSICAL,
+            settlement_type=SettlementTypeEnum.PHYSICAL,
         )
         assert isinstance(result, Err)
 
@@ -359,7 +359,7 @@ class TestFXDetail:
         result = FXDetail.create(
             currency_pair="EUR/USD",
             settlement_date=date(2026, 6, 10),
-            settlement_type=SettlementType.CASH,
+            settlement_type=SettlementTypeEnum.CASH,
             fixing_date=date(2026, 6, 15),
         )
         assert isinstance(result, Err)
