@@ -51,6 +51,27 @@ from attestor.core.money import (
 from attestor.core.money import (
     PositiveDecimal as PositiveDecimal,
 )
+from attestor.core.quantity import (
+    AnyQuantity as AnyQuantity,
+)
+from attestor.core.quantity import (
+    FinancialUnitEnum as FinancialUnitEnum,
+)
+from attestor.core.quantity import (
+    NonNegativeQuantity as NonNegativeQuantity,
+)
+from attestor.core.quantity import (
+    Quantity as Quantity,
+)
+from attestor.core.quantity import (
+    Rounding as Rounding,
+)
+from attestor.core.quantity import (
+    RoundingDirectionEnum as RoundingDirectionEnum,
+)
+from attestor.core.quantity import (
+    UnitType as UnitType,
+)
 from attestor.core.result import (
     Err as Err,
 )

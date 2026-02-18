@@ -1,0 +1,31 @@
+# Rosetta CDM Alignment Tracker
+
+## Goal
+Make Attestor follow ISDA CDM Rosetta exactly, namespace by namespace.
+
+## Rosetta Source
+`/home/renaud/A61E33BB10/ISDA/common-domain-model/rosetta-source/src/main/rosetta/`
+
+## Namespace Priority Order (equity trade critical path)
+
+| # | Namespace | Rosetta Files | Status | Findings File |
+|---|-----------|--------------|--------|---------------|
+| 1 | `base-staticdata-asset-common` | enum + type | DONE (b2a9aa3) | n/a |
+| 2 | `base-staticdata-party` | Party, Counterparty, PartyRole | PENDING | `ns02_party.md` |
+| 3 | `base-math` | Quantity, UnitType, Rounding | DONE | `ns03_math.md` |
+| 4 | `observable-asset` | Price, PriceQuantity, Observable | PENDING | `ns04_observable.md` |
+| 5 | `product-template` | EconomicTerms, Payout, TradableProduct | PENDING | `ns05_product.md` |
+| 6 | `product-common-settlement` | SettlementTerms, SettlementPayout | PENDING | `ns06_settlement.md` |
+| 7 | `event-common` | Trade, TradeState, BusinessEvent | PENDING | `ns07_event.md` |
+
+## Process per namespace
+1. Explore agent reads Rosetta files, writes gap analysis to `_rosetta_alignment/nsXX_*.md`
+2. Implement alignment changes
+3. Formalis verifies invariant/totality match
+4. Minsky verifies type safety / illegal states
+5. All tests pass, mypy --strict clean, ruff clean
+6. Commit, update tracker, /compact
+
+## Metrics
+- Tests: 1,942
+- Files: 59 source

@@ -13,7 +13,8 @@ from decimal import Decimal
 from enum import Enum
 from typing import Literal, final
 
-from attestor.core.money import NonEmptyStr, PositiveDecimal
+from attestor.core.money import NonEmptyStr
+from attestor.core.quantity import NonNegativeQuantity
 from attestor.core.types import (
     BusinessDayAdjustments,
     Frequency,
@@ -215,11 +216,16 @@ class Price:
 class PriceQuantity:
     """Coupling of price, quantity, and the observable being priced.
 
-    CDM: PriceQuantity = price + quantity + observable.
+    CDM: PriceQuantity = price (0..*) + quantity (0..*) + observable (0..1).
+    Attestor simplifies to single price + quantity + observable for
+    the common equity/derivatives case.
+
+    quantity is a NonNegativeQuantity (value + UnitType) per CDM
+    base-math alignment.
     """
 
     price: Price
-    quantity: PositiveDecimal
+    quantity: NonNegativeQuantity
     observable: Observable
 
 

@@ -20,7 +20,12 @@ from decimal import Decimal
 
 import pytest
 
-from attestor.core.money import NonEmptyStr, PositiveDecimal
+from attestor.core.money import NonEmptyStr
+from attestor.core.quantity import (
+    FinancialUnitEnum,
+    NonNegativeQuantity,
+    UnitType,
+)
 from attestor.core.types import (
     BusinessDayAdjustments,
     Frequency,
@@ -79,10 +84,13 @@ assert not isinstance(_BBG, Exception)
 _BBG = _BBG.value
 
 
-def _pos(s: str) -> PositiveDecimal:
-    r = PositiveDecimal.parse(Decimal(s))
-    assert not isinstance(r, Exception)
-    return r.value
+_SHARE_UNIT = UnitType.of_financial(FinancialUnitEnum.SHARE)
+_CCY_UNIT = UnitType(currency=NonEmptyStr(value="USD"))
+
+
+def _nnq(s: str, unit: UnitType = _SHARE_UNIT) -> NonNegativeQuantity:
+    """Helper: create NonNegativeQuantity from string."""
+    return NonNegativeQuantity(value=Decimal(s), unit=unit)
 
 
 # ---------------------------------------------------------------------------
@@ -448,7 +456,7 @@ class TestPriceQuantity:
             price_expression=PriceExpressionEnum.ABSOLUTE,
         )
         pq = PriceQuantity(
-            price=price, quantity=_pos("1000000"), observable=_SOFR,
+            price=price, quantity=_nnq("1000000", _CCY_UNIT), observable=_SOFR,
         )
         assert pq.price == price
         assert pq.observable == _SOFR
@@ -463,7 +471,7 @@ class TestPriceQuantity:
         ticker = NonEmptyStr.parse("AAPL")
         assert not isinstance(ticker, Exception)
         pq = PriceQuantity(
-            price=price, quantity=_pos("100"), observable=ticker.value,
+            price=price, quantity=_nnq("100"), observable=ticker.value,
         )
         assert pq.observable == ticker.value
 
@@ -475,7 +483,7 @@ class TestPriceQuantity:
             price_expression=PriceExpressionEnum.ABSOLUTE,
         )
         pq = PriceQuantity(
-            price=price, quantity=_pos("500"), observable=_SOFR,
+            price=price, quantity=_nnq("500", _CCY_UNIT), observable=_SOFR,
         )
         with pytest.raises(AttributeError):
             pq.price = price  # type: ignore[misc]
